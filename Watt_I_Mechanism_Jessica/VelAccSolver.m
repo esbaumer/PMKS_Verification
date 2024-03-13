@@ -4,7 +4,7 @@ clear; close all; clc;
 
 % function Mechanism = updateMechanismKinematics()
 % Load the Mechanism structure
-loadedData = load('Kin/Mechanism.mat', 'Mechanism');
+loadedData = load('Mechanism.mat', 'Mechanism');
 Mechanism = loadedData.Mechanism;
 
 % Determine the number of iterations (rows in Joints)
@@ -45,7 +45,37 @@ end
 % end
 
 % Save the updated Mechanism
-save('Kin/Mechanism.mat', 'Mechanism');
+save('Mechanism.mat', 'Mechanism');
+
+% Define the base folder name for Velocities and Accelerations
+baseVelFolder = 'Kin/Vel';
+baseAccFolder = 'Kin/Acc';
+
+% Directories for velocities
+linVelJointFolder = fullfile(baseVelFolder, 'LinVel', 'Joint');
+linVelLinkCoMFolder = fullfile(baseVelFolder, 'LinVel', 'LinkCoM');
+angVelFolder = fullfile(baseVelFolder, 'AngVel');
+
+% Directories for accelerations
+linAccJointFolder = fullfile(baseAccFolder, 'LinAcc', 'Joint');
+linAccLinkCoMFolder = fullfile(baseAccFolder, 'LinAcc', 'LinkCoM');
+angAccFolder = fullfile(baseAccFolder, 'AngAcc');
+
+% Create the directories if they don't exist
+folders = {linVelJointFolder, linVelLinkCoMFolder, angVelFolder, linAccJointFolder, linAccLinkCoMFolder, angAccFolder};
+for i = 1:length(folders)
+    if ~exist(folders{i}, 'dir')
+        mkdir(folders{i});
+    end
+end
+
+% Example usage:
+saveData(linVelJointFolder, Mechanism.LinVel.Joint);
+saveData(linVelLinkCoMFolder, Mechanism.LinVel.LinkCoM);
+saveData(angVelFolder, Mechanism.AngVel);
+saveData(linAccJointFolder, Mechanism.LinAcc.Joint);
+saveData(linAccLinkCoMFolder, Mechanism.LinAcc.LinkCoM);
+saveData(angAccFolder, Mechanism.AngAcc);
 
 function JointPos = extractJointPositions(Mechanism, iteration)
 % Extract joint positions for a specific iteration
@@ -272,5 +302,25 @@ function Mechanism = initializeLinAccs(Mechanism, initialBlankJointVector, initi
     linLinkCoMAccNames = fieldnames(initialBlankLinkVector);
     for i = 1:length(linLinkCoMAccNames)
         Mechanism.LinAcc.LinkCoM.(linLinkCoMAccNames{i}) = zeros(max_iterations, 3); % Initialize with zeros for each dimension (assuming 3D angular velocities)
+    end
+end
+
+% Save function for clarity and reusability
+function saveData(folder, dataStruct)
+    % Ensure the folder exists
+    if ~exist(folder, 'dir')
+        mkdir(folder);
+    end
+    
+    names = fieldnames(dataStruct); % Get all field names of the structure
+    for i = 1:length(names)
+        name = names{i};
+        data = dataStruct.(name); % Extract data
+        
+        % Create a temporary struct with the extracted data
+        tempStruct = struct(name, data);
+        
+        % Correctly use the -struct option by providing the variable name of the temporary struct
+        save(fullfile(folder, name), '-struct', 'tempStruct', name);
     end
 end

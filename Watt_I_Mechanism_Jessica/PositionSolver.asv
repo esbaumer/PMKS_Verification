@@ -42,37 +42,6 @@ end
 % Save Joint Positions in the Created Directory
 save('Mechanism.mat', 'Mechanism');
 
-baseDir = 'Kin/Pos';
-% Save joint positions
-jointNames = fieldnames(Mechanism.Joint);
-jointFolder = fullfile(baseDir, 'Joint');
-if ~exist(jointFolder, 'dir')
-    mkdir(jointFolder);
-end
-
-for i = 1:length(jointNames)
-    jointName = jointNames{i};
-    % Create a temporary struct with the field name as the joint name
-    tempStruct = struct(jointName, Mechanism.Joint.(jointName));
-    % Save this struct using the -struct option
-    save(fullfile(jointFolder, jointName), '-struct', 'tempStruct', jointName);
-end
-
-% Save link CoM positions
-linkNames = fieldnames(Mechanism.LinkCoM);
-linkCoMFolder = fullfile(baseDir, 'LinkCoM');
-if ~exist(linkCoMFolder, 'dir')
-    mkdir(linkCoMFolder);
-end
-
-for i = 1:length(linkNames)
-    linkName = linkNames{i};
-    % Create a temporary struct with the field name as the link name
-    tempStruct = struct(linkName, Mechanism.LinkCoM.(linkName));
-    % Save this struct using the -struct option
-    save(fullfile(linkCoMFolder, linkName), '-struct', 'tempStruct', linkName);
-end
-
 % Function to initialize variables for the simulation
 function [iteration, theta, thetaIncrement] = initializeVariables(Mechanism)
 iteration = 2;
