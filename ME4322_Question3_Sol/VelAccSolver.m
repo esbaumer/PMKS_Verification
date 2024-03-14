@@ -1,219 +1,321 @@
-clc;
-close all
-clear all;
+function Mechanism = VelAccSolver(Mechanism)
 
-%%
-load('Kin/Pos/A')
-load('Kin/Pos/B')
-load('Kin/Pos/C')
-load('Kin/Pos/D')
-load('Kin/Pos/E')
-load('Kin/Pos/F')
-load('Kin/Pos/G')
+% Determine the number of iterations (rows in Joints)
+numIterations = size(Mechanism.Joint.A, 1); % Assuming 'A' is a joint in Mechanism.Joints
 
-WAB=zeros(10,3);
-WBCE=zeros(10,3);
-WCD=zeros(10,3);
-WEF=zeros(10,3);
-WFG=zeros(10,3);
+% Initialize fields for storing kinematics data
+Mechanism.AngVel = struct();
+Mechanism.LinVel = struct();
+Mechanism.AngAcc = struct();
+Mechanism.LinAcc = struct();
 
-V_a=zeros(10,3);
-V_b=zeros(10,3);
-V_c=zeros(10,3);
-V_d=zeros(10,3);
-V_e=zeros(10,3);
-V_f=zeros(10,3);
-V_g=zeros(10,3);
+blankVector = [0 0 0];
+initialBlankJointVector = struct('A', blankVector, ...
+    'B', blankVector, 'C', blankVector, 'D', blankVector, ...
+    'E', blankVector, 'F', blankVector, 'G', blankVector);
 
-V_ab_com=zeros(10,3);
-V_bce_com=zeros(10,3);
-V_cd_com=zeros(10,3);
-V_ef_com=zeros(10,3);
-V_fg_com=zeros(10,3);
+initialBlankLinkVector= struct('AB', blankVector, ...
+    'BCE', blankVector, 'CD', blankVector, ...
+    'EF', blankVector, 'FG', blankVector);
 
-AAB=zeros(10,3);
-ABCE=zeros(10,3);
-ACD=zeros(10,3);
-AEF=zeros(10,3);
-AFG=zeros(10,3);
+[Mechanism] = initializeAngVels(Mechanism, initialBlankLinkVector, numIterations);
+[Mechanism] = initializeLinVels(Mechanism, initialBlankJointVector, initialBlankLinkVector, numIterations);
+[Mechanism] = initializeAngAccs(Mechanism, initialBlankLinkVector, numIterations);
+[Mechanism] = initializeLinAccs(Mechanism, initialBlankJointVector, initialBlankLinkVector, numIterations);
 
-A_a=zeros(10,3);
-A_b=zeros(10,3);
-A_c=zeros(10,3);
-A_d=zeros(10,3);
-A_e=zeros(10,3);
-A_f=zeros(10,3);
-A_g=zeros(10,3);
+% Iterate through all iterations
+for iter = 1:numIterations
+    % Extract joint positions for this iteration
+    JointPos = extractJointPositions(Mechanism, iter);
+    LinkCoMPos = extractLinkCoMPositions(Mechanism, iter);
 
-A_ab_com=zeros(10,3);
-A_bce_com=zeros(10,3);
-A_cd_com=zeros(10,3);
-A_ef_com=zeros(10,3);
-A_fg_com=zeros(10,3);
+    % Assuming input_speed is defined or extracted from Mechanism
+    input_speed = Mechanism.inputSpeed(iter); % Placeholder, adjust based on your Mechanism structure
 
-for theta=1:1:10
-    % Coordinates of joints
-    A = A_vec(theta,:);
-    B = B_vec(theta,:);
-    C = C_vec(theta,:);
-    D = D_vec(theta,:);
-    E = E_vec(theta,:);
-    F = F_vec(theta,:);
-    G = G_vec(theta,:);
+    % Calculate kinematics for the current iteration and store within the Mechanism
+    Mechanism = determineKinematics(Mechanism, iter, JointPos, LinkCoMPos, input_speed);
+end
+% end
 
-    % Centers of Mass of each Link
-    AB_com = (A+B)/2;
-    BCE_com = (B+C+E)/3;
-    CD_com = (C+D)/2;
-    EF_com = (E+F)/2;
-    FG_com = (F+G)/2;
+% Save the updated Mechanism
+save('Mechanism.mat', 'Mechanism');
 
-    %% Velocity loops
-    %velocity equations from given loops
-    syms wBCE wCD wEF wFG
-    omegaAB=[0 0 10];
-    omegaBCE=[0 0 wBCE];
-    omegaCD=[0 0 wCD];
-    omegaEF=[0 0 wEF];
-    omegaFG=[0 0 wFG];
+% Define the base folder name for Velocities and Accelerations
+baseVelFolder = 'Kin/Vel';
+baseAccFolder = 'Kin/Acc';
 
-    % A->B->C->D->A
-    % V_ba + V_cb + V_dc + V_ad = 0
-    eqn1=velSolver(omegaAB,B-A)+velSolver(omegaBCE,C-B)+velSolver(omegaCD,D-C)==0;
+% Directories for velocities
+linVelJointFolder = fullfile(baseVelFolder, 'LinVel', 'Joint');
+linVelLinkCoMFolder = fullfile(baseVelFolder, 'LinVel', 'LinkCoM');
+angVelFolder = fullfile(baseVelFolder, 'AngVel');
 
-    % A->B->E->F->G->A
-    % V_ba + V_eb + V_fe + V_gf + V_ag = 0
-    eqn2=velSolver(omegaAB,B-A)+velSolver(omegaBCE,E-B)+velSolver(omegaEF,F-E)+velSolver(omegaFG,G-F)==0;
-    
-    solution=solve([eqn1, eqn2],[wBCE wCD wEF wFG]);
+% Directories for accelerations
+linAccJointFolder = fullfile(baseAccFolder, 'LinAcc', 'Joint');
+linAccLinkCoMFolder = fullfile(baseAccFolder, 'LinAcc', 'LinkCoM');
+angAccFolder = fullfile(baseAccFolder, 'AngAcc');
 
-    % Store all the determined angular velocities
-    WAB(theta,:)=[0 0 10];
-    WBCE(theta,:)=[0 0 solution.wBCE]; %angular velocity of BCE
-    WCD(theta,:)=[0 0 solution.wCD]; %angular velocity of CD
-    WEF(theta,:)=[0 0 solution.wEF]; %angular velocity of EF
-    WFG(theta,:)=[0 0 solution.wFG]; %angular velocity of FG
-
-
-    % Determine the velocities at each joint
-    V_a(theta,:) = [0 0 0];
-    V_b(theta,:) = velSolver(WAB(theta,:),B-A);
-    V_c(theta,:) = velSolver(WCD(theta,:),D-C);
-    V_d(theta,:) = [0 0 0];
-    V_e(theta,:) = velSolver(WBCE(theta,:),E-B) + V_b(theta,:);
-    V_f(theta,:) = velSolver(WFG(theta,:),F-G);
-    V_g(theta,:) = [0 0 0];
-
-    % Determine the velocities at each link's center of mass
-    V_ab_com(theta,:) = velSolver(WAB(theta,:),AB_com - A);
-    V_bce_com(theta,:) =  velSolver(WBCE(theta,:),BCE_com - B) + V_b(theta,:);
-    V_cd_com(theta,:) = velSolver(WCD(theta,:),CD_com - D);
-    V_ef_com(theta,:) =  velSolver(WEF(theta,:),EF_com - E) + V_e(theta,:);
-    V_fg_com(theta,:) = velSolver(WFG(theta,:),FG_com - G);
-
-    %% Acceleration loops
-    %acceleration equations from given loops
-    syms aBCE aCD aEF aFG
-    alphaAB=[0 0 0];
-    alphaBCE=[0 0 aBCE];
-    alphaCD=[0 0 aCD];
-    alphaEF=[0 0 aEF];
-    alphaFG=[0 0 aFG];
-
-    % A->B->C->D->A
-    % A_ba + A_cb + A_dc + A_ad = 0
-    eqn1=accSolver(WAB(theta,:),alphaAB, B-A)+accSolver(WBCE(theta,:),alphaBCE,C-B)+accSolver(WCD(theta,:),alphaCD,D-C)==0;
-
-    % A->B->E->F->G->A
-    % A_ba + A_eb + A_fe + A_gf + A_ag = 0
-    eqn2=accSolver(WAB(theta,:),alphaAB,B-A)+accSolver(WBCE(theta,:),alphaBCE,E-B)+accSolver(WEF(theta,:),alphaEF,F-E)+accSolver(WFG(theta,:),alphaFG,G-F)==0;
-    
-    solution=solve([eqn1, eqn2],[aBCE aCD aEF aFG]);
-
-    % Store all the determined angular accelerations
-    AAB(theta,:)=[0 0 10];
-    ABCE(theta,:)=[0 0 solution.aBCE]; %angular acceleration of CD
-    ACD(theta,:)=[0 0 solution.aCD]; %angular acceleration of CD
-    AEF(theta,:)=[0 0 solution.aEF]; %angular acceleration of CD
-    AFG(theta,:)=[0 0 solution.aFG]; %angular acceleration of BC
-
-
-    % Determine the accelerations at each joint
-    A_a(theta,:) = [0 0 0];
-    A_b(theta,:) = accSolver(WAB(theta,:), AAB(theta,:),B-A);
-    A_c(theta,:) = accSolver(WCD(theta,:), ABCE(theta,:),D-C);
-    A_d(theta,:) = [0 0 0];
-    A_e(theta,:) = accSolver(WBCE(theta,:), ABCE(theta,:),E-B) + A_b(theta,:);
-    A_f(theta,:) = accSolver(WFG(theta,:),AFG(theta,:),F-G);
-    A_g(theta,:) = [0 0 0];
-
-    % Determine the accelerations at each link's center of mass
-    A_ab_com(theta,:) = accSolver(WAB(theta,:),AAB(theta,:),AB_com - A);
-    A_bce_com(theta,:) =  accSolver(WBCE(theta,:),ABCE(theta,:),BCE_com - B) + A_b(theta,:);
-    A_cd_com(theta,:) = accSolver(WCD(theta,:),ACD(theta,:),CD_com - D);
-    A_ef_com(theta,:) =  accSolver(WEF(theta,:),AEF(theta,:),EF_com - E) + A_e(theta,:);
-    A_fg_com(theta,:) = accSolver(WFG(theta,:),AFG(theta,:),FG_com - G);
+% Create the directories if they don't exist
+folders = {linVelJointFolder, linVelLinkCoMFolder, angVelFolder, linAccJointFolder, linAccLinkCoMFolder, angAccFolder};
+for i = 1:length(folders)
+    if ~exist(folders{i}, 'dir')
+        mkdir(folders{i});
+    end
 end
 
-% Directory for saving the results
-checkDirectory('Kin/LinVel/Joint');
-checkDirectory('Kin/LinVel/Link');
-checkDirectory('Kin/AngVel');
-checkDirectory('Kin/LinAcc/Joint');
-checkDirectory('Kin/LinAcc/Link');
-checkDirectory('Kin/AngAcc');
+% Example usage:
+saveData(linVelJointFolder, Mechanism.LinVel.Joint);
+saveData(linVelLinkCoMFolder, Mechanism.LinVel.LinkCoM);
+saveData(angVelFolder, Mechanism.AngVel);
+saveData(linAccJointFolder, Mechanism.LinAcc.Joint);
+saveData(linAccLinkCoMFolder, Mechanism.LinAcc.LinkCoM);
+saveData(angAccFolder, Mechanism.AngAcc);
 
-save('Kin/LinVel/Joint/A', 'V_a')
-save('Kin/LinVel/Joint/B', 'V_b')
-save('Kin/LinVel/Joint/C', 'V_c')
-save('Kin/LinVel/Joint/D', 'V_d')
-save('Kin/LinVel/Joint/E', 'V_e')
-save('Kin/LinVel/Joint/F', 'V_f')
-save('Kin/LinVel/Joint/G', 'V_g')
+end
 
-save('Kin/LinVel/Link/AB', 'V_ab_com')
-save('Kin/LinVel/Link/BCE', 'V_bce_com')
-save('Kin/LinVel/Link/CD', 'V_cd_com')
-save('Kin/LinVel/Link/EF', 'V_ef_com')
-save('Kin/LinVel/Link/FG', 'V_fg_com')
+function JointPos = extractJointPositions(Mechanism, iteration)
+% Extract joint positions for a specific iteration
+JointPos = struct();
+jointNames = fieldnames(Mechanism.Joint);
+for i = 1:length(jointNames)
+    JointPos.(jointNames{i}) = Mechanism.Joint.(jointNames{i})(iteration, :);
+end
+end
+function LinkCoMPos = extractLinkCoMPositions(Mechanism, iteration)
+% Extract link center of mass positions for a specific iteration
+LinkCoMPos = struct();
+linkNames = fieldnames(Mechanism.LinkCoM);
+for i = 1:length(linkNames)
+    LinkCoMPos.(linkNames{i}) = Mechanism.LinkCoM.(linkNames{i})(iteration, :);
+end
+end
 
-save('Kin/AngVel/AB', 'WAB')
-save('Kin/AngVel/BCE', 'WBCE')
-save('Kin/AngVel/CD', 'WCD')
-save('Kin/AngVel/EF', 'WEF')
-save('Kin/AngVel/FG', 'WFG')
+function Mechanism = determineKinematics(Mechanism, iter, JointPos, LinkCoMPos, input_speed)
+% Placeholder for your logic to calculate kinematics
+[Mechanism, AngVel] = determineAngVel(Mechanism, iter, JointPos, input_speed);
+[Mechanism] = determineLinVel(Mechanism, iter, JointPos, LinkCoMPos, AngVel);
+[Mechanism, AngAcc] = determineAngAcc(Mechanism, iter, JointPos, AngVel);
+[Mechanism] = determineLinAcc(Mechanism, iter, JointPos, LinkCoMPos, AngVel, AngAcc);
+end
 
-save('Kin/LinAcc/Joint/A', 'A_a')
-save('Kin/LinAcc/Joint/B', 'A_b')
-save('Kin/LinAcc/Joint/C', 'A_c')
-save('Kin/LinAcc/Joint/D', 'A_d')
-save('Kin/LinAcc/Joint/E', 'A_e')
-save('Kin/LinAcc/Joint/F', 'A_f')
-save('Kin/LinAcc/Joint/G', 'A_g')
+%% Velocity loops
+function [Mechanism, AngVel] = determineAngVel(Mechanism, iter, JointPos, input_speed)
+%velocity equations from given loops
+syms wBCE wCD wEF wFG
+omegaAB=[0 0 input_speed];
+omegaBCE=[0 0 wBCE];
+omegaCD=[0 0 wCD];
+omegaEF=[0 0 wEF];
+omegaFG=[0 0 wFG];
 
-save('Kin/LinAcc/Link/AB', 'A_ab_com')
-save('Kin/LinAcc/Link/BCE', 'A_bce_com')
-save('Kin/LinAcc/Link/CD', 'A_cd_com')
-save('Kin/LinAcc/Link/EF', 'A_ef_com')
-save('Kin/LinAcc/Link/FG', 'A_fg_com')
+A = JointPos.A;
+B = JointPos.B;
+C = JointPos.C;
+D = JointPos.D;
+E = JointPos.E;
+F = JointPos.F;
+G = JointPos.G;
 
-save('Kin/AngAcc/AB', 'AAB')
-save('Kin/AngAcc/BCE', 'ABCE')
-save('Kin/AngAcc/CD', 'ACD')
-save('Kin/AngAcc/EF', 'AEF')
-save('Kin/AngAcc/FG', 'AFG')
+% A->B->C->D->A
+% V_ba + V_cb + V_dc + V_ad = 0
+eqn1=velSolver(omegaAB,B-A)+velSolver(omegaBCE,C-B)+velSolver(omegaCD,D-C)==0;
 
+% A->B->E->F->G->A
+% V_ba + V_eb + V_fe + V_gf + V_ag = 0
+eqn2=velSolver(omegaAB,B-A)+velSolver(omegaBCE,E-B)+velSolver(omegaEF,F-E)+velSolver(omegaFG,G-F)==0;
+
+solution=solve([eqn1, eqn2],[wBCE wCD wEF wFG]);
+
+% Store all the determined angular velocities
+AngVel.AB=[0 0 input_speed];
+AngVel.BCE=[0 0 double(solution.wBCE)]; %angular velocity of BCE
+AngVel.CD=[0 0 double(solution.wCD)]; %angular velocity of DE
+AngVel.EF=[0 0 double(solution.wEF)]; %angular velocity of EF
+AngVel.FG=[0 0 double(solution.wFG)]; %angular velocity of CFG
+
+linkNames = fieldnames(Mechanism.LinkCoM);
+for i = 1:length(linkNames)
+    Mechanism.AngVel.(linkNames{i})(iter,:) = AngVel.(linkNames{i});
+end
+end
+function [Mechanism] = determineLinVel(Mechanism, iter, JointPos, LinkCoMPos, AngVel)
+% Determine the velocities at each joint
+A = JointPos.A;
+B = JointPos.B;
+C = JointPos.C;
+D = JointPos.D;
+E = JointPos.E;
+F = JointPos.F;
+G = JointPos.G;
+
+AB_com = LinkCoMPos.AB;
+BCE_com = LinkCoMPos.BCE;
+CD_com = LinkCoMPos.CD;
+EF_com = LinkCoMPos.EF;
+FG_com = LinkCoMPos.FG;
+
+LinVel.Joint.A = [0 0 0];
+LinVel.Joint.B = velSolver(AngVel.AB,B-A);
+LinVel.Joint.C = velSolver(AngVel.CD,C-D);
+LinVel.Joint.D = [0 0 0];
+LinVel.Joint.E = velSolver(AngVel.BCE,E-C) + LinVel.Joint.C;
+LinVel.Joint.F = velSolver(AngVel.FG,F-G);
+LinVel.Joint.G = [0 0 0];
+
+% Determine the velocities at each link's center of mass
+LinVel.LinkCoM.AB = velSolver(AngVel.AB,AB_com - A);
+LinVel.LinkCoM.BCE= velSolver(AngVel.BCE,BCE_com - B) + LinVel.Joint.B;
+LinVel.LinkCoM.CD= velSolver(AngVel.CD,CD_com - D);
+LinVel.LinkCoM.EF = velSolver(AngVel.EF,EF_com - E) + LinVel.Joint.E;
+LinVel.LinkCoM.FG = velSolver(AngVel.FG,FG_com - G);
+
+jointNames = fieldnames(Mechanism.Joint);
+for i = 1:length(jointNames)
+    Mechanism.LinVel.Joint.(jointNames{i})(iter,:) = LinVel.Joint.(jointNames{i});
+end
+linkNames = fieldnames(Mechanism.LinkCoM);
+for i = 1:length(linkNames)
+    Mechanism.LinVel.LinkCoM.(linkNames{i})(iter,:) = LinVel.LinkCoM.(linkNames{i});
+end
+
+end
+function [Mechanism, AngAcc] = determineAngAcc(Mechanism, iter, Pos, AngVel)
+A = Pos.A;
+B = Pos.B;
+C = Pos.C;
+D = Pos.D;
+E = Pos.E;
+F = Pos.F;
+G = Pos.G;
+%% Acceleration loops
+%acceleration equations from given loops
+syms aBCE aCD aEF aFG
+alphaAB=[0 0 0];
+alphaBCE=[0 0 aBCE];
+alphaCD=[0 0 aCD];
+alphaEF=[0 0 aEF];
+alphaFG=[0 0 aFG];
+
+% A->B->C->D->A
+% A_ba + A_cb + A_dc + A_ad = 0
+eqn1=accSolver(AngVel.AB,alphaAB, B-A)+accSolver(AngVel.BCE,alphaBCE,C-B)+accSolver(AngVel.CD,alphaCD,D-C)==0;
+
+% A->B->D->E->F->G->A
+% A_ba + A_ba + A_db + A_ed + A_fe + A_gf + A_ag = 0
+eqn2=accSolver(AngVel.AB,alphaAB,B-A)+accSolver(AngVel.BCE,alphaBCE,E-B)+accSolver(AngVel.EF,alphaEF,F-E)+accSolver(AngVel.FG,alphaFG,G-F)==0;
+
+solution=solve([eqn1, eqn2],[aBCE aCD aEF aFG]);
+
+% Store all the determined angular accelerations
+AngAcc.AB=[0 0 0];
+AngAcc.BCE=[0 0 double(solution.aBCE)]; %angular acceleration of BCE
+AngAcc.CD=[0 0 double(solution.aCD)]; %angular acceleration of CD
+AngAcc.EF=[0 0 double(solution.aEF)]; %angular acceleration of EF
+AngAcc.FG=[0 0 double(solution.aFG)]; %angular acceleration of FG
+
+linkNames = fieldnames(Mechanism.LinkCoM);
+for i = 1:length(linkNames)
+    Mechanism.AngAcc.(linkNames{i})(iter,:) = AngAcc.(linkNames{i});
+end
+end
+function [Mechanism] = determineLinAcc(Mechanism, iter, JointPos, LinkCoMPos, AngVel, AngAcc)
+A = JointPos.A;
+B = JointPos.B;
+C = JointPos.C;
+D = JointPos.D;
+E = JointPos.E;
+F = JointPos.F;
+G = JointPos.G;
+
+AB_com = LinkCoMPos.AB;
+BCE_com = LinkCoMPos.BCE;
+CD_com = LinkCoMPos.CD;
+EF_com = LinkCoMPos.EF;
+FG_com = LinkCoMPos.FG;
+
+% Determine the accelerations at each joint
+LinAcc.Joint.A = [0 0 0];
+LinAcc.Joint.B = accSolver(AngVel.AB, AngAcc.AB,B-A);
+LinAcc.Joint.C = accSolver(AngVel.CD, AngAcc.CD,C-D);
+LinAcc.Joint.D = [0 0 0];
+LinAcc.Joint.E = accSolver(AngVel.BCE, AngAcc.BCE,E-B) + LinAcc.Joint.B;
+LinAcc.Joint.F = accSolver(AngVel.FG,AngAcc.FG, F-G);
+LinAcc.Joint.G = [0 0 0];
+
+% Determine the accelerations at each link's center of mass
+LinAcc.LinkCoM.AB = accSolver(AngVel.AB,AngAcc.AB,AB_com - A);
+LinAcc.LinkCoM.BCE= accSolver(AngVel.BCE,AngAcc.BCE,BCE_com - B) + LinAcc.Joint.B;
+LinAcc.LinkCoM.CD= accSolver(AngVel.CD,AngAcc.CD,CD_com - D);
+LinAcc.LinkCoM.EF= accSolver(AngVel.EF,AngAcc.EF,EF_com - E) + LinAcc.Joint.E;
+LinAcc.LinkCoM.FG = accSolver(AngVel.FG,AngAcc.FG,FG_com - G);
+
+jointNames = fieldnames(Mechanism.Joint);
+for i = 1:length(jointNames)
+    Mechanism.LinAcc.Joint.(jointNames{i})(iter,:) = LinAcc.Joint.(jointNames{i});
+end
+linkNames = fieldnames(Mechanism.LinkCoM);
+for i = 1:length(linkNames)
+    Mechanism.LinAcc.LinkCoM.(linkNames{i})(iter,:) = LinAcc.LinkCoM.(linkNames{i});
+end
+end
+
+% Desired functions to do cross products appropriately
 function vel = velSolver(w, r)
 vel = cross(w,r);
 end
-
 function acc = accSolver(w,a,r)
 acc = cross(w,cross(w,r)) + cross(a,r);
 end
 
-function checkDirectory(saveDir)
-% Check if the directory exists, if not, create it
-if ~exist(saveDir, 'dir')
-    mkdir(saveDir);
+% Initialize AngVel, LinVel, AngAcc, LinAcc
+function Mechanism = initializeAngVels(Mechanism, initialBlankLinkVector, max_iterations)
+angVelNames = fieldnames(initialBlankLinkVector);
+for i = 1:length(angVelNames)
+    Mechanism.AngVel.(angVelNames{i}) = zeros(max_iterations, 3); % Initialize with zeros for each dimension (assuming 3D angular velocities)
+end
+end
+function Mechanism = initializeLinVels(Mechanism, initialBlankJointVector, initialBlankLinkVector, max_iterations)
+linJointVelNames = fieldnames(initialBlankJointVector);
+for i = 1:length(linJointVelNames)
+    Mechanism.LinVel.Joint.(linJointVelNames{i}) = zeros(max_iterations, 3); % Initialize with zeros for each dimension (assuming 3D angular velocities)
+end
+linLinkCoMVelNames = fieldnames(initialBlankLinkVector);
+for i = 1:length(linLinkCoMVelNames)
+    Mechanism.LinVel.LinkCoM.(linLinkCoMVelNames{i}) = zeros(max_iterations, 3); % Initialize with zeros for each dimension (assuming 3D angular velocities)
+end
+end
+function Mechanism = initializeAngAccs(Mechanism, initialBlankLinkVector, max_iterations)
+angAccNames = fieldnames(initialBlankLinkVector);
+for i = 1:length(angAccNames)
+    Mechanism.AngAcc.(angAccNames{i}) = zeros(max_iterations, 3); % Initialize with zeros for each dimension (assuming 3D angular velocities)
+end
+end
+function Mechanism = initializeLinAccs(Mechanism, initialBlankJointVector, initialBlankLinkVector, max_iterations)
+linJointNames = fieldnames(initialBlankJointVector);
+for i = 1:length(linJointNames)
+    Mechanism.LinAcc.Joint.(linJointNames{i}) = zeros(max_iterations, 3); % Initialize with zeros for each dimension (assuming 3D angular velocities)
+end
+linLinkCoMAccNames = fieldnames(initialBlankLinkVector);
+for i = 1:length(linLinkCoMAccNames)
+    Mechanism.LinAcc.LinkCoM.(linLinkCoMAccNames{i}) = zeros(max_iterations, 3); % Initialize with zeros for each dimension (assuming 3D angular velocities)
+end
+end
+
+% Save function for clarity and reusability
+function saveData(folder, dataStruct)
+% Ensure the folder exists
+if ~exist(folder, 'dir')
+    mkdir(folder);
+end
+
+names = fieldnames(dataStruct); % Get all field names of the structure
+for i = 1:length(names)
+    name = names{i};
+    data = dataStruct.(name); % Extract data
+
+    % Create a temporary struct with the extracted data
+    tempStruct = struct(name, data);
+
+    % Correctly use the -struct option by providing the variable name of the temporary struct
+    save(fullfile(folder, name), '-struct', 'tempStruct', name);
 end
 end
