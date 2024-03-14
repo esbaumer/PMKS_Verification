@@ -1,9 +1,4 @@
-clc; close all; clear;
-
-% Mechanism = updateMechanismStaticAnalysis()
-% Load the Mechanism structure
-loadedData = load('Mechanism.mat', 'Mechanism');
-Mechanism = loadedData.Mechanism;
+function Mechanism = ForceSolver(Mechanism)
 
 % Assuming numIterations is defined by the size of an array in Mechanism
 numIterations = size(Mechanism.Joint.A, 1);
@@ -53,6 +48,7 @@ save('Mechanism.mat', 'Mechanism');
 baseFolder = 'Force';
 % Save Force Data
 saveForceData(baseFolder, Mechanism);
+end
 
 function [Mechanism] = initializeForceSolvers(Mechanism, numIterations)
 % Initialize with zeros for storing forces and moments
@@ -73,17 +69,17 @@ function solution = performForceAnalysis(Mechanism, iter, JointPos, LinkCoMPos, 
 % Here, you'd implement your equations based on static conditions
 % For each joint and link, calculate forces and moments ensuring sum of forces = 0 and sum of moments = 0
 
-massAB = 5;
-massBCD = 25;
-massDE = 8;
-massEF = 13;
-massCFG = 7;
+massAB = Mechanism.Mass.AB;
+massBCD = Mechanism.Mass.BCD;
+massDE = Mechanism.Mass.DE;
+massEF = Mechanism.Mass.EF;
+massCFG = Mechanism.Mass.CFG;
 
-massMoIAB = 5;
-massMoIBCD = 25;
-massMoIDE = 8;
-massMoIEF = 13;
-massMoICFG = 7;
+massMoIAB = Mechanism.MassMoI.AB;
+massMoIBCD = Mechanism.MassMoI.BCD;
+massMoIDE = Mechanism.MassMoI.DE;
+massMoIEF = Mechanism.MassMoI.EF;
+massMoICFG = Mechanism.MassMoI.CFG;
 
 A_ab = Mechanism.AngAcc.AB(iter,:);
 A_bcd = Mechanism.AngAcc.BCD(iter,:);
@@ -235,39 +231,3 @@ for iCategory = 1:length(categories)
     end
 end
 end
-
-% function saveForceData(baseFolder, Mechanism, forceCategory, dataType)
-% % baseFolder: The base directory, e.g., 'Force'
-% % Mechanism: The loaded mechanism data structure
-% % forceCategory: Combination of force type and condition, e.g., 'StaticForceGrav'
-% % dataType: 'Joint' or 'Torque'
-%
-% % Define the folder path based on forceCategory and dataType
-% folder = fullfile(baseFolder, forceCategory, dataType);
-%
-% % Ensure the folder exists
-% if ~exist(folder, 'dir')
-%     mkdir(folder);
-% end
-%
-% % Depending on dataType, process and save data
-% if strcmp(dataType, 'Joint')
-%     % Process and save Joint data
-%     jointNames = fieldnames(Mechanism.(forceCategory).Joint);
-%     for i = 1:length(jointNames)
-%         jointName = jointNames{i};
-%         data = Mechanism.(forceCategory).Joint.(jointName);
-%         % Create a struct with the correct variable name for saving
-%         tempStruct = struct(jointName, data);
-%         save(fullfile(folder, jointName), '-struct', 'tempStruct', jointName);
-%     end
-% elseif strcmp(dataType, 'Torque')
-%     % Process and save Torque data (if applicable)
-%     if isfield(Mechanism.(forceCategory), 'Torque')
-%         torqueData = Mechanism.(forceCategory).Torque;
-%         % Assuming Torque data is a vector, save it under 'Torque.mat'
-%         tempStruct = struct('Torque', torqueData);
-%         save(fullfile(folder, 'Torque'), '-struct', 'tempStruct', 'Torque');
-%     end
-% end
-% end

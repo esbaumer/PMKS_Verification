@@ -1,24 +1,8 @@
-% Initialization
-clear; close all; clc;
-
-% Define coordinates of joints
-A = [-3.74, -2.41, 0];
-B = [-2.72, 0.91, 0];
-C = [1.58, 0.43, 0];
-D = [-0.24, 4.01, 0]; 
-E = [5.08, 5.31, 0]; 
-F = [8.14, 3.35, 0];
-G = [7.32, -3.51, 0];
-initialJointPositions = struct('A', A, 'B', B, 'C', C, 'D', D, 'E', E, 'F', F, 'G', G);
-
-initialLinkCoMPositions = struct('AB', determineCoM([A, B]), ...
-    'BCD', determineCoM([B, C, D]), 'DE', determineCoM([D, E]), ...
-    'EF', determineCoM([E, F]), 'CFG', determineCoM([C, F, G]));
-
+function Mechanism = PosSolver(Mechanism, input_speed)
 max_iterations = 900;
 
 % Initialize positions for maximum iterations
-[Mechanism] = initializePositions(initialJointPositions, initialLinkCoMPositions, max_iterations);
+[Mechanism] = initializePositions(Mechanism, max_iterations);
 
 % Calculate distances between points
 Mechanism = calculateDistances(Mechanism);
@@ -27,50 +11,14 @@ Mechanism = calculateDistances(Mechanism);
 [iteration, theta, thetaIncrement] = initializeVariables(Mechanism);
 
 % Initialize angular speed
-Mechanism.inputSpeed = zeros(max_iterations, 1);
-Mechanism.inputSpeed(1) = 1.0472; % 10 rpm to 1.0472 rad/s
+Mechanism = initializeInputSpeed(Mechanism, input_speed, max_iterations);
 
 % Main loop for calculating joint positions
-[Mechanism, iteration] = calculateJointPositions(Mechanism, theta, thetaIncrement, iteration, max_iterations);
-
-% Create Directory for Saving Results
-folderName = 'Kin';
-if ~exist(folderName, 'dir')
-    mkdir(folderName);  % Create the directory if it doesn't exist
-end
-
-% Save Joint Positions in the Created Directory
-save('Mechanism.mat', 'Mechanism');
+[Mechanism] = calculateJointPositions(Mechanism, theta, thetaIncrement, iteration, max_iterations);
 
 baseDir = 'Kin/Pos';
 % Save joint positions
-jointNames = fieldnames(Mechanism.Joint);
-jointFolder = fullfile(baseDir, 'Joint');
-if ~exist(jointFolder, 'dir')
-    mkdir(jointFolder);
-end
-
-for i = 1:length(jointNames)
-    jointName = jointNames{i};
-    % Create a temporary struct with the field name as the joint name
-    tempStruct = struct(jointName, Mechanism.Joint.(jointName));
-    % Save this struct using the -struct option
-    save(fullfile(jointFolder, jointName), '-struct', 'tempStruct', jointName);
-end
-
-% Save link CoM positions
-linkNames = fieldnames(Mechanism.LinkCoM);
-linkCoMFolder = fullfile(baseDir, 'LinkCoM');
-if ~exist(linkCoMFolder, 'dir')
-    mkdir(linkCoMFolder);
-end
-
-for i = 1:length(linkNames)
-    linkName = linkNames{i};
-    % Create a temporary struct with the field name as the link name
-    tempStruct = struct(linkName, Mechanism.LinkCoM.(linkName));
-    % Save this struct using the -struct option
-    save(fullfile(linkCoMFolder, linkName), '-struct', 'tempStruct', linkName);
+saveJointPositions(Mechanism, baseDir)
 end
 
 % Function to initialize variables for the simulation
@@ -81,16 +29,16 @@ theta = atan2(Mechanism.Joint.B(1,2) - Mechanism.Joint.A(1,2), Mechanism.Joint.B
 end
 
 % Function to initialize positions for all joints for max iterations
-function Mechanism = initializePositions(initialMechanismJointPositions, initialMechanismLinkCoMPositions, max_iterations)
-jointNames = fieldnames(initialMechanismJointPositions);
+function Mechanism = initializePositions(Mechanism, max_iterations)
+jointNames = fieldnames(Mechanism.Joint);
 for i = 1:length(jointNames)
-    initialJointPosition = initialMechanismJointPositions.(jointNames{i});
+    initialJointPosition = Mechanism.Joint.(jointNames{i});
     Mechanism.Joint.(jointNames{i}) = zeros(max_iterations, 3); % Initialize with zeros
     Mechanism.Joint.(jointNames{i})(1, :) = initialJointPosition; % Set initial position
 end
-linkNames = fieldnames(initialMechanismLinkCoMPositions);
+linkNames = fieldnames(Mechanism.LinkCoM);
 for i = 1:length(linkNames)
-    initialLinkPosition = initialMechanismLinkCoMPositions.(linkNames{i});
+    initialLinkPosition = Mechanism.LinkCoM.(linkNames{i});
     Mechanism.LinkCoM.(linkNames{i}) = zeros(max_iterations, 3); % Initialize with zeros
     Mechanism.LinkCoM.(linkNames{i})(1, :) = initialLinkPosition; % Set initial position
 end
@@ -116,7 +64,7 @@ Mechanism.LinkLength.FG = norm(Mechanism.Joint.G - Mechanism.Joint.F);
 end
 
 % Main function to calculate joint positions through iterations
-function [Mechanism, iteration] = calculateJointPositions(Mechanism, theta, thetaIncrement, iteration, max_iterations)
+function [Mechanism] = calculateJointPositions(Mechanism, theta, thetaIncrement, iteration, max_iterations)
 forwardDir = true; % Flag to indicate the direction of rotation. Mechanism should be going forward on its last iteration
 
 while ~(determineEqual(Mechanism.Joint.B(1, :), Mechanism.Joint.B(iteration - 1, :)) && ...
@@ -125,18 +73,15 @@ while ~(determineEqual(Mechanism.Joint.B(1, :), Mechanism.Joint.B(iteration - 1,
 end
 
 % Trim positions and speeds to the last filled iteration
-    jointNames = fieldnames(Mechanism.Joint);
-    for i = 1:length(jointNames)
-        Mechanism.Joint.(jointNames{i}) = Mechanism.Joint.(jointNames{i})(1:iteration-1, :);
-    end
-    linkNames = fieldnames(Mechanism.LinkCoM);
-    for i = 1:length(linkNames)
-        Mechanism.LinkCoM.(linkNames{i}) = Mechanism.LinkCoM.(linkNames{i})(1:iteration-1,:);
-    end
-    Mechanism.inputSpeed= Mechanism.inputSpeed(1:iteration-1,:);
-% for i = 1:length(jointNames)
-%     Mechanism.Joint.(jointNames{i}) = Mechanism.Joint.(jointNames{i})(1:iteration-1, :);
-% end
+jointNames = fieldnames(Mechanism.Joint);
+for i = 1:length(jointNames)
+    Mechanism.Joint.(jointNames{i}) = Mechanism.Joint.(jointNames{i})(1:iteration-1, :);
+end
+linkNames = fieldnames(Mechanism.LinkCoM);
+for i = 1:length(linkNames)
+    Mechanism.LinkCoM.(linkNames{i}) = Mechanism.LinkCoM.(linkNames{i})(1:iteration-1,:);
+end
+Mechanism.inputSpeed= Mechanism.inputSpeed(1:iteration-1,:);
 end
 
 % Function to update positions based on current state
@@ -186,11 +131,14 @@ Mechanism.Joint.E(iteration, :) = E;
 Mechanism.Joint.F(iteration, :) = F;
 Mechanism.Joint.G(iteration, :) = G;
 
-Mechanism.LinkCoM.AB(iteration, :) = determineCoM([A; B]);
-Mechanism.LinkCoM.BCD(iteration, :) = determineCoM([B; C; D]);
-Mechanism.LinkCoM.DE(iteration, :) = determineCoM([D; E]);
-Mechanism.LinkCoM.EF(iteration, :) = determineCoM([E; F]);
-Mechanism.LinkCoM.CFG(iteration, :) = determineCoM([C; F; G]);
+utilsFolderPath = fullfile(pwd);
+addpath(utilsFolderPath);
+
+Mechanism.LinkCoM.AB(iteration, :) = Utils.determineCoM([A; B]);
+Mechanism.LinkCoM.BCD(iteration, :) = Utils.determineCoM([B; C; D]);
+Mechanism.LinkCoM.DE(iteration, :) = Utils.determineCoM([D; E]);
+Mechanism.LinkCoM.EF(iteration, :) = Utils.determineCoM([E; F]);
+Mechanism.LinkCoM.CFG(iteration, :) = Utils.determineCoM([C; F; G]);
 
 if (forwardDir)
     Mechanism.inputSpeed(iteration) = Mechanism.inputSpeed(1);
@@ -234,23 +182,49 @@ tolerance = 0.001;
 result = all(abs(arr1 - arr2) < tolerance);
 end
 
-function com = determineCoM(poses)
-sumX = 0;
-sumY = 0;
-sumZ = 0;
+function saveJointPositions(Mechanism, baseDir)
 
-numPoses = size(poses, 1);
-for i = 1:numPoses
-    pose = poses(i,:);
-    sumX = sumX + pose(1);
-    sumY = sumY + pose(2);
-    sumZ = sumZ + pose(3);    
+% Create Directory for Saving Results
+folderName = 'Kin';
+if ~exist(folderName, 'dir')
+    mkdir(folderName);  % Create the directory if it doesn't exist
 end
 
-% Calculate average position
-avgX = sumX / numPoses;
-avgY = sumY / numPoses;
-avgZ = sumZ / numPoses;
+% Save Joint Positions in the Created Directory
+save('Mechanism.mat', 'Mechanism');
 
-com = [avgX, avgY, avgZ];
+
+jointNames = fieldnames(Mechanism.Joint);
+jointFolder = fullfile(baseDir, 'Joint');
+if ~exist(jointFolder, 'dir')
+    mkdir(jointFolder);
+end
+
+for i = 1:length(jointNames)
+    jointName = jointNames{i};
+    % Create a temporary struct with the field name as the joint name
+    tempStruct = struct(jointName, Mechanism.Joint.(jointName));
+    % Save this struct using the -struct option
+    save(fullfile(jointFolder, jointName), '-struct', 'tempStruct', jointName);
+end
+
+% Save link CoM positions
+linkNames = fieldnames(Mechanism.LinkCoM);
+linkCoMFolder = fullfile(baseDir, 'LinkCoM');
+if ~exist(linkCoMFolder, 'dir')
+    mkdir(linkCoMFolder);
+end
+
+for i = 1:length(linkNames)
+    linkName = linkNames{i};
+    % Create a temporary struct with the field name as the link name
+    tempStruct = struct(linkName, Mechanism.LinkCoM.(linkName));
+    % Save this struct using the -struct option
+    save(fullfile(linkCoMFolder, linkName), '-struct', 'tempStruct', linkName);
+end
+end
+
+function Mechanism = initializeInputSpeed(Mechanism, input_speed, max_iterations)
+Mechanism.inputSpeed = zeros(max_iterations, 1);
+Mechanism.inputSpeed(1) = input_speed; % 10 rpm to 1.0472 rad/s
 end

@@ -1,11 +1,4 @@
-% Initialization
-clear; close all; clc;
-
-
-% function Mechanism = updateMechanismKinematics()
-% Load the Mechanism structure
-loadedData = load('Mechanism.mat', 'Mechanism');
-Mechanism = loadedData.Mechanism;
+function Mechanism = VelAccSolver(Mechanism)
 
 % Determine the number of iterations (rows in Joints)
 numIterations = size(Mechanism.Joint.A, 1); % Assuming 'A' is a joint in Mechanism.Joints
@@ -39,7 +32,7 @@ for iter = 1:numIterations
     % Assuming input_speed is defined or extracted from Mechanism
     input_speed = Mechanism.inputSpeed(iter); % Placeholder, adjust based on your Mechanism structure
 
-    % Calculate kinematics for the current iteration and store within the Mechanism 
+    % Calculate kinematics for the current iteration and store within the Mechanism
     Mechanism = determineKinematics(Mechanism, iter, JointPos, LinkCoMPos, input_speed);
 end
 % end
@@ -76,6 +69,8 @@ saveData(angVelFolder, Mechanism.AngVel);
 saveData(linAccJointFolder, Mechanism.LinAcc.Joint);
 saveData(linAccLinkCoMFolder, Mechanism.LinAcc.LinkCoM);
 saveData(angAccFolder, Mechanism.AngAcc);
+
+end
 
 function JointPos = extractJointPositions(Mechanism, iteration)
 % Extract joint positions for a specific iteration
@@ -273,54 +268,54 @@ end
 
 % Initialize AngVel, LinVel, AngAcc, LinAcc
 function Mechanism = initializeAngVels(Mechanism, initialBlankLinkVector, max_iterations)
-    angVelNames = fieldnames(initialBlankLinkVector);
-    for i = 1:length(angVelNames)
-        Mechanism.AngVel.(angVelNames{i}) = zeros(max_iterations, 3); % Initialize with zeros for each dimension (assuming 3D angular velocities)
-    end
+angVelNames = fieldnames(initialBlankLinkVector);
+for i = 1:length(angVelNames)
+    Mechanism.AngVel.(angVelNames{i}) = zeros(max_iterations, 3); % Initialize with zeros for each dimension (assuming 3D angular velocities)
+end
 end
 function Mechanism = initializeLinVels(Mechanism, initialBlankJointVector, initialBlankLinkVector, max_iterations)
-    linJointVelNames = fieldnames(initialBlankJointVector);
-    for i = 1:length(linJointVelNames)
-        Mechanism.LinVel.Joint.(linJointVelNames{i}) = zeros(max_iterations, 3); % Initialize with zeros for each dimension (assuming 3D angular velocities)
-    end
-    linLinkCoMVelNames = fieldnames(initialBlankLinkVector);
-    for i = 1:length(linLinkCoMVelNames)
-        Mechanism.LinVel.LinkCoM.(linLinkCoMVelNames{i}) = zeros(max_iterations, 3); % Initialize with zeros for each dimension (assuming 3D angular velocities)
-    end
+linJointVelNames = fieldnames(initialBlankJointVector);
+for i = 1:length(linJointVelNames)
+    Mechanism.LinVel.Joint.(linJointVelNames{i}) = zeros(max_iterations, 3); % Initialize with zeros for each dimension (assuming 3D angular velocities)
+end
+linLinkCoMVelNames = fieldnames(initialBlankLinkVector);
+for i = 1:length(linLinkCoMVelNames)
+    Mechanism.LinVel.LinkCoM.(linLinkCoMVelNames{i}) = zeros(max_iterations, 3); % Initialize with zeros for each dimension (assuming 3D angular velocities)
+end
 end
 function Mechanism = initializeAngAccs(Mechanism, initialBlankLinkVector, max_iterations)
-    angAccNames = fieldnames(initialBlankLinkVector);
-    for i = 1:length(angAccNames)
-        Mechanism.AngAcc.(angAccNames{i}) = zeros(max_iterations, 3); % Initialize with zeros for each dimension (assuming 3D angular velocities)
-    end
+angAccNames = fieldnames(initialBlankLinkVector);
+for i = 1:length(angAccNames)
+    Mechanism.AngAcc.(angAccNames{i}) = zeros(max_iterations, 3); % Initialize with zeros for each dimension (assuming 3D angular velocities)
+end
 end
 function Mechanism = initializeLinAccs(Mechanism, initialBlankJointVector, initialBlankLinkVector, max_iterations)
-    linJointNames = fieldnames(initialBlankJointVector);
-    for i = 1:length(linJointNames)
-        Mechanism.LinAcc.Joint.(linJointNames{i}) = zeros(max_iterations, 3); % Initialize with zeros for each dimension (assuming 3D angular velocities)
-    end
-    linLinkCoMAccNames = fieldnames(initialBlankLinkVector);
-    for i = 1:length(linLinkCoMAccNames)
-        Mechanism.LinAcc.LinkCoM.(linLinkCoMAccNames{i}) = zeros(max_iterations, 3); % Initialize with zeros for each dimension (assuming 3D angular velocities)
-    end
+linJointNames = fieldnames(initialBlankJointVector);
+for i = 1:length(linJointNames)
+    Mechanism.LinAcc.Joint.(linJointNames{i}) = zeros(max_iterations, 3); % Initialize with zeros for each dimension (assuming 3D angular velocities)
+end
+linLinkCoMAccNames = fieldnames(initialBlankLinkVector);
+for i = 1:length(linLinkCoMAccNames)
+    Mechanism.LinAcc.LinkCoM.(linLinkCoMAccNames{i}) = zeros(max_iterations, 3); % Initialize with zeros for each dimension (assuming 3D angular velocities)
+end
 end
 
 % Save function for clarity and reusability
 function saveData(folder, dataStruct)
-    % Ensure the folder exists
-    if ~exist(folder, 'dir')
-        mkdir(folder);
-    end
-    
-    names = fieldnames(dataStruct); % Get all field names of the structure
-    for i = 1:length(names)
-        name = names{i};
-        data = dataStruct.(name); % Extract data
-        
-        % Create a temporary struct with the extracted data
-        tempStruct = struct(name, data);
-        
-        % Correctly use the -struct option by providing the variable name of the temporary struct
-        save(fullfile(folder, name), '-struct', 'tempStruct', name);
-    end
+% Ensure the folder exists
+if ~exist(folder, 'dir')
+    mkdir(folder);
+end
+
+names = fieldnames(dataStruct); % Get all field names of the structure
+for i = 1:length(names)
+    name = names{i};
+    data = dataStruct.(name); % Extract data
+
+    % Create a temporary struct with the extracted data
+    tempStruct = struct(name, data);
+
+    % Correctly use the -struct option by providing the variable name of the temporary struct
+    save(fullfile(folder, name), '-struct', 'tempStruct', name);
+end
 end

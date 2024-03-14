@@ -33,14 +33,9 @@ Mechanism.inputSpeed(1) = 1.0472; % 10 rpm to 1.0472 rad/s
 % Main loop for calculating joint positions
 [Mechanism, iteration] = calculateJointPositions(Mechanism, theta, thetaIncrement, iteration, max_iterations);
 
-% Create Directory for Saving Results
-folderName = 'Kin';
-if ~exist(folderName, 'dir')
-    mkdir(folderName);  % Create the directory if it doesn't exist
-end
-
-% Save Joint Positions in the Created Directory
-save('Mechanism.mat', 'Mechanism');
+baseDir = 'Kin/Pos';
+% Save joint positions
+saveJointPositions(Mechanism, baseDir);
 
 % Function to initialize variables for the simulation
 function [iteration, theta, thetaIncrement] = initializeVariables(Mechanism)
@@ -204,6 +199,7 @@ result = all(abs(arr1 - arr2) < tolerance);
 end
 
 function com = determineCoM(poses)
+
 sumX = 0;
 sumY = 0;
 sumZ = 0;
@@ -222,4 +218,45 @@ avgY = sumY / numPoses;
 avgZ = sumZ / numPoses;
 
 com = [avgX, avgY, avgZ];
+end
+
+saveJointPositions(Mechanism, baseDir)
+
+% Create Directory for Saving Results
+folderName = 'Kin';
+if ~exist(folderName, 'dir')
+    mkdir(folderName);  % Create the directory if it doesn't exist
+end
+
+% Save Joint Positions in the Created Directory
+save('Mechanism.mat', 'Mechanism');
+
+
+jointNames = fieldnames(Mechanism.Joint);
+jointFolder = fullfile(baseDir, 'Joint');
+if ~exist(jointFolder, 'dir')
+    mkdir(jointFolder);
+end
+
+for i = 1:length(jointNames)
+    jointName = jointNames{i};
+    % Create a temporary struct with the field name as the joint name
+    tempStruct = struct(jointName, Mechanism.Joint.(jointName));
+    % Save this struct using the -struct option
+    save(fullfile(jointFolder, jointName), '-struct', 'tempStruct', jointName);
+end
+
+% Save link CoM positions
+linkNames = fieldnames(Mechanism.LinkCoM);
+linkCoMFolder = fullfile(baseDir, 'LinkCoM');
+if ~exist(linkCoMFolder, 'dir')
+    mkdir(linkCoMFolder);
+end
+
+for i = 1:length(linkNames)
+    linkName = linkNames{i};
+    % Create a temporary struct with the field name as the link name
+    tempStruct = struct(linkName, Mechanism.LinkCoM.(linkName));
+    % Save this struct using the -struct option
+    save(fullfile(linkCoMFolder, linkName), '-struct', 'tempStruct', linkName);
 end
