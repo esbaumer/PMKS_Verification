@@ -37,10 +37,10 @@ Mechanism.LinkCoM.FG = Utils.determineCoM([F; H]);
 
 % Define masses for each link
 Mechanism.Mass.AB = 5; 
-Mechanism.Mass.BC= 10;
-Mechanism.Mass.CDE = 5; 
+Mechanism.Mass.BCD = 10;
+Mechanism.Mass.DE = 5; 
 Mechanism.Mass.EF = 10;
-Mechanism.Mass.FG = 5; 
+Mechanism.Mass.CFG = 5; 
 
 % Define mass moments of inertia for each link
 Mechanism.MassMoI.AB = 0.1; 

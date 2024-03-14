@@ -16,6 +16,18 @@ E = [18 35 0];
 F = [43 32 0];
 G = [45 17 0];
 
+massAB = 13.68;
+massBC = 33.07;
+massDCE = 57.7;
+massEF = 27.54;
+massFG = 59.94;
+
+massMoIAB = 0.43;
+massMoIBC = 5.75;
+massMoIDCE = 30.36;
+massMoIEF = 3.34;
+massMoIFG = 34.03;
+
 % Define initial joint positions (example values)
 Mechanism.Joint.A = A;
 Mechanism.Joint.B = B;
