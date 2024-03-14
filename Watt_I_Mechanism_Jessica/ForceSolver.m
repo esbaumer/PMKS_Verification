@@ -154,13 +154,6 @@ eqn9=-fC-fF+fG+wCFG+LoadForce==massCFG*A_cfg_com * newton;
 eqn10=momentVec(C, CFG_com, -fC)+momentVec(F, CFG_com, -fF)+momentVec(G, CFG_com, fG)+momentVec(LoadPos, CFG_com, LoadForce)==massMoICFG * A_cfg * newton; %only change the ==0 appropriately for newtons 2nd law
 
 solution = (solve([eqn1,eqn2,eqn3,eqn4,eqn5,eqn6,eqn7,eqn8,eqn9,eqn10],[Ax,Ay,Bx,By,Cx,Cy,Dx,Dy,Ex,Ey,Fx,Fy,Gx,Gy,T]));
-
-jointNames = fieldnames(Mechanism.Joint);
-for i = 1:length(jointNames)
-    Mechanism.StaticForce.Joint.(jointNames{i})(iter, :) = [double(solution.([jointNames{i}, 'x'])), double(solution.([jointNames{i}, 'y'])), 0];
-    % Mechanism.ForceNewton.Joint.(jointNames{i})(iter,:) = [double(solution.([jointNames{i}, 'x'])), double(solution.([jointNames{i}, 'y'])), 0];
-end
-Mechanism.StaticForce.Torque(iter,:) = [0 0 double(solution.T)];
 end
 
 function JointPos = extractJointPositions(Mechanism, iteration)
