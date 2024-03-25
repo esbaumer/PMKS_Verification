@@ -242,6 +242,11 @@ for i = 1:length(jointNames)
     save(fullfile(jointFolder, jointName), '-struct', 'tempStruct', jointName);
 end
 
+% Create a temporary struct with the field name as the tracer point name
+tempStruct = struct('D', Mechanism.TracerPoint.D);
+% Save this struct using the -struct option
+save(fullfile(jointFolder, 'D'), '-struct', 'tempStruct', 'D');
+
 % Save link CoM positions
 linkNames = fieldnames(Mechanism.LinkCoM);
 linkCoMFolder = fullfile(baseDir, 'LinkCoM');

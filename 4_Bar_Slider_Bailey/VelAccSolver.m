@@ -122,7 +122,7 @@ linkNames = fieldnames(Mechanism.LinkCoM);
 for i = 1:length(linkNames)
     Mechanism.AngVel.(linkNames{i})(iter,:) = AngVel.(linkNames{i});
 end
-Mechanism.LinVel.Joint.C = solution.V_c;
+Mechanism.LinVel.Joint.C(iter,:) = [solution.V_c*cos(0) solution.V_c*sin(0) 0];
 end
 function [Mechanism] = determineLinVel(Mechanism, iter, JointPos, LinkCoMPos, AngVel)
 % Determine the velocities at each joint
@@ -136,7 +136,7 @@ BCD_com = LinkCoMPos.BCD;
 
 LinVel.Joint.A = [0 0 0];
 LinVel.Joint.B = velSolver(AngVel.AB,B-A);
-LinVel.Joint.C = Mechanism.LinVel.Joint.C;
+LinVel.Joint.C = Mechanism.LinVel.Joint.C(iter,:);
 % LinVel.Joint.C = velSolver(AngVel.CDE,);
 LinVel.Joint.D = velSolver(AngVel.BCD, D-B) + LinVel.Joint.B;
 
@@ -148,6 +148,7 @@ jointNames = fieldnames(Mechanism.Joint);
 for i = 1:length(jointNames)
     Mechanism.LinVel.Joint.(jointNames{i})(iter,:) = LinVel.Joint.(jointNames{i});
 end
+Mechanism.LinVel.Joint.D(iter,:) = LinVel.Joint.D;
 linkNames = fieldnames(Mechanism.LinkCoM);
 for i = 1:length(linkNames)
     Mechanism.LinVel.LinkCoM.(linkNames{i})(iter,:) = LinVel.LinkCoM.(linkNames{i});
@@ -180,7 +181,7 @@ linkNames = fieldnames(Mechanism.LinkCoM);
 for i = 1:length(linkNames)
     Mechanism.AngAcc.(linkNames{i})(iter,:) = AngAcc.(linkNames{i});
 end
-Mechanism.LinAcc.Joint.C = solution.A_c;
+Mechanism.LinAcc.Joint.C(iter,:) = [solution.A_c*cos(0) solution.A_c*sin(0) 0];
 end
 function [Mechanism] = determineLinAcc(Mechanism, iter, JointPos, LinkCoMPos, AngVel, AngAcc)
 A = JointPos.A;
@@ -194,7 +195,7 @@ BCD_com = LinkCoMPos.BCD;
 % Determine the accelerations at each joint
 LinAcc.Joint.A = [0 0 0];
 LinAcc.Joint.B = accSolver(AngVel.AB, AngAcc.AB,B-A);
-LinAcc.Joint.C = Mechanism.LinAcc.Joint.C;
+LinAcc.Joint.C = Mechanism.LinAcc.Joint.C(iter,:);
 % LinAcc.Joint.C = accSolver(AngVel.BCD, AngAcc.BCD,C-B) + LinAcc.Joint.B;
 LinAcc.Joint.D = accSolver(AngVel.BCD, AngAcc.BCD,D-B) + LinAcc.Joint.B;
 
@@ -206,6 +207,7 @@ jointNames = fieldnames(Mechanism.Joint);
 for i = 1:length(jointNames)
     Mechanism.LinAcc.Joint.(jointNames{i})(iter,:) = LinAcc.Joint.(jointNames{i});
 end
+Mechanism.LinAcc.Joint.D(iter,:) = LinAcc.Joint.D;
 linkNames = fieldnames(Mechanism.LinkCoM);
 for i = 1:length(linkNames)
     Mechanism.LinAcc.LinkCoM.(linkNames{i})(iter,:) = LinAcc.LinkCoM.(linkNames{i});
