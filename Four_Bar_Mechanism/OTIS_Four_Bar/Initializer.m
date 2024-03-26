@@ -56,7 +56,8 @@ Mechanism = PosSolver(Mechanism, input_speed);
 Mechanism = VelAccSolver(Mechanism);
 
 % Call ForceSolver to calculate and store forces and torques
-% Mechanism = ForceSolver(Mechanism);
+Mechanism = ForceSolver(Mechanism);
+%% 
 
 % Optionally, save the fully initialized and solved Mechanism structure for later use
 save('Mechanism.mat', 'Mechanism');

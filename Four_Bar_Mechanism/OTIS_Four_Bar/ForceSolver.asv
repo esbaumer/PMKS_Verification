@@ -132,6 +132,9 @@ fA=[Ax Ay 0];
 fB=[Bx By 0];
 fC=[Cx Cy 0];
 fD=[Dx Dy 0];
+fE=[Ex Ey 0];
+fF=[Fx Fy 0];
+fG=[Gx Gy 0];
 F_fb = [-F_fb_x -F_fb_y 0];
 F_fc = [-F_fc_x -F_fc_y 0];
 T_fa = [0 0 T_fa_z];
@@ -142,6 +145,8 @@ T_fc = [0 0 T_fc_z];
 wAB=massAB *g * grav;
 wBCEF=massBCEF *g * grav;
 wCD=massCD *g * grav;
+wEF=massEF *g * grav;
+wFG=massFG *g * grav;
 
 % Unknown torque of the system
 tT=[0 0 T];
@@ -157,7 +162,7 @@ eqn4=momentVec(B, BCEF_com, -fB)+momentVec(C, BCEF_com, fC)-T_fb+T_fc==massMoIBC
 eqn5=-fC+fD-F_fc+wCD==massCD*A_cd_com * newton;
 eqn6=momentVec(C, CD_com, -fC)+momentVec(D, CD_com, fD)-T_fc==massMoICD * A_cd * newton; %only change the ==0 appropriately for newtons 2nd law
 
-solution = (solve([eqn1,eqn2,eqn3,eqn4,eqn5,eqn6],[Ax,Ay,Bx,By,Cx,Cy,Dx,Dy,T]));
+solution = (solve([eqn1,eqn2,eqn3,eqn4,eqn5,eqn6,eqn7,eqn8,eqn9,eqn10],[Ax,Ay,Bx,By,Cx,Cy,Dx,Dy,Ex,Ey,Fx,Fy,Gx,Gy,T]));
 end
 
 function JointPos = extractJointPositions(Mechanism, iteration)
