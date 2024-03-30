@@ -11,10 +11,10 @@ Mechanism.LinAcc = struct();
 
 blankVector = [0 0 0];
 initialBlankJointVector = struct('A', blankVector, ...
-    'B', blankVector, 'C', blankVector, 'D', blankVector);
+    'B', blankVector, 'C', blankVector);
 
 initialBlankLinkVector= struct('AB', blankVector, ...
-    'BCD', blankVector);
+    'BC', blankVector);
 
 [Mechanism] = initializeAngVels(Mechanism, initialBlankLinkVector, numIterations);
 [Mechanism] = initializeLinVels(Mechanism, initialBlankJointVector, initialBlankLinkVector, numIterations);
@@ -101,54 +101,54 @@ function [Mechanism, AngVel] = determineAngVel(Mechanism, iter, JointPos, input_
 A = JointPos.A;
 B = JointPos.B;
 C = JointPos.C;
-D = Mechanism.TracerPoint.D(iter,:);
 
+theta = Mechanism.Theta;
 %% Velocity loops
 %velocity equations from given loops
-syms wBCD V_c
+syms wBC V_c
 omegaAB=[0 0 input_speed];
-omegaBCD=[0 0 wBCD];
+omegaBC=[0 0 wBC];
 
 % A->B->C->D->A
 % V_ba + V_cb + V_dc + V_ad = 0
-eqn1=velSolver(omegaAB,B-A)+velSolver(omegaBCD,C-B)+[V_c*cos(0) V_c*sin(0) 0]==0;
-solution=solve(eqn1,[wBCD, V_c]);
+eqn1=velSolver(omegaAB,B-A)+velSolver(omegaBC,C-B)+[V_c*cos(theta) V_c*sin(theta) 0]==0;
+solution=solve(eqn1,[wBC, V_c]);
 
 % Store all the determined angular velocities
 AngVel.AB=[0 0 input_speed];
-AngVel.BCD=[0 0 double(solution.wBCD)]; %angular velocity of BCD
+AngVel.BC=[0 0 double(solution.wBC)]; %angular velocity of BC
 
 linkNames = fieldnames(Mechanism.LinkCoM);
 for i = 1:length(linkNames)
     Mechanism.AngVel.(linkNames{i})(iter,:) = AngVel.(linkNames{i});
 end
-Mechanism.LinVel.Joint.C(iter,:) = [solution.V_c*cos(0) solution.V_c*sin(0) 0];
+Mechanism.LinVel.Joint.C(iter,:) = [solution.V_c*cos(theta) solution.V_c*sin(theta) 0];
 end
 function [Mechanism] = determineLinVel(Mechanism, iter, JointPos, LinkCoMPos, AngVel)
 % Determine the velocities at each joint
 A = JointPos.A;
 B = JointPos.B;
-% C = JointPos.C;
-D = Mechanism.TracerPoint.D(iter,:);
+C = JointPos.C;
+% D = Mechanism.TracerPoint.D(iter,:);
 
 AB_com = LinkCoMPos.AB;
-BCD_com = LinkCoMPos.BCD;
+BC_com = LinkCoMPos.BC;
 
 LinVel.Joint.A = [0 0 0];
 LinVel.Joint.B = velSolver(AngVel.AB,B-A);
 LinVel.Joint.C = Mechanism.LinVel.Joint.C(iter,:);
 % LinVel.Joint.C = velSolver(AngVel.CDE,);
-LinVel.Joint.D = velSolver(AngVel.BCD, D-B) + LinVel.Joint.B;
+% LinVel.Joint.D = velSolver(AngVel.BC, D-B) + LinVel.Joint.B;
 
 % Determine the velocities at each link's center of mass
 LinVel.LinkCoM.AB = velSolver(AngVel.AB,AB_com - A);
-LinVel.LinkCoM.BCD= velSolver(AngVel.BCD,BCD_com - B) + LinVel.Joint.B;
+LinVel.LinkCoM.BC = velSolver(AngVel.BC,BC_com - B) + LinVel.Joint.B;
 
 jointNames = fieldnames(Mechanism.Joint);
 for i = 1:length(jointNames)
     Mechanism.LinVel.Joint.(jointNames{i})(iter,:) = LinVel.Joint.(jointNames{i});
 end
-Mechanism.LinVel.Joint.D(iter,:) = LinVel.Joint.D;
+% Mechanism.LinVel.Joint.D(iter,:) = LinVel.Joint.D;
 linkNames = fieldnames(Mechanism.LinkCoM);
 for i = 1:length(linkNames)
     Mechanism.LinVel.LinkCoM.(linkNames{i})(iter,:) = LinVel.LinkCoM.(linkNames{i});
@@ -157,57 +157,59 @@ end
 end
 function [Mechanism, AngAcc] = determineAngAcc(Mechanism, iter, Pos, AngVel)
 %acceleration equations from given loops
-syms aBCD A_c
+syms aBC A_c
 alphaAB=[0 0 0];
-alphaBCD=[0 0 aBCD];
+alphaBC=[0 0 aBC];
 
 A = Pos.A;
 B = Pos.B;
 C = Pos.C;
-D = Mechanism.TracerPoint.D(iter,:);
+% D = Mechanism.TracerPoint.D(iter,:);
+theta = Mechanism.Theta;
 %% Acceleration loops
 
 % A->B->C->D->A
 % A_ba + A_cb + A_dc + A_ad = 0
-eqn1=accSolver(AngVel.AB,alphaAB, B-A)+accSolver(AngVel.BCD,alphaBCD,C-B)+[A_c*cos(0) A_c*sin(0) 0]==0;
+eqn1=accSolver(AngVel.AB,alphaAB, B-A)+accSolver(AngVel.BC,alphaBC,C-B)+[A_c*cos(theta) A_c*sin(theta) 0]==0;
 
-solution=solve(eqn1,[aBCD A_c]);
+solution=solve(eqn1,[aBC A_c]);
 
 % Store all the determined angular accelerations
 AngAcc.AB=[0 0 0];
-AngAcc.BCD=[0 0 double(solution.aBCD)]; %angular acceleration of BC
+AngAcc.BC=[0 0 double(solution.aBC)]; %angular acceleration of BC
 
 linkNames = fieldnames(Mechanism.LinkCoM);
 for i = 1:length(linkNames)
     Mechanism.AngAcc.(linkNames{i})(iter,:) = AngAcc.(linkNames{i});
 end
-Mechanism.LinAcc.Joint.C(iter,:) = [solution.A_c*cos(0) solution.A_c*sin(0) 0];
+theta = Mechanism.Theta;
+Mechanism.LinAcc.Joint.C(iter,:) = [solution.A_c*cos(theta) solution.A_c*sin(theta) 0];
 end
 function [Mechanism] = determineLinAcc(Mechanism, iter, JointPos, LinkCoMPos, AngVel, AngAcc)
 A = JointPos.A;
 B = JointPos.B;
 C = JointPos.C;
-D = Mechanism.TracerPoint.D(iter,:);
+% D = Mechanism.TracerPoint.D(iter,:);
 
 AB_com = LinkCoMPos.AB;
-BCD_com = LinkCoMPos.BCD;
+BC_com = LinkCoMPos.BC;
 
 % Determine the accelerations at each joint
 LinAcc.Joint.A = [0 0 0];
 LinAcc.Joint.B = accSolver(AngVel.AB, AngAcc.AB,B-A);
 LinAcc.Joint.C = Mechanism.LinAcc.Joint.C(iter,:);
-% LinAcc.Joint.C = accSolver(AngVel.BCD, AngAcc.BCD,C-B) + LinAcc.Joint.B;
-LinAcc.Joint.D = accSolver(AngVel.BCD, AngAcc.BCD,D-B) + LinAcc.Joint.B;
+% LinAcc.Joint.C = accSolver(AngVel.BC, AngAcc.BC,C-B) + LinAcc.Joint.B;
+% LinAcc.Joint.D = accSolver(AngVel.BC, AngAcc.BC,D-B) + LinAcc.Joint.B;
 
 % Determine the accelerations at each link's center of mass
 LinAcc.LinkCoM.AB = accSolver(AngVel.AB,AngAcc.AB,AB_com - A);
-LinAcc.LinkCoM.BCD= accSolver(AngVel.BCD,AngAcc.BCD,BCD_com - B) + LinAcc.Joint.B;
+LinAcc.LinkCoM.BC= accSolver(AngVel.BC,AngAcc.BC,BC_com - B) + LinAcc.Joint.B;
 
 jointNames = fieldnames(Mechanism.Joint);
 for i = 1:length(jointNames)
     Mechanism.LinAcc.Joint.(jointNames{i})(iter,:) = LinAcc.Joint.(jointNames{i});
 end
-Mechanism.LinAcc.Joint.D(iter,:) = LinAcc.Joint.D;
+% Mechanism.LinAcc.Joint.D(iter,:) = LinAcc.Joint.D;
 linkNames = fieldnames(Mechanism.LinkCoM);
 for i = 1:length(linkNames)
     Mechanism.LinAcc.LinkCoM.(linkNames{i})(iter,:) = LinAcc.LinkCoM.(linkNames{i});

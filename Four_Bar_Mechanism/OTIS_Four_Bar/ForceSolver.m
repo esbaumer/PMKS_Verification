@@ -110,13 +110,13 @@ theta1 = atan2(Ay, Ax);
 theta2 = atan2(By, Bx);
 theta3 = atan2(Cy, Cx);
 
-N1 = sqrt(pow(Ax,2) + pow(Ay,2)); 
-N2 = sqrt(pow(Bx,2) + pow(By,2)); 
-N3 = sqrt(pow(Bx,2) + pow(By,2)); 
+N1 = sqrt(Ax^2 + Ay^2); 
+N2 = sqrt(Bx^2 + By^2); 
+N3 = sqrt(Bx^2 + By^2); 
 
-r_ab_com_a = sqrt(AB_com - A);
-r_ab_com_b = sqrt(AB_com - B);
-r_bcef_com_c = sqrt(BCEF_com - C);
+r_ab_com_a = norm(AB_com - A);
+r_ab_com_b = norm(AB_com - B);
+r_bcef_com_c = norm(BCEF_com - C);
 
 F_fb_x = mu*N2*cos(theta2);
 F_fb_y = mu*N2*sin(theta2);
@@ -146,7 +146,7 @@ wCD=massCD *g * grav;
 % Unknown torque of the system
 tT=[0 0 T];
 
-%% Static Equilibrium Equations
+%% Equations from FBD
 %Link AB
 eqn1=fA+fB+F_fb+wAB==massAB*A_ab_com * newton;
 eqn2=momentVec(A, AB_com, fA) + momentVec(B,  AB_com,fB)+tT+T_fa+T_fb==massMoIAB * A_ab * newton; %only change the ==0 appropriately for newtons 2nd law
@@ -157,6 +157,10 @@ eqn4=momentVec(B, BCEF_com, -fB)+momentVec(C, BCEF_com, fC)-T_fb+T_fc==massMoIBC
 eqn5=-fC+fD-F_fc+wCD==massCD*A_cd_com * newton;
 eqn6=momentVec(C, CD_com, -fC)+momentVec(D, CD_com, fD)-T_fc==massMoICD * A_cd * newton; %only change the ==0 appropriately for newtons 2nd law
 
+% Define initial guesses for your variables if known
+% guess = [Ax, Ay, Bx, By, Cx, Cy_guess, Dx_guess, Dy_guess, T_guess];
+% Use vpasolve directly
+% [solution, parameters, conditions] = vpasolve([eqn1, eqn2, eqn3, eqn4, eqn5, eqn6], [Ax, Ay, Bx, By, Cx, Cy, Dx, Dy, T]);
 solution = (solve([eqn1,eqn2,eqn3,eqn4,eqn5,eqn6],[Ax,Ay,Bx,By,Cx,Cy,Dx,Dy,T]));
 end
 
@@ -166,6 +170,10 @@ JointPos = struct();
 jointNames = fieldnames(Mechanism.Joint);
 for i = 1:length(jointNames)
     JointPos.(jointNames{i}) = Mechanism.Joint.(jointNames{i})(iteration, :);
+end
+tracerPointNames = fieldnames(Mechanism.TracerPoint);
+for i = 1:length(tracerPointNames)
+    JointPos.(tracerPointNames{i}) = Mechanism.TracerPoint.(tracerPointNames{i})(iteration, :);
 end
 end
 function LinkCoMPos = extractLinkCoMPositions(Mechanism, iteration)

@@ -36,12 +36,12 @@ for i = 1:length(jointNames)
     Mechanism.Joint.(jointNames{i}) = zeros(max_iterations, 3); % Initialize with zeros
     Mechanism.Joint.(jointNames{i})(1, :) = initialJointPosition; % Set initial position
 end
-tracerPointNames = fieldnames(Mechanism.TracerPoint);
-for i = 1:length(tracerPointNames)
-    initialJointPosition = Mechanism.TracerPoint.(tracerPointNames{i});
-    Mechanism.TracerPoint.(tracerPointNames{i}) = zeros(max_iterations, 3); % Initialize with zeros
-    Mechanism.TracerPoint.(tracerPointNames{i})(1, :) = initialJointPosition; % Set initial position
-end
+% tracerPointNames = fieldnames(Mechanism.TracerPoint);
+% for i = 1:length(tracerPointNames)
+%     initialJointPosition = Mechanism.TracerPoint.(tracerPointNames{i});
+%     Mechanism.TracerPoint.(tracerPointNames{i}) = zeros(max_iterations, 3); % Initialize with zeros
+%     Mechanism.TracerPoint.(tracerPointNames{i})(1, :) = initialJointPosition; % Set initial position
+% end
 linkNames = fieldnames(Mechanism.LinkCoM);
 for i = 1:length(linkNames)
     initialLinkPosition = Mechanism.LinkCoM.(linkNames{i});
@@ -55,10 +55,8 @@ function Mechanism = calculateDistances(Mechanism)
 % Distance Between Points
 % Link AB
 Mechanism.LinkLength.AB = norm(Mechanism.Joint.B(1,:) - Mechanism.Joint.A(1,:));
-% Link BCD
+% Link BC
 Mechanism.LinkLength.BC = norm(Mechanism.Joint.B(1,:) - Mechanism.Joint.C(1,:));
-Mechanism.LinkLength.BD = norm(Mechanism.Joint.B(1,:) - Mechanism.TracerPoint.D(1,:));
-Mechanism.LinkLength.CD = norm(Mechanism.Joint.C(1,:) - Mechanism.TracerPoint.D(1,:));
 end
 
 % Main function to calculate joint positions through iterations
@@ -110,21 +108,16 @@ B = [A(1) + Mechanism.LinkLength.AB * cos(theta), A(2) + Mechanism.LinkLength.AB
 C = circleLineIntersection(B(1), B(2), Mechanism.LinkLength.BC, Mechanism.Joint.C(iteration - 1, 1), Mechanism.Joint.C(iteration - 1, 2), 0);
 if isempty(C), valid = false; return; end
 
-% Circle-circle intersections for D
-D = circleCircleIntersection(B(1), B(2), Mechanism.LinkLength.BD, C(1), C(2), Mechanism.LinkLength.CD, Mechanism.TracerPoint.D(iteration - 1, 1), Mechanism.TracerPoint.D(iteration - 1, 2));
-if isempty(D), valid = false; return; end
-
 % Update positions
 Mechanism.Joint.A(iteration, :) = A;
 Mechanism.Joint.B(iteration, :) = B;
 Mechanism.Joint.C(iteration, :) = C;
-Mechanism.TracerPoint.D(iteration, :) = D;
 
 utilsFolderPath = fullfile(pwd);
 addpath(utilsFolderPath);
 
 Mechanism.LinkCoM.AB(iteration, :) = Utils.determineCoM([A; B]);
-Mechanism.LinkCoM.BCD(iteration, :) = Utils.determineCoM([B; C; D]);
+Mechanism.LinkCoM.BC(iteration, :) = Utils.determineCoM([B; C]);
 
 if (forwardDir)
     Mechanism.inputSpeed(iteration) = Mechanism.inputSpeed(1);
@@ -248,15 +241,15 @@ for i = 1:length(jointNames)
     save(fullfile(jointFolder, jointName), '-struct', 'tempStruct', jointName);
 end
 
-tracerPointNames = fieldnames(Mechanism.TracerPoint);
-
-for i = 1:length(tracerPointNames)
-    tracerPointName = tracerPointNames{i};
-    % Create a temporary struct with the field name as the joint name
-    tempStruct = struct(tracerPointName, Mechanism.TracerPoint.(tracerPointName));
-    % Save this struct using the -struct option
-    save(fullfile(jointFolder, tracerPointName), '-struct', 'tempStruct', tracerPointName);
-end
+% tracerPointNames = fieldnames(Mechanism.TracerPoint);
+% 
+% for i = 1:length(tracerPointNames)
+%     tracerPointName = tracerPointNames{i};
+%     % Create a temporary struct with the field name as the joint name
+%     tempStruct = struct(tracerPointName, Mechanism.TracerPoint.(tracerPointName));
+%     % Save this struct using the -struct option
+%     save(fullfile(jointFolder, tracerPointName), '-struct', 'tempStruct', tracerPointName);
+% end
 
 % Save link CoM positions
 linkNames = fieldnames(Mechanism.LinkCoM);

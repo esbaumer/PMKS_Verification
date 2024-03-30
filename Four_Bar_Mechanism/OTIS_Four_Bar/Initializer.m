@@ -66,8 +66,8 @@ baseDir = 'Kin';
 csvDir = 'CSVOutput';
 exportMatricesToCSV(baseDir, csvDir);
 
-% baseDir = 'Force';
-% exportMatricesToCSV(baseDir, csvDir);
+baseDir = 'Force';
+exportMatricesToCSV(baseDir, csvDir);
 
 
 function exportMatricesToCSV(baseDir, csvDir)
