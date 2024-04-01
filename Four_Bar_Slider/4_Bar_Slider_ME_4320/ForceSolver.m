@@ -102,37 +102,41 @@ Mechanism.NewtonForceNoGravFriction.NormalForce = zeros(numIterations, 3); % Ass
 end
 
 function solution = performForceAnalysis(Mechanism, iter, JointPos, LinkCoMPos, newton, grav, friction)
-% Here, you'd implement your equations based on static conditions
-% For each joint and link, calculate forces and moments ensuring sum of forces = 0 and sum of moments = 0
-
+% Pull the mass of each component
 massAB = Mechanism.Mass.AB;
 massBC = Mechanism.Mass.BC;
 massPiston = Mechanism.Mass.Piston;
 
+% Pull the mass moment of inertia of each component
 massMoIAB = Mechanism.MassMoI.AB;
 massMoIBC = Mechanism.MassMoI.BC;
 
+% Pull the angular acceleration of each link
 A_ab = Mechanism.AngAcc.AB(iter,:);
 A_bc = Mechanism.AngAcc.BC(iter,:);
 
+% Pull the acceleration of each link at its center of mass
 A_ab_com = Mechanism.LinAcc.LinkCoM.AB(iter,:);
 A_bc_com = Mechanism.LinAcc.LinkCoM.BC(iter,:);
 A_piston = Mechanism.LinAcc.Joint.C(iter,:);
 
-% This is a placeholder for the actual static analysis logic
-% You'll need to adapt this to your specific requirements
+% Extract positions for each joint
 A = JointPos.A;
 B = JointPos.B;
 C = JointPos.C;
 
+% Extract positions for each link's center of mass
 AB_com = LinkCoMPos.AB;
 BC_com = LinkCoMPos.BC;
 
+% Extract the angle that the slider travels on
 theta = Mechanism.Theta;
 
+% Define all the unknown variables to solve for
 syms Ax Ay Bx By Cx Cy N T
 
-g = [0 -9.81 0]; %defining gravity to find weight of each link m/s^2
+%defining gravity to find weight of each link m/s^2
+g = [0 -9.81 0];
 
 % Forces at each joint
 fA=[Ax Ay 0];
@@ -142,30 +146,42 @@ fC=[Cx Cy 0];
 % Weight of each link
 wAB=massAB*g*grav;
 wBC=massBC*g*grav;
+wPiston = massPiston*g*grav;
 
 % Unknown torque of the system
 tT=[0 0 T];
 
-mu = 0.2;
+mu = 0.34; % Coefficient of friction
 
-% Friction Force
-F_fr = [(N/mu)*cos(theta) (N/mu)*sin(theta) 0];
+% Normal Force
 F_N = [N*cos(theta) N*sin(theta) 0];
 
+% Determine the direction of the friction force at the slider-cylinder interface
+if Mechanism.LinVel.Joint.C(iter,:) > 0
+    F_fr = mu * F_N * -1; % Assuming horizontal motion
+elseif Mechanism.LinVel.Joint.C(iter,:) < 0
+    F_fr = mu * F_N * 1;
+else
+    F_fr = mu * F_N * 0;
+end
+
 % Torque provided by friction
-N1 = Mechanism.NewtonForceGravFriction.NormalForce(iter,:);
-r_ab_com_a = norm(AB_com - A);
-T_fb = mu*N1*r_ab_com_a * friction;
+% N1 = Mechanism.NewtonForceGravFriction.NormalForce(iter,:);
+% r_ab_com_a = norm(AB_com - A);
+% T_fb = mu*N1*r_ab_com_a * friction;
+% T_fr_crank = mu_crank * F_normal_crank * crank_radius;
 
 %% FBD Equations
 %Link AB
 eqn1=fA+fB+wAB==massAB*A_ab_com*newton;
-eqn2=momentVec(A, AB_com, fA) + momentVec(B,  AB_com,fB)+T_fb+tT==massMoIAB * A_ab*newton; %only change the ==0 appropriately for newtons 2nd law
+eqn2=momentVec(A, AB_com, fA) + momentVec(B,  AB_com,fB)+tT==massMoIAB * A_ab*newton; %only change the ==0 appropriately for newtons 2nd law
+% eqn2=momentVec(A, AB_com, fA) + momentVec(B,  AB_com,fB)+T_fb+tT==massMoIAB * A_ab*newton; %only change the ==0 appropriately for newtons 2nd law
 %Link BC
 eqn3=-fB+fC+wBC==massBC*A_bc_com*newton;
-eqn4=momentVec(B, BC_com, -fB)+momentVec(C, BC_com, fC)-T_fb==massMoIBC * A_bc*newton; %only change the ==0 appropriately for newtons 2nd law
+eqn4=momentVec(B, BC_com, -fB)+momentVec(C, BC_com, fC)==massMoIBC * A_bc*newton; %only change the ==0 appropriately for newtons 2nd law
+% eqn4=momentVec(B, BC_com, -fB)+momentVec(C, BC_com, fC)-T_fb==massMoIBC * A_bc*newton; %only change the ==0 appropriately for newtons 2nd law
 % Piston
-eqn5=-fC+F_fr+F_N==massPiston*A_piston*newton;
+eqn5=-fC+F_fr+F_N+wPiston==massPiston*A_piston*newton;
 
 solution = (solve([eqn1,eqn2,eqn3,eqn4,eqn5],[Ax,Ay,Bx,By,Cx,Cy,N,T]));
 end

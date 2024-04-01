@@ -1,45 +1,44 @@
-% % Initialization
-% clear; close all; clc;
-% 
-% % Initilize path to call functions within Utils
-% utilsFolderPath = fullfile(pwd);
-% addpath(utilsFolderPath);
-% 
-% % Initialize Mechanism structure with necessary fields
-% Mechanism = struct();
-% 
-% % Initialize Joint positions
-% A = [0 0 0];
-% B = [4 2 0];
-% C = [12 0 0];
-% 
-% % Define initial joint positions (example values)
-% Mechanism.Joint.A = A;
-% Mechanism.Joint.B = B;
-% Mechanism.Joint.C = C;
-% Mechanism.Theta = 0;
-% 
-% % Define masses for each link or joint
-% Mechanism.LinkCoM.AB = Utils.determineCoM([A; B]);
-% Mechanism.LinkCoM.BC = Utils.determineCoM([B; C]);
-% 
-% % Define masses for each link
-% Mechanism.Mass.AB = 5; 
-% Mechanism.Mass.BC= 10;
-% Mechanism.Mass.Piston = 5;
-% 
-% % Define mass moments of inertia for each link
-% Mechanism.MassMoI.AB = 0.1; 
-% Mechanism.MassMoI.BC = 0.2; 
-% 
-% % Define angular velocity of the link where a motor is attached
-% input_speed = 1.0472; % 10 rpm to 1.0472 rad/s
-% 
-% % Call PosSolver to calculate and store positions
-% Mechanism = PosSolver(Mechanism, input_speed);
-% 
-% % Call VelAccSolver to calculate and store velocities and accelerations
-% Mechanism = VelAccSolver(Mechanism);
+% Initialization
+clear; close all; clc;
+
+% Initilize path to call functions within Utils
+utilsFolderPath = fullfile(pwd);
+addpath(utilsFolderPath);
+
+% Initialize Mechanism structure with necessary fields
+Mechanism = struct();
+
+A=[0 0 0]; %motor input
+B=[0,0.0381,0]; %connection between crankshaft and connecting rod
+C=[0.14756,0,0]; %connecting rod and piston 
+
+% Define initial joint positions (example values)
+Mechanism.Joint.A = A;
+Mechanism.Joint.B = B;
+Mechanism.Joint.C = C;
+Mechanism.Theta = 0;
+
+% Define masses for each link or joint
+Mechanism.LinkCoM.AB = Utils.determineCoM([A; B]);
+Mechanism.LinkCoM.BC = Utils.determineCoM([B; C]);
+
+% Define masses for each link
+Mechanism.Mass.AB = 1.08532;
+Mechanism.Mass.BC= 0.50144;
+Mechanism.Mass.Piston = 1.31788;
+
+% Define mass moments of inertia for each link
+Mechanism.MassMoI.AB = 0.0004647594;
+Mechanism.MassMoI.BC = 0.0030344427; 
+
+% Define angular velocity of the link where a motor is attached
+input_speed = 15.707963249999972; % 150 rpm to 15.707963249999972 rad/s
+
+% Call PosSolver to calculate and store positions
+Mechanism = PosSolver(Mechanism, input_speed);
+
+% Call VelAccSolver to calculate and store velocities and accelerations
+Mechanism = VelAccSolver(Mechanism);
 
 % Call ForceSolver to calculate and store forces and torques 
 Mechanism = ForceSolver(Mechanism);
