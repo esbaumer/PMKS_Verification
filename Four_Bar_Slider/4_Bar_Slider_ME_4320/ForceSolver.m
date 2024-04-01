@@ -22,7 +22,7 @@ for iter = 1:numIterations
     scenarios = [1 1 0; 1 1 1];
 
     for scenario = scenarios.'
-        updateMechanismForces(Mechanism, iter, JointPos, LinkCoMPos, scenario(1), scenario(2), scenario(3));
+        Mechanism = updateMechanismForces(Mechanism, iter, JointPos, LinkCoMPos, scenario(1), scenario(2), scenario(3));
     end
 end
 
@@ -34,7 +34,7 @@ baseFolder = 'Force';
 saveForceData(baseFolder, Mechanism);
 end
 
-function updateMechanismForces(Mechanism, iter, JointPos, LinkCoMPos, newtonFlag, gravityFlag, frictionFlag)
+function Mechanism = updateMechanismForces(Mechanism, iter, JointPos, LinkCoMPos, newtonFlag, gravityFlag, frictionFlag)
 % Define the suffix based on the provided flags for readability
 suffix = '';
 if newtonFlag
@@ -157,9 +157,9 @@ mu = 0.34; % Coefficient of friction
 F_N = [N*cos(theta) N*sin(theta) 0];
 
 % Determine the direction of the friction force at the slider-cylinder interface
-if Mechanism.LinVel.Joint.C(iter,:) > 0
+if Mechanism.LinVel.Joint.C(iter,1) > 0
     F_fr = mu * F_N * -1; % Assuming horizontal motion
-elseif Mechanism.LinVel.Joint.C(iter,:) < 0
+elseif Mechanism.LinVel.Joint.C(iter,1) < 0
     F_fr = mu * F_N * 1;
 else
     F_fr = mu * F_N * 0;
@@ -191,8 +191,10 @@ F_friction_A = mu * norm(F_normal_A) * [-sin(A_theta), cos(A_theta), 0] * fricti
 F_friction_B = mu * norm(F_normal_B) * [-sin(B_theta), cos(B_theta), 0] * friction; % Perpendicular to normal force
 
 % Assuming r_ab_com_a and r_bc_com_b are correctly calculated lever arms
-T_fr_A = mu * norm(F_normal_A) * r_ab_com_a * friction; % Torque due to friction at A
-T_fr_B = mu * norm(F_normal_B) * r_bc_com_b * friction; % Torque due to friction at B
+T_fr_A = [0,0, mu * norm(F_normal_A) * r_ab_com_a * friction]; % Torque due to friction at A
+T_fr_B = [0,0, mu * norm(F_normal_B) * r_bc_com_b * friction]; % Torque due to friction at B
+% T_fr_A = [0,0, mu * norm(F_normal_A) * r_ab_com_a * friction]; % Torque due to friction at A
+% T_fr_B = [0,0, mu * norm(F_normal_B) * r_bc_com_b * friction]; % Torque due to friction at B
 
 % F_normal_A = [A_friction_Mag*cos(A_theta),A_friction_Mag*cos(A_theta),0];
 % F_normal_B = [B_friction_Mag*cos(B_theta),B_friction_Mag*cos(B_theta),0];
