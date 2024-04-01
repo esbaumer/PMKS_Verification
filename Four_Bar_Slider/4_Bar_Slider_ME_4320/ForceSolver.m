@@ -165,20 +165,55 @@ else
     F_fr = mu * F_N * 0;
 end
 
-% Torque provided by friction
-% N1 = Mechanism.NewtonForceGravFriction.NormalForce(iter,:);
-% r_ab_com_a = norm(AB_com - A);
-% T_fb = mu*N1*r_ab_com_a * friction;
-% T_fr_crank = mu_crank * F_normal_crank * crank_radius;
+
+% Torque provided by friction on Joint A
+r_ab_com_a = norm(AB_com - A);
+r_bc_com_b = norm(BC_com - B);
+
+A_noFriction_x = Mechanism.NewtonForceGravNoFriction.Joint.A(iter,1);
+A_noFriction_y = Mechanism.NewtonForceGravNoFriction.Joint.A(iter,2);
+B_noFriction_x = Mechanism.NewtonForceGravNoFriction.Joint.B(iter,1); 
+B_noFriction_y = Mechanism.NewtonForceGravNoFriction.Joint.B(iter,2);
+
+% Correcting angle calculation
+A_theta = atan2(A_noFriction_y, A_noFriction_x);
+B_theta = atan2(B_noFriction_y, B_noFriction_x);
+
+A_friction_Mag = norm([A_noFriction_x, A_noFriction_y]);
+B_friction_Mag = norm([B_noFriction_x, A_noFriction_y]);
+
+% Correct normal force direction
+F_normal_A = [A_friction_Mag*cos(A_theta), A_friction_Mag*sin(A_theta), 0];
+F_normal_B = [B_friction_Mag*cos(B_theta), B_friction_Mag*sin(B_theta), 0];
+
+% Friction forces (assuming directions are appropriately chosen)
+F_friction_A = mu * norm(F_normal_A) * [-sin(A_theta), cos(A_theta), 0] * friction; % Perpendicular to normal force
+F_friction_B = mu * norm(F_normal_B) * [-sin(B_theta), cos(B_theta), 0] * friction; % Perpendicular to normal force
+
+% Assuming r_ab_com_a and r_bc_com_b are correctly calculated lever arms
+T_fr_A = mu * norm(F_normal_A) * r_ab_com_a * friction; % Torque due to friction at A
+T_fr_B = mu * norm(F_normal_B) * r_bc_com_b * friction; % Torque due to friction at B
+
+% F_normal_A = [A_friction_Mag*cos(A_theta),A_friction_Mag*cos(A_theta),0];
+% F_normal_B = [B_friction_Mag*cos(B_theta),B_friction_Mag*cos(B_theta),0];
+% 
+% % Calculate friction forces based on estimated normal forces
+% F_friction_A = mu * F_normal_A; % Magnitude of friction force at A
+% F_friction_B = mu * F_normal_B; % Magnitude of friction force at B
+% 
+% % Calculate torques due to friction at A and B
+% % Assuming rA and rB are the distances from the pivot to where friction forces act
+% T_fr_A = F_friction_A * r_ab_com_a; % Torque due to friction at A
+% T_fr_B = F_friction_B * r_bc_com_b; % Torque due to friction at B
 
 %% FBD Equations
 %Link AB
-eqn1=fA+fB+wAB==massAB*A_ab_com*newton;
-eqn2=momentVec(A, AB_com, fA) + momentVec(B,  AB_com,fB)+tT==massMoIAB * A_ab*newton; %only change the ==0 appropriately for newtons 2nd law
+eqn1=fA+fB+wAB+F_friction_A+F_friction_B==massAB*A_ab_com*newton;
+eqn2=momentVec(A, AB_com, fA) + momentVec(B,  AB_com,fB)+tT+T_fr_A+T_fr_B==massMoIAB * A_ab*newton; %only change the ==0 appropriately for newtons 2nd law
 % eqn2=momentVec(A, AB_com, fA) + momentVec(B,  AB_com,fB)+T_fb+tT==massMoIAB * A_ab*newton; %only change the ==0 appropriately for newtons 2nd law
 %Link BC
-eqn3=-fB+fC+wBC==massBC*A_bc_com*newton;
-eqn4=momentVec(B, BC_com, -fB)+momentVec(C, BC_com, fC)==massMoIBC * A_bc*newton; %only change the ==0 appropriately for newtons 2nd law
+eqn3=-fB+fC+wBC-F_friction_B==massBC*A_bc_com*newton;
+eqn4=momentVec(B, BC_com, -fB)+momentVec(C, BC_com, fC)-T_fr_B==massMoIBC * A_bc*newton; %only change the ==0 appropriately for newtons 2nd law
 % eqn4=momentVec(B, BC_com, -fB)+momentVec(C, BC_com, fC)-T_fb==massMoIBC * A_bc*newton; %only change the ==0 appropriately for newtons 2nd law
 % Piston
 eqn5=-fC+F_fr+F_N+wPiston==massPiston*A_piston*newton;
