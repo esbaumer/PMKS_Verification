@@ -59,6 +59,8 @@ C = Mechanism.Joint.C;
 D = Mechanism.Joint.D;
 E = Mechanism.TracerPoint.E;
 F = Mechanism.TracerPoint.F;
+G = Mechanism.TracerPoint.G;
+H = Mechanism.TracerPoint.H;
 % Distance Between Points
 % Link AB
 Mechanism.LinkLength.AB = norm(B - A);

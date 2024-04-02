@@ -14,6 +14,8 @@ C = [1.85 5.83 0];
 D = [2.14 3.025 0];
 E = [0.228 5 0];
 F = [-0.207 6.48 0];
+G = [-0.207 6.48 0];
+H = [-0.207 6.48 0];
 
 massAB = 13.68;
 massBCEF = 33.07;
@@ -30,6 +32,8 @@ Mechanism.Joint.C = C;
 Mechanism.Joint.D = D;
 Mechanism.TracerPoint.E = E;
 Mechanism.TracerPoint.F = F;
+Mechanism.TracerPoint.G = G;
+Mechanism.TracerPoint.H = H;
 
 % Define masses for each link or joint
 Mechanism.LinkCoM.AB = Utils.determineCoM([A; B]);
