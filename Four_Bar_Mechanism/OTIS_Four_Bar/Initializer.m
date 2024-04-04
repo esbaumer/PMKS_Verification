@@ -8,22 +8,23 @@ addpath(utilsFolderPath);
 Mechanism = struct();
 
 % Define Coordinates of Joints in 3D Space (x, y, z)
-A = [-2.14 3.025 0];
-B = [-0.719 3.025 0];
-C = [1.85 5.83 0];
-D = [2.14 3.025 0];
-E = [0.228 5 0];
-F = [-0.207 6.48 0];
-G = [-0.207 6.48 0];
-H = [-0.207 6.48 0];
+A = [0 0 0];
+B = [424.82 0 0];
+C = [1232.05 -667.56 0];
+D = [984 0 0];
+% This represents the positions of the sensors 
+E = [200 0 0]; % input link
+F = [521.54 -701.15 0]; % Coupler link 1
+G = [1101.53 -827.25 0]; % Coupler link 2
+H = [1147.4 -280.00 0]; % Follower Link
 
-massAB = 13.68;
-massBCEF = 33.07;
-massCD = 57.7;
+Mechanism.Mass.ABE = 470.19;
+Mechanism.Mass.BCFG = 736.82;
+Mechanism.Mass.CDH = 515.32;
 
-massMoIAB = 0.43;
-massMoIBCEF = 5.75;
-massMoICD = 30.36;
+Mechanism.MassMoI.ABE = 325979.23;
+Mechanism.MassMoI.BCFG = 74929853.54;
+Mechanism.MassMoI.CDH = 2177460.20;
 
 % Define initial joint positions (example values)
 Mechanism.Joint.A = A;
@@ -36,19 +37,13 @@ Mechanism.TracerPoint.G = G;
 Mechanism.TracerPoint.H = H;
 
 % Define masses for each link or joint
-Mechanism.LinkCoM.AB = Utils.determineCoM([A; B]);
-Mechanism.LinkCoM.BCEF = Utils.determineCoM([B; C; E; F]);
-Mechanism.LinkCoM.CD = Utils.determineCoM([C; D]);
+Mechanism.LinkCoM.ABE = [274.02 -3.32 0];
+Mechanism.LinkCoM.BCFG = [834.02 -531.72 0];
+Mechanism.LinkCoM.CDH = [1174.20 -351.61 0];
 
-% Define masses for each link
-Mechanism.Mass.AB = 5; 
-Mechanism.Mass.BCEF = 10;
-Mechanism.Mass.CD = 5; 
-
-% Define mass moments of inertia for each link
-Mechanism.MassMoI.AB = 0.1; 
-Mechanism.MassMoI.BCEF = 0.2; 
-Mechanism.MassMoI.CD = 0.1; 
+% Mechanism.LinkCoM.ABE = [274.02 -3.32 21.3];
+% Mechanism.LinkCoM.BCFG = [834.02 -531.72 40.35];
+% Mechanism.LinkCoM.CDH = [1174.20 -351.61 21.30];
 
 % Define angular velocity of the link where a motor is attached
 input_speed = 1.0472; % 10 rpm to 1.0472 rad/s

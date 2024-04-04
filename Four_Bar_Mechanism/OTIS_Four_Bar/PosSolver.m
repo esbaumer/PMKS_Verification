@@ -25,7 +25,7 @@ end
 function [iteration, theta, thetaIncrement] = initializeVariables(Mechanism)
 iteration = 2;
 thetaIncrement = 1; % Angle increment (in degrees)
-theta = atan2(Mechanism.Joint.B(1,2) - Mechanism.Joint.A(1,2), Mechanism.Joint.B(1,1) - Mechanism.Joint.A(1,1)); % Initial angle of link AB with adjustment if necessary
+theta = atan2(Mechanism.Joint.B(1,2) - Mechanism.Joint.A(1,2), Mechanism.Joint.B(1,1) - Mechanism.Joint.A(1,1)); % Initial angle of link ABE with adjustment if necessary
 end
 
 % Function to initialize positions for all joints for max iterations
@@ -62,17 +62,30 @@ F = Mechanism.TracerPoint.F;
 G = Mechanism.TracerPoint.G;
 H = Mechanism.TracerPoint.H;
 % Distance Between Points
-% Link AB
-Mechanism.LinkLength.AB = norm(B - A);
-% Link BCEF
-Mechanism.LinkLength.BC = norm(B - C);
+% Link ABE
+Mechanism.LinkLength.AB = norm(A - B);
+Mechanism.LinkLength.AE = norm(A - E);
 Mechanism.LinkLength.BE = norm(B - E);
+% Link BCFG
+Mechanism.LinkLength.BC = norm(B - C);
 Mechanism.LinkLength.BF = norm(B - F);
-Mechanism.LinkLength.CE = norm(C - E);
+Mechanism.LinkLength.BG = norm(B - G);
 Mechanism.LinkLength.CF = norm(C - F);
-Mechanism.LinkLength.EF = norm(E - F);
-% Link CD
+Mechanism.LinkLength.CG = norm(C - G);
+Mechanism.LinkLength.FG = norm(F - G);
+% Link CDH
 Mechanism.LinkLength.CD = norm(C - D);
+Mechanism.LinkLength.CH = norm(C - H);
+Mechanism.LinkLength.DH = norm(D - H);
+% Link ABE CoM with Joint A
+Mechanism.LinkLength.ABE_CoM_A = norm(Mechanism.LinkCoM.ABE(1,:)- A);
+Mechanism.LinkLength.ABE_CoM_B = norm(Mechanism.LinkCoM.ABE(1,:)- B);
+% Link BCFG CoM with Joint B
+Mechanism.LinkLength.BCFG_CoM_B = norm(Mechanism.LinkCoM.BCFG(1,:) - B);
+Mechanism.LinkLength.BCFG_CoM_C = norm(Mechanism.LinkCoM.BCFG(1,:) - C);
+% Link CDH CoM with Joint C
+Mechanism.LinkLength.CDH_CoM_C = norm(Mechanism.LinkCoM.CDH(1,:) - C);
+Mechanism.LinkLength.CDH_CoM_D = norm(Mechanism.LinkCoM.CDH(1,:) - D);
 end
 
 % Main function to calculate joint positions through iterations
@@ -128,10 +141,14 @@ B = [A(1) + Mechanism.LinkLength.AB * cos(theta), A(2) + Mechanism.LinkLength.AB
 % Circle-circle intersections for C, E, F, G
 C = circleCircleIntersection(B(1), B(2), Mechanism.LinkLength.BC, D(1), D(2), Mechanism.LinkLength.CD, Mechanism.Joint.C(iteration - 1, 1), Mechanism.Joint.C(iteration - 1, 2));
 if isempty(C), valid = false; return; end
-E = circleCircleIntersection(B(1), B(2), Mechanism.LinkLength.BE, C(1), C(2), Mechanism.LinkLength.CE, Mechanism.TracerPoint.E(iteration - 1, 1), Mechanism.TracerPoint.E(iteration - 1, 2));
+E = circleCircleIntersection(A(1), A(2), Mechanism.LinkLength.AE, B(1), B(2), Mechanism.LinkLength.BE, Mechanism.TracerPoint.E(iteration - 1, 1), Mechanism.TracerPoint.E(iteration - 1, 2));
 if isempty(E), valid = false; return; end
 F = circleCircleIntersection(B(1), B(2), Mechanism.LinkLength.BF, C(1), C(2), Mechanism.LinkLength.CF, Mechanism.TracerPoint.F(iteration - 1, 1), Mechanism.TracerPoint.F(iteration - 1, 2));
 if isempty(F), valid = false; return; end
+G = circleCircleIntersection(B(1), B(2), Mechanism.LinkLength.BG, C(1), C(2), Mechanism.LinkLength.CG, Mechanism.TracerPoint.G(iteration - 1, 1), Mechanism.TracerPoint.G(iteration - 1, 2));
+if isempty(G), valid = false; return; end
+H = circleCircleIntersection(C(1), C(2), Mechanism.LinkLength.CH, D(1), D(2), Mechanism.LinkLength.DH, Mechanism.TracerPoint.H(iteration - 1, 1), Mechanism.TracerPoint.H(iteration - 1, 2));
+if isempty(H), valid = false; return; end
 
 % Update positions
 Mechanism.Joint.A(iteration, :) = A;
@@ -140,13 +157,15 @@ Mechanism.Joint.C(iteration, :) = C;
 Mechanism.Joint.D(iteration, :) = D;
 Mechanism.TracerPoint.E(iteration, :) = E;
 Mechanism.TracerPoint.F(iteration, :) = F;
+Mechanism.TracerPoint.G(iteration, :) = G;
+Mechanism.TracerPoint.H(iteration, :) = H;
 
 utilsFolderPath = fullfile(pwd);
 addpath(utilsFolderPath);
 
-Mechanism.LinkCoM.AB(iteration, :) = Utils.determineCoM([A; B]);
-Mechanism.LinkCoM.BCEF(iteration, :) = Utils.determineCoM([B; C; E; F]);
-Mechanism.LinkCoM.CD(iteration, :) = Utils.determineCoM([C; D]);
+Mechanism.LinkCoM.ABE(iteration, :) = circleCircleIntersection(A(1), A(2), Mechanism.LinkLength.ABE_CoM_A, B(1), B(2), Mechanism.LinkLength.ABE_CoM_B, Mechanism.LinkCoM.ABE(iteration - 1, 1), Mechanism.LinkCoM.ABE(iteration - 1, 2));
+Mechanism.LinkCoM.BCFG(iteration, :) = circleCircleIntersection(B(1), B(2), Mechanism.LinkLength.BCFG_CoM_B, C(1), C(2), Mechanism.LinkLength.BCFG_CoM_C, Mechanism.LinkCoM.BCFG(iteration - 1, 1), Mechanism.LinkCoM.BCFG(iteration - 1, 2));
+Mechanism.LinkCoM.CDH(iteration, :) = circleCircleIntersection(C(1), C(2), Mechanism.LinkLength.CDH_CoM_C, D(1), D(2), Mechanism.LinkLength.CDH_CoM_D, Mechanism.LinkCoM.CDH(iteration - 1, 1), Mechanism.LinkCoM.CDH(iteration - 1, 2));
 
 if (forwardDir)
     Mechanism.inputSpeed(iteration) = Mechanism.inputSpeed(1);
@@ -162,6 +181,9 @@ function result = circleCircleIntersection(x1, y1, r1, x2, y2, r2, pointX, point
 [xIntersect, yIntersect] = circcirc(x1, y1, r1, x2, y2, r2);
 
 % Check if the intersection points are determined
+if isempty(xIntersect) || isempty(yIntersect) || isnan(xIntersect(1)) || isnan(yIntersect(1))
+    [xIntersect, yIntersect] = circleCircleMethod(x1, y1, r1, x2, y2, r2);
+end
 if isempty(xIntersect) || isempty(yIntersect)
     result = [];
     return;
@@ -245,4 +267,36 @@ end
 function Mechanism = initializeInputSpeed(Mechanism, input_speed, max_iterations)
 Mechanism.inputSpeed = zeros(max_iterations, 1);
 Mechanism.inputSpeed(1) = input_speed; % 10 rpm to 1.0472 rad/s
+end
+
+function [xIntersect, yIntersect] = circleCircleMethod(x1, y1, r1, x2, y2, r2)
+syms x y
+eq1 = (x - x1)^2 + (y - y1)^2 == r1^2;
+eq2 = (x - x2)^2 + (y - y2)^2 == r2^2;
+
+sol = solve([eq1, eq2], [x, y]);
+
+% Threshold for considering the imaginary part significant
+imaginaryThreshold = 1e-5; % Adjust this value based on your application's tolerance
+
+% Evaluating solutions (assuming sol.x and sol.y are symbolic solutions)
+xSolEval = [eval(sol.x(1)), eval(sol.x(2))];
+ySolEval = [eval(sol.y(1)), eval(sol.y(2))];
+
+% Initialize empty arrays to hold the processed solutions
+xIntersect = [];
+yIntersect = [];
+
+% Check the imaginary parts of the x solutions
+if all(abs(imag(xSolEval)) <= imaginaryThreshold)
+    xIntersect = real(xSolEval);
+end
+
+% Check the imaginary parts of the y solutions
+if all(abs(imag(ySolEval)) <= imaginaryThreshold)
+    yIntersect = real(ySolEval);
+end
+
+% xIntersect and yIntersect will be empty if any imaginary part was significant
+
 end

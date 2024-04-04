@@ -12,10 +12,10 @@ Mechanism.LinAcc = struct();
 blankVector = [0 0 0];
 initialBlankJointVector = struct('A', blankVector, ...
     'B', blankVector, 'C', blankVector, 'D', blankVector, ...
-    'E', blankVector, 'F', blankVector, 'G', blankVector);
+    'E', blankVector, 'F', blankVector, 'G', blankVector, 'H', blankVector);
 
-initialBlankLinkVector= struct('AB', blankVector, ...
-    'BCEF', blankVector, 'CD', blankVector);
+initialBlankLinkVector= struct('ABE', blankVector, ...
+    'BCFG', blankVector, 'CDH', blankVector);
 
 [Mechanism] = initializeAngVels(Mechanism, initialBlankLinkVector, numIterations);
 [Mechanism] = initializeLinVels(Mechanism, initialBlankJointVector, initialBlankLinkVector, numIterations);
@@ -103,28 +103,26 @@ end
 %% Velocity loops
 function [Mechanism, AngVel] = determineAngVel(Mechanism, iter, JointPos, input_speed)
 %velocity equations from given loops
-syms wBCEF wCD 
-omegaAB=[0 0 input_speed];
-omegaBCEF=[0 0 wBCEF];
-omegaCD=[0 0 wCD];
+syms wBCFG wCDH 
+omegaABE=[0 0 input_speed];
+omegaBCFG=[0 0 wBCFG];
+omegaCDH=[0 0 wCDH];
 
 A = JointPos.A;
 B = JointPos.B;
 C = JointPos.C;
 D = JointPos.D;
-E = JointPos.E;
-F = JointPos.F;
 
 % A->B->C->D->A
 % V_ba + V_cb + V_dc + V_ad = 0
-eqn1=velSolver(omegaAB,B-A)+velSolver(omegaBCEF,C-B)+velSolver(omegaCD,D-C)==0;
+eqn1=velSolver(omegaABE,B-A)+velSolver(omegaBCFG,C-B)+velSolver(omegaCDH,D-C)==0;
 
-solution=solve(eqn1,[wBCEF wCD]);
+solution=solve(eqn1,[wBCFG wCDH]);
 
 % Store all the determined angular velocities
-AngVel.AB=[0 0 input_speed];
-AngVel.BCEF=[0 0 double(solution.wBCEF)]; %angular velocity of BCEF
-AngVel.CD=[0 0 double(solution.wCD)]; %angular velocity of DE
+AngVel.ABE=[0 0 input_speed];
+AngVel.BCFG=[0 0 double(solution.wBCFG)]; %angular velocity of BCFG
+AngVel.CDH=[0 0 double(solution.wCDH)]; %angular velocity of DE
 
 linkNames = fieldnames(Mechanism.LinkCoM);
 for i = 1:length(linkNames)
@@ -139,22 +137,26 @@ C = JointPos.C;
 D = JointPos.D;
 E = JointPos.E;
 F = JointPos.F;
+G = JointPos.G;
+H = JointPos.H;
 
-AB_com = LinkCoMPos.AB;
-BCEF_com = LinkCoMPos.BCEF;
-CD_com = LinkCoMPos.CD;
+ABE_com = LinkCoMPos.ABE;
+BCFG_com = LinkCoMPos.BCFG;
+CDH_com = LinkCoMPos.CDH;
 
 LinVel.Joint.A = [0 0 0];
-LinVel.Joint.B = velSolver(AngVel.AB,B-A);
-LinVel.Joint.C = velSolver(AngVel.CD,C-D);
+LinVel.Joint.B = velSolver(AngVel.ABE,B-A);
+LinVel.Joint.C = velSolver(AngVel.CDH,C-D);
 LinVel.Joint.D = [0 0 0];
-LinVel.Joint.E = velSolver(AngVel.BCEF,E-C) + LinVel.Joint.C;
-LinVel.Joint.F = velSolver(AngVel.BCEF,F-C) + LinVel.Joint.C;
+LinVel.Joint.E = velSolver(AngVel.ABE,E-A);
+LinVel.Joint.F = velSolver(AngVel.BCFG,F-C) + LinVel.Joint.C;
+LinVel.Joint.G = velSolver(AngVel.BCFG,G-C) + LinVel.Joint.C;
+LinVel.Joint.H = velSolver(AngVel.CDH,H-D);
 
 % Determine the velocities at each link's center of mass
-LinVel.LinkCoM.AB = velSolver(AngVel.AB,AB_com - A);
-LinVel.LinkCoM.BCEF= velSolver(AngVel.BCEF,BCEF_com - B) + LinVel.Joint.B;
-LinVel.LinkCoM.CD= velSolver(AngVel.CD,CD_com - D);
+LinVel.LinkCoM.ABE = velSolver(AngVel.ABE,ABE_com - A);
+LinVel.LinkCoM.BCFG= velSolver(AngVel.BCFG,BCFG_com - B) + LinVel.Joint.B;
+LinVel.LinkCoM.CDH= velSolver(AngVel.CDH,CDH_com - D);
 
 jointNames = fieldnames(Mechanism.Joint);
 for i = 1:length(jointNames)
@@ -175,25 +177,24 @@ A = Pos.A;
 B = Pos.B;
 C = Pos.C;
 D = Pos.D;
-E = Pos.E;
-F = Pos.F;
+
 %% Acceleration loops
 %acceleration equations from given loops
-syms aBCEF aCD
-alphaAB=[0 0 0];
-alphaBCEF=[0 0 aBCEF];
-alphaCD=[0 0 aCD];
+syms aBCFG aCDH
+alphaABE=[0 0 0];
+alphaBCFG=[0 0 aBCFG];
+alphaCDH=[0 0 aCDH];
 
 % A->B->C->D->A
 % A_ba + A_cb + A_dc + A_ad = 0
-eqn1=accSolver(AngVel.AB,alphaAB, B-A)+accSolver(AngVel.BCEF,alphaBCEF,C-B)+accSolver(AngVel.CD,alphaCD,D-C)==0;
+eqn1=accSolver(AngVel.ABE,alphaABE, B-A)+accSolver(AngVel.BCFG,alphaBCFG,C-B)+accSolver(AngVel.CDH,alphaCDH,D-C)==0;
 
-solution=solve(eqn1,[aBCEF aCD]);
+solution=solve(eqn1,[aBCFG aCDH]);
 
 % Store all the determined angular accelerations
-AngAcc.AB=[0 0 0];
-AngAcc.BCEF=[0 0 double(solution.aBCEF)]; %angular acceleration of BCEF
-AngAcc.CD=[0 0 double(solution.aCD)]; %angular acceleration of CD
+AngAcc.ABE=[0 0 0];
+AngAcc.BCFG=[0 0 double(solution.aBCFG)]; %angular acceleration of BCFG
+AngAcc.CDH=[0 0 double(solution.aCDH)]; %angular acceleration of CDH
 
 linkNames = fieldnames(Mechanism.LinkCoM);
 for i = 1:length(linkNames)
@@ -207,23 +208,27 @@ C = JointPos.C;
 D = JointPos.D;
 E = JointPos.E;
 F = JointPos.F;
+G = JointPos.G;
+H = JointPos.H;
 
-AB_com = LinkCoMPos.AB;
-BCEF_com = LinkCoMPos.BCEF;
-CD_com = LinkCoMPos.CD;
+ABE_com = LinkCoMPos.ABE;
+BCFG_com = LinkCoMPos.BCFG;
+CDH_com = LinkCoMPos.CDH;
 
 % Determine the accelerations at each joint
 LinAcc.Joint.A = [0 0 0];
-LinAcc.Joint.B = accSolver(AngVel.AB, AngAcc.AB,B-A);
-LinAcc.Joint.C = accSolver(AngVel.CD, AngAcc.CD,C-D);
+LinAcc.Joint.B = accSolver(AngVel.ABE, AngAcc.ABE,B-A);
+LinAcc.Joint.C = accSolver(AngVel.CDH, AngAcc.CDH,C-D);
 LinAcc.Joint.D = [0 0 0];
-LinAcc.Joint.E = accSolver(AngVel.BCEF, AngAcc.BCEF,E-B) + LinAcc.Joint.B;
-LinAcc.Joint.F = accSolver(AngVel.BCEF, AngAcc.BCEF,F-B) + LinAcc.Joint.B;
+LinAcc.Joint.E = accSolver(AngVel.ABE, AngAcc.ABE,E-A);
+LinAcc.Joint.F = accSolver(AngVel.BCFG, AngAcc.BCFG,F-B) + LinAcc.Joint.B;
+LinAcc.Joint.G = accSolver(AngVel.BCFG, AngAcc.BCFG,G-B) + LinAcc.Joint.B;
+LinAcc.Joint.H = accSolver(AngVel.CDH, AngAcc.BCFG,H-D);
 
 % Determine the accelerations at each link's center of mass
-LinAcc.LinkCoM.AB = accSolver(AngVel.AB,AngAcc.AB,AB_com - A);
-LinAcc.LinkCoM.BCEF= accSolver(AngVel.BCEF,AngAcc.BCEF,BCEF_com - B) + LinAcc.Joint.B;
-LinAcc.LinkCoM.CD= accSolver(AngVel.CD,AngAcc.CD,CD_com - D);
+LinAcc.LinkCoM.ABE = accSolver(AngVel.ABE,AngAcc.ABE,ABE_com - A);
+LinAcc.LinkCoM.BCFG= accSolver(AngVel.BCFG,AngAcc.BCFG,BCFG_com - B) + LinAcc.Joint.B;
+LinAcc.LinkCoM.CDH= accSolver(AngVel.CDH,AngAcc.CDH,CDH_com - D);
 
 jointNames = fieldnames(Mechanism.Joint);
 for i = 1:length(jointNames)

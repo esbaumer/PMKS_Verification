@@ -12,34 +12,13 @@ for iter = 1:numIterations
     JointPos = extractJointPositions(Mechanism, iter);
     LinkCoMPos = extractLinkCoMPositions(Mechanism, iter);
 
-    % % Perform static analysis calculations for the current iteration
-    % solution = performForceAnalysis(Mechanism, iter, JointPos, LinkCoMPos, 0, 0);
-    % jointNames = fieldnames(Mechanism.Joint);
-    % for i = 1:length(jointNames)
-    %     Mechanism.StaticForceNoGrav.Joint.(jointNames{i})(iter, :) = [double(solution.([jointNames{i}, 'x'])), double(solution.([jointNames{i}, 'y'])), 0];
-    % end
-    % Mechanism.StaticForceNoGrav.Torque(iter,:) = [0 0 double(solution.T)];
+    % Scenarios: [newtonFlag, gravityFlag, frictionFlag]
+    % scenarios = [0 0 0; 0 0 1; 0 1 0; 0 1 1; 1 0 0; 1 0 1; 1 1 0; 1 1 1];
+    scenarios = [1 1 0];
 
-    % solution = performForceAnalysis(Mechanism, iter, JointPos, LinkCoMPos, 0, 1);
-    % jointNames = fieldnames(Mechanism.Joint);
-    % for i = 1:length(jointNames)
-    %     Mechanism.StaticForceGrav.Joint.(jointNames{i})(iter, :) = [double(solution.([jointNames{i}, 'x'])), double(solution.([jointNames{i}, 'y'])), 0];
-    % end
-    % Mechanism.StaticForceGrav.Torque(iter,:) = [0 0 double(solution.T)];
-
-    solution = performForceAnalysis(Mechanism, iter, JointPos, LinkCoMPos, 1, 0);
-    jointNames = fieldnames(Mechanism.Joint);
-    for i = 1:length(jointNames)
-        Mechanism.NewtonForceNoGrav.Joint.(jointNames{i})(iter, :) = [double(solution.([jointNames{i}, 'x'])), double(solution.([jointNames{i}, 'y'])), 0];
+    for scenario = scenarios.'
+        Mechanism = updateMechanismForces(Mechanism, iter, JointPos, LinkCoMPos, scenario(1), scenario(2), scenario(3));
     end
-    Mechanism.NewtonForceNoGrav.Torque(iter,:) = [0 0 double(solution.T)];
-
-    % solution = performForceAnalysis(Mechanism, iter, JointPos, LinkCoMPos, 1, 1);
-    % jointNames = fieldnames(Mechanism.Joint);
-    % for i = 1:length(jointNames)
-    %     Mechanism.NewtonForceGrav.Joint.(jointNames{i})(iter, :) = [double(solution.([jointNames{i}, 'x'])), double(solution.([jointNames{i}, 'y'])), 0];
-    % end
-    % Mechanism.NewtonForceGrav.Torque(iter,:) = [0 0 double(solution.T)];
 end
 
 % Save the updated Mechanism with static analysis results
@@ -50,117 +29,172 @@ baseFolder = 'Force';
 saveForceData(baseFolder, Mechanism);
 end
 
+function Mechanism = updateMechanismForces(Mechanism, iter, JointPos, LinkCoMPos, newtonFlag, gravityFlag, frictionFlag)
+% Define the suffix based on the provided flags for readability
+suffix = '';
+if newtonFlag
+    suffix = [suffix, 'NewtonForce'];
+else
+    suffix = [suffix, 'StaticForce'];
+end
+if gravityFlag
+    suffix = [suffix, 'Grav'];
+else
+    suffix = [suffix, 'NoGrav'];
+end
+if frictionFlag
+    suffix = [suffix, 'Friction'];
+else
+    suffix = [suffix, 'NoFriction'];
+end
+
+% Perform force analysis
+solution = performForceAnalysis(Mechanism, iter, JointPos, LinkCoMPos, newtonFlag, gravityFlag, frictionFlag);
+jointNames = fieldnames(Mechanism.Joint);
+
+% Update forces and torques in the mechanism structure
+for i = 1:length(jointNames)
+    jointName = jointNames{i};
+    Mechanism.(suffix).Joint.(jointName)(iter, :) = [double(solution.([jointName, 'x'])), double(solution.([jointName, 'y'])), 0];
+end
+Mechanism.(suffix).Torque(iter,:) = [0 0 double(solution.T)];
+end
+
+
 function [Mechanism] = initializeForceSolvers(Mechanism, numIterations)
 % Initialize with zeros for storing forces and moments
 jointNames = fieldnames(Mechanism.Joint);
 for i = 1:length(jointNames)
-    Mechanism.StaticForceGrav.Joint.(jointNames{i}) = zeros(numIterations, 3); % Assuming 3D forces
-    Mechanism.StaticForceNoGrav.Joint.(jointNames{i}) = zeros(numIterations, 3); % Assuming 3D forces
-    Mechanism.NewtonForceGrav.Joint.(jointNames{i}) = zeros(numIterations, 3); % Assuming 3D forces
-    Mechanism.NewtonForceNoGrav.Joint.(jointNames{i}) = zeros(numIterations, 3); % Assuming 3D forces
+    Mechanism.StaticForceGravNoFriction.Joint.(jointNames{i}) = zeros(numIterations, 3); % Assuming 3D forces
+    Mechanism.StaticForceNoGravNoFriction.Joint.(jointNames{i}) = zeros(numIterations, 3); % Assuming 3D forces
+    Mechanism.NewtonForceGravNoFriction.Joint.(jointNames{i}) = zeros(numIterations, 3); % Assuming 3D forces
+    Mechanism.NewtonForceNoGravNoFriction.Joint.(jointNames{i}) = zeros(numIterations, 3); % Assuming 3D forces
+    Mechanism.StaticForceGravFriction.Joint.(jointNames{i}) = zeros(numIterations, 3); % Assuming 3D forces
+    Mechanism.StaticForceNoGravFriction.Joint.(jointNames{i}) = zeros(numIterations, 3); % Assuming 3D forces
+    Mechanism.NewtonForceGravFriction.Joint.(jointNames{i}) = zeros(numIterations, 3); % Assuming 3D forces
+    Mechanism.NewtonForceNoGravFriction.Joint.(jointNames{i}) = zeros(numIterations, 3); % Assuming 3D forces
 end
-Mechanism.StaticForceGrav.Torque = zeros(numIterations, 3); % Assuming 3D forces
-Mechanism.StaticForceNoGrav.Torque = zeros(numIterations, 3); % Assuming 3D forces
-Mechanism.NewtonForceGrav.Torque = zeros(numIterations, 3); % Assuming 3D forces
-Mechanism.NewtonForceNoGrav.Torque = zeros(numIterations, 3); % Assuming 3D forces
+Mechanism.StaticForceGravNoFriction.Torque = zeros(numIterations, 3); % Assuming 3D forces
+Mechanism.StaticForceNoGravNoFriction.Torque = zeros(numIterations, 3); % Assuming 3D forces
+Mechanism.NewtonForceGravNoFriction.Torque = zeros(numIterations, 3); % Assuming 3D forces
+Mechanism.NewtonForceNoGravNoFriction.Torque = zeros(numIterations, 3); % Assuming 3D forces
+Mechanism.StaticForceGravFriction.Torque = zeros(numIterations, 3); % Assuming 3D forces
+Mechanism.StaticForceNoGravFriction.Torque = zeros(numIterations, 3); % Assuming 3D forces
+Mechanism.NewtonForceGravFriction.Torque = zeros(numIterations, 3); % Assuming 3D forces
+Mechanism.NewtonForceNoGravFriction.Torque = zeros(numIterations, 3); % Assuming 3D forces
+
+% Only for the slider will we need to include the normal force
+Mechanism.StaticForceGravNoFriction.NormalForce = zeros(numIterations, 3); % Assuming 3D forces
+Mechanism.StaticForceNoGravNoFriction.NormalForce= zeros(numIterations, 3); % Assuming 3D forces
+Mechanism.NewtonForceGravNoFriction.NormalForce = zeros(numIterations, 3); % Assuming 3D forces
+Mechanism.NewtonForceNoGravNoFriction.NormalForce = zeros(numIterations, 3); % Assuming 3D forces
+Mechanism.StaticForceGravFriction.NormalForce = zeros(numIterations, 3); % Assuming 3D forces
+Mechanism.StaticForceNoGravFriction.NormalForce = zeros(numIterations, 3); % Assuming 3D forces
+Mechanism.NewtonForceGravFriction.NormalForce = zeros(numIterations, 3); % Assuming 3D forces
+Mechanism.NewtonForceNoGravFriction.NormalForce = zeros(numIterations, 3); % Assuming 3D forces
 end
 
-function solution = performForceAnalysis(Mechanism, iter, JointPos, LinkCoMPos, newton, grav)
-% Here, you'd implement your equations based on static conditions
-% For each joint and link, calculate forces and moments ensuring sum of forces = 0 and sum of moments = 0
+function solution = performForceAnalysis(Mechanism, iter, JointPos, LinkCoMPos, newton, grav, friction)
+% Pull the mass of each component
+massABE = Mechanism.Mass.ABE;
+massBCFG = Mechanism.Mass.BCFG;
+massCDH = Mechanism.Mass.CDH;
 
-massAB = Mechanism.Mass.AB;
-massBCEF = Mechanism.Mass.BCEF;
-massCD = Mechanism.Mass.CD;
+% Pull the mass moment of inertia of each component
+massMoIABE = Mechanism.MassMoI.ABE;
+massMoIBCFG = Mechanism.MassMoI.BCFG;
+massMoICDH = Mechanism.MassMoI.CDH;
 
-massMoIAB = Mechanism.MassMoI.AB;
-massMoIBCEF = Mechanism.MassMoI.BCEF;
-massMoICD = Mechanism.MassMoI.CD;
+% Pull the angular acceleration of each link
+A_abe = Mechanism.AngAcc.ABE(iter,:);
+A_bcfg = Mechanism.AngAcc.BCFG(iter,:);
+A_cdh = Mechanism.AngAcc.CDH(iter,:);
 
-A_ab = Mechanism.AngAcc.AB(iter,:);
-A_bcef = Mechanism.AngAcc.BCEF(iter,:);
-A_cd = Mechanism.AngAcc.CD(iter,:);
+% Pull the acceleration of each link at its center of mass
+A_abe_com = Mechanism.LinAcc.LinkCoM.ABE(iter,:);
+A_bcfg_com = Mechanism.LinAcc.LinkCoM.BCFG(iter,:);
+A_cdh_com = Mechanism.LinAcc.LinkCoM.CDH(iter,:);
 
-A_ab_com = Mechanism.LinAcc.LinkCoM.AB(iter,:);
-A_bcef_com = Mechanism.LinAcc.LinkCoM.BCEF(iter,:);
-A_cd_com = Mechanism.LinAcc.LinkCoM.CD(iter,:);
-
-
-% This is a placeholder for the actual static analysis logic
-% You'll need to adapt this to your specific requirements
+% Extract positions for each joint
 A = JointPos.A;
 B = JointPos.B;
 C = JointPos.C;
 D = JointPos.D;
-E = JointPos.E;
-F = JointPos.F;
 
-AB_com = LinkCoMPos.AB;
-BCEF_com = LinkCoMPos.BCEF;
-CD_com = LinkCoMPos.CD;
+mu = 0.20;
 
-syms Ax Ay Bx By Cx Cy Dx Dy Ex Ey Fx Fy Gx Gy T
+% Extract positions for each link's center of mass
+ABE_com = LinkCoMPos.ABE;
+BCFG_com = LinkCoMPos.BCFG;
+CDH_com = LinkCoMPos.CDH;
 
-g = [0 -9.81 0]; %defining gravity to find weight of each link m/s^2
+% Define all the unknown variables to solve for
+syms Ax Ay Bx By Cx Cy Dx Dy T
 
-mu = 0.3;
-
-% General Helpful equations to do analysis
-theta1 = atan2(Ay, Ax);
-theta2 = atan2(By, Bx);
-theta3 = atan2(Cy, Cx);
-
-N1 = sqrt(Ax^2 + Ay^2); 
-N2 = sqrt(Bx^2 + By^2); 
-N3 = sqrt(Bx^2 + By^2); 
-
-r_ab_com_a = norm(AB_com - A);
-r_ab_com_b = norm(AB_com - B);
-r_bcef_com_c = norm(BCEF_com - C);
-
-F_fb_x = mu*N2*cos(theta2);
-F_fb_y = mu*N2*sin(theta2);
-F_fc_x = mu*N3*cos(theta3);
-F_fc_y = mu*N3*sin(theta3);
-
-T_fa_z = mu*N1*r_ab_com_a;
-T_fb_z = mu*N1*r_ab_com_b;
-T_fc_z = mu*N2*r_bcef_com_c;
+%defining gravity to find weight of each link m/s^2
+g = [0 -9.81 0];
 
 % Forces at each joint
 fA=[Ax Ay 0];
 fB=[Bx By 0];
 fC=[Cx Cy 0];
 fD=[Dx Dy 0];
-F_fb = [-F_fb_x -F_fb_y 0];
-F_fc = [-F_fc_x -F_fc_y 0];
-T_fa = [0 0 T_fa_z];
-T_fb = [0 0 T_fb_z];
-T_fc = [0 0 T_fc_z];
 
 % Weight of each link
-wAB=massAB *g * grav;
-wBCEF=massBCEF *g * grav;
-wCD=massCD *g * grav;
+wABE=massABE*g*grav;
+wBCFG=massBCFG*g*grav;
+wCDH=massCDH*g*grav;
 
 % Unknown torque of the system
 tT=[0 0 T];
 
-%% Equations from FBD
-%Link AB
-eqn1=fA+fB+F_fb+wAB==massAB*A_ab_com * newton;
-eqn2=momentVec(A, AB_com, fA) + momentVec(B,  AB_com,fB)+tT+T_fa+T_fb==massMoIAB * A_ab * newton; %only change the ==0 appropriately for newtons 2nd law
-%Link BCEF
-eqn3=-fB+fC-F_fb+F_fc+wBCEF==massBCEF*A_bcef_com * newton;
-eqn4=momentVec(B, BCEF_com, -fB)+momentVec(C, BCEF_com, fC)-T_fb+T_fc==massMoIBCEF * A_bcef * newton; %only change the ==0 appropriately for newtons 2nd law
-%Link CD
-eqn5=-fC+fD-F_fc+wCD==massCD*A_cd_com * newton;
-eqn6=momentVec(C, CD_com, -fC)+momentVec(D, CD_com, fD)-T_fc==massMoICD * A_cd * newton; %only change the ==0 appropriately for newtons 2nd law
+% Torque provided by friction on Joint A
+r_abe_com_a = norm(ABE_com - A);
+r_bcfg_com_b = norm(BCFG_com - B);
+r_cdh_com_c = norm(CDH_com - C);
 
-% Define initial guesses for your variables if known
-% guess = [Ax, Ay, Bx, By, Cx, Cy_guess, Dx_guess, Dy_guess, T_guess];
-% Use vpasolve directly
-% [solution, parameters, conditions] = vpasolve([eqn1, eqn2, eqn3, eqn4, eqn5, eqn6], [Ax, Ay, Bx, By, Cx, Cy, Dx, Dy, T]);
+A_noFriction_x = Mechanism.NewtonForceGravNoFriction.Joint.A(iter,1);
+A_noFriction_y = Mechanism.NewtonForceGravNoFriction.Joint.A(iter,2);
+B_noFriction_x = Mechanism.NewtonForceGravNoFriction.Joint.B(iter,1); 
+B_noFriction_y = Mechanism.NewtonForceGravNoFriction.Joint.B(iter,2);
+C_noFriction_x = Mechanism.NewtonForceGravNoFriction.Joint.C(iter,1); 
+C_noFriction_y = Mechanism.NewtonForceGravNoFriction.Joint.C(iter,2);
+
+% Correcting angle calculation
+A_theta = atan2(A_noFriction_y, A_noFriction_x);
+B_theta = atan2(B_noFriction_y, B_noFriction_x);
+C_theta = atan2(C_noFriction_y, C_noFriction_x);
+
+A_friction_Mag = norm([A_noFriction_x, A_noFriction_y]);
+B_friction_Mag = norm([B_noFriction_x, B_noFriction_y]);
+C_friction_Mag = norm([C_noFriction_x, C_noFriction_y]);
+
+% Correct normal force direction
+F_normal_A = [A_friction_Mag*cos(A_theta), A_friction_Mag*sin(A_theta), 0];
+F_normal_B = [B_friction_Mag*cos(B_theta), B_friction_Mag*sin(B_theta), 0];
+F_normal_C = [C_friction_Mag*cos(C_theta), C_friction_Mag*sin(C_theta), 0];
+
+% Friction forces (assuming directions are appropriately chosen)
+F_friction_A = mu * norm(F_normal_A) * [-sin(A_theta), cos(A_theta), 0] * friction; % Perpendicular to normal force
+F_friction_B = mu * norm(F_normal_B) * [-sin(B_theta), cos(B_theta), 0] * friction; % Perpendicular to normal force
+F_friction_C = mu * norm(F_normal_C) * [-sin(C_theta), cos(C_theta), 0] * friction; % Perpendicular to normal force
+
+% Assuming r_abe_com_a and r_bcfg_com_b are correctly calculated lever arms
+T_fr_A = [0,0, mu * norm(F_normal_A) * r_abe_com_a * friction]; % Torque due to friction at A
+T_fr_B = [0,0, mu * norm(F_normal_B) * r_bcfg_com_b * friction]; % Torque due to friction at B
+T_fr_C = [0,0, mu * norm(F_normal_B) * r_cdh_com_c * friction]; % Torque due to friction at B
+
+%% FBD Equations
+%Link ABE
+eqn1=fA+fB+wABE+F_friction_A+F_friction_B==massABE*A_abe_com*newton;
+eqn2=momentVec(A, ABE_com, fA) + momentVec(B,  ABE_com,fB)+tT+T_fr_A+T_fr_B==massMoIABE * A_abe*newton; %only change the ==0 appropriately for newtons 2nd law
+%Link BCFG
+eqn3=-fB+fC+wBCFG-F_friction_B+F_friction_C==massBCFG*A_bcfg_com*newton;
+eqn4=momentVec(B, BCFG_com, -fB)+momentVec(C, BCFG_com, fC)-T_fr_B+T_fr_C==massMoIBCFG * A_bcfg*newton; %only change the ==0 appropriately for newtons 2nd law
+%Link CDH
+eqn5=-fC+fD+wCDH-F_friction_C==massCDH*A_cdh_com*newton;
+eqn6=momentVec(C, CDH_com, -fC)+momentVec(D, CDH_com, fD)-T_fr_C==massMoICDH * A_cdh*newton; %only change the ==0 appropriately for newtons 2nd law
+
 solution = (solve([eqn1,eqn2,eqn3,eqn4,eqn5,eqn6],[Ax,Ay,Bx,By,Cx,Cy,Dx,Dy,T]));
 end
 
@@ -170,10 +204,6 @@ JointPos = struct();
 jointNames = fieldnames(Mechanism.Joint);
 for i = 1:length(jointNames)
     JointPos.(jointNames{i}) = Mechanism.Joint.(jointNames{i})(iteration, :);
-end
-tracerPointNames = fieldnames(Mechanism.TracerPoint);
-for i = 1:length(tracerPointNames)
-    JointPos.(tracerPointNames{i}) = Mechanism.TracerPoint.(tracerPointNames{i})(iteration, :);
 end
 end
 function LinkCoMPos = extractLinkCoMPositions(Mechanism, iteration)
@@ -192,46 +222,53 @@ pos = cross(r,force);
 end
 
 function saveForceData(baseFolder, Mechanism)
-% Define categories, conditions, and dataTypes
+% Define categories, conditions, and friction states
 categories = {'Static', 'Newton'};
 conditions = {'Grav', 'NoGrav'};
+frictions = {'Friction', 'NoFriction'};
 
-% Iterate through each combination of categories and conditions
+% Iterate through each combination of categories, conditions, and frictions
 for iCategory = 1:length(categories)
     for iCondition = 1:length(conditions)
-        category = categories{iCategory};
-        condition = conditions{iCondition};
+        for iFriction = 1:length(frictions)
+            category = categories{iCategory};
+            condition = conditions{iCondition};
+            friction = frictions{iFriction};
 
-        % Construct force field name e.g., StaticForceGrav
-        forceFieldName = [category 'Force' condition];
+            % Construct force field name e.g., StaticForceGravFriction
+            forceFieldName = [category 'Force' condition friction];
 
-        % Prepare folders for both Joint and Torque (if applicable)
-        jointFolder = fullfile(baseFolder, category, condition, 'Joint');
-        torqueFolder = fullfile(baseFolder, category, condition, 'Torque');
+            % Prepare folders for Joint and Torque
+            jointFolder = fullfile(baseFolder, [category 'Force'], condition, friction, 'Joint');
 
-        % Ensure folders exist
-        if ~exist(jointFolder, 'dir')
-            mkdir(jointFolder);
-        end
-
-        % Process and save Joint data
-        if isfield(Mechanism, forceFieldName) && isfield(Mechanism.(forceFieldName), 'Joint')
-            jointNames = fieldnames(Mechanism.(forceFieldName).Joint);
-            for iJoint = 1:length(jointNames)
-                jointName = jointNames{iJoint};
-                % Create temporary struct with joint data
-                tempStruct = struct(jointName, Mechanism.(forceFieldName).Joint.(jointName));
-                save(fullfile(jointFolder, jointName), '-struct', 'tempStruct', jointName);
+            % Ensure folders exist
+            if ~exist(jointFolder, 'dir')
+                mkdir(jointFolder);
             end
-        end
 
-        % Process and save Torque data directly without creating a Torque directory
-        if isfield(Mechanism, forceFieldName) && isfield(Mechanism.(forceFieldName), 'Torque')
-            % Define the torque data file path
-            torqueFilePath = fullfile(baseFolder, category, condition, 'Torque.mat');
-            % Extract torque data
-            Torque = Mechanism.(forceFieldName).Torque; % Make sure Torque is the correct field
-            save(torqueFilePath, 'Torque');
+            % Process and save Joint data
+            if isfield(Mechanism, forceFieldName) && isfield(Mechanism.(forceFieldName), 'Joint')
+                jointNames = fieldnames(Mechanism.(forceFieldName).Joint);
+                for iJoint = 1:length(jointNames)
+                    jointName = jointNames{iJoint};
+                    tempStruct = struct(jointName, Mechanism.(forceFieldName).Joint.(jointName));
+                    save(fullfile(jointFolder, jointName), '-struct', 'tempStruct', jointName);
+                end
+            end
+
+            % Process and save Torque data
+            if isfield(Mechanism, forceFieldName) && isfield(Mechanism.(forceFieldName), 'Torque')
+                torqueFilePath = fullfile(baseFolder, [category 'Force'], condition, friction, 'Torque.mat');
+                Torque = Mechanism.(forceFieldName).Torque;
+                save(torqueFilePath, 'Torque');
+            end
+
+            % Process and save Normal Force data
+            if isfield(Mechanism, forceFieldName) && isfield(Mechanism.(forceFieldName), 'NormalForce')
+                normalForceFilePath = fullfile(baseFolder, [category 'Force'], condition, friction, 'NormalForce.mat');
+                NormalForce = Mechanism.(forceFieldName).NormalForce; % Extract normal force data
+                save(normalForceFilePath, 'NormalForce');
+            end
         end
     end
 end

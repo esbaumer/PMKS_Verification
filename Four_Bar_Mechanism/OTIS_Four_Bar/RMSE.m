@@ -15,10 +15,10 @@ theoreticalAngVelData = readTheoreticalLinkData(baseTheoreticalVelPath);
 theoreticalAngAccData = readTheoreticalLinkData(baseTheoreticalAccPath);
 
 % Read the desired experimental files to analyze
-experimentalData = readExerimentalData(baseExperimentalPath);
-experimentalAngleData = experimentalData.Angle;
-experimentalAngVelData = experimentalData.AngVel;
-experimentalAngAccData = experimentalData.AngAcc;
+% experimentalData = readExerimentalData(baseExperimentalPath);
+% experimentalAngleData = experimentalData.Angle;
+% experimentalAngVelData = experimentalData.AngVel;
+% experimentalAngAccData = experimentalData.AngAcc;
 
 % Interpolated Theroetical
 interpolatedAngle = interp1(theoreticalAngleData.x, theoreticalAngleData.y, experimentalData.x);
@@ -81,9 +81,9 @@ function adjustedAngles = determineAngles(jointData)
 % Initialize an array to store adjusted angles with the same size as the input
 if ~isempty(jointData) && isfield(jointData(1), 'data')
     % Assuming all 'data' fields have the same number of rows (361 in your case)
-    numberOfRows = size(jointData(1).data, 1);
+    % numberOfRows = size(jointData(1).data, 1);
     % Adjusted initialization of adjustedAngles based on dynamic size
-    adjustedAngles = zeros(numberOfRows, length(jointData)); % Flipped to match 361x6
+    adjustedAngles = zeros(4, length(jointData)); % Flipped to match 361x6
 else
     % Handle the case where jointData might be empty or not properly structured
     adjustedAngles = []; % Or any other fallback initialization
@@ -97,7 +97,7 @@ for i = 1:length(jointData)
 end
 
 for theta_iterator = 1:size(jointData(1))
-    for rowNum = 1:6
+    for rowNum = 1:4
         % Determine the offset based on jointID. Example adjustments:
         if theta_iterator == 1 % For joint A with respect to another joint
             % Pull the appropriate joint values 
@@ -105,22 +105,16 @@ for theta_iterator = 1:size(jointData(1))
             B = table2array(jointData(jointIndexMap('B')).data(theta_iterator,:));
             angle = atan2(B(2) - A(2), B(1) - A(1));
             % TODO: Do this process for all desired joint positions
-            adjustedAngles(rowNum, theta_iterator) = 180 - angle;
+            adjustedAngles(theta_iterator, rowNum) = 180 - angle;
         elseif theta_iterator == 2 % For joint B
             % Adjust angle based on your criteria for joint B
-            adjustedAngles(theta_iterator) = theta + your_offset_AB;
+            adjustedAngles(theta_iterator, rowNum) = 1;
         elseif theta_iterator == 3 % For joint C
             % Adjust angle based on your criteria for joint B
-            adjustedAngles(theta_iterator) = theta + your_offset_AB;
+            adjustedAngles(theta_iterator, rowNum) = 1;
         elseif theta_iterator == 4 % For joint D
             % Adjust angle based on your criteria for joint B
-            adjustedAngles(theta_iterator) = theta + your_offset_AB;
-        elseif theta_iterator == 5 % For joint E
-            % Adjust angle based on your criteria for joint B
-            adjustedAngles(theta_iterator) = theta + your_offset_AB;
-        elseif theta_iterator == 6 % For joint F
-            % Default case if no specific offset criteria are met
-            adjustedAngles(theta_iterator) = theta; % No adjustment
+            adjustedAngles(theta_iterator, rowNum) = 1;
         end
         % Add more conditions as needed for other joints
     end
