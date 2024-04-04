@@ -186,27 +186,23 @@ B_friction_Mag = norm([B_noFriction_x, A_noFriction_y]);
 F_normal_A = [A_friction_Mag*cos(A_theta), A_friction_Mag*sin(A_theta), 0];
 F_normal_B = [B_friction_Mag*cos(B_theta), B_friction_Mag*sin(B_theta), 0];
 
-% Friction forces (assuming directions are appropriately chosen)
-F_friction_A = mu * norm(F_normal_A) * [-sin(A_theta), cos(A_theta), 0] * friction; % Perpendicular to normal force
-F_friction_B = mu * norm(F_normal_B) * [-sin(B_theta), cos(B_theta), 0] * friction; % Perpendicular to normal force
+% Calculate friction forces based on estimated normal forces, conditionally
+if friction == 1
+F_friction_A = mu * norm(F_normal_A) * [-sin(A_theta), cos(A_theta), 0]; % Perpendicular to normal force
+F_friction_B = mu * norm(F_normal_B) * [-sin(B_theta), cos(B_theta), 0]; % Perpendicular to normal force
+else
+F_friction_A = [0 0 0]; % Perpendicular to normal force
+F_friction_B = [0 0 0]; % Perpendicular to normal force
+end
 
-% Assuming r_ab_com_a and r_bc_com_b are correctly calculated lever arms
-T_fr_A = [0,0, mu * norm(F_normal_A) * r_ab_com_a * friction]; % Torque due to friction at A
-T_fr_B = [0,0, mu * norm(F_normal_B) * r_bc_com_b * friction]; % Torque due to friction at B
-% T_fr_A = [0,0, mu * norm(F_normal_A) * r_ab_com_a * friction]; % Torque due to friction at A
-% T_fr_B = [0,0, mu * norm(F_normal_B) * r_bc_com_b * friction]; % Torque due to friction at B
-
-% F_normal_A = [A_friction_Mag*cos(A_theta),A_friction_Mag*cos(A_theta),0];
-% F_normal_B = [B_friction_Mag*cos(B_theta),B_friction_Mag*cos(B_theta),0];
-% 
-% % Calculate friction forces based on estimated normal forces
-% F_friction_A = mu * F_normal_A; % Magnitude of friction force at A
-% F_friction_B = mu * F_normal_B; % Magnitude of friction force at B
-% 
-% % Calculate torques due to friction at A and B
-% % Assuming rA and rB are the distances from the pivot to where friction forces act
-% T_fr_A = F_friction_A * r_ab_com_a; % Torque due to friction at A
-% T_fr_B = F_friction_B * r_bc_com_b; % Torque due to friction at B
+% Calculate torques due to friction conditionally
+if friction == 1
+T_fr_A = [0,0, mu * norm(F_normal_A) * r_ab_com_a]; % Torque due to friction at A
+T_fr_B = [0,0, mu * norm(F_normal_B) * r_bc_com_b]; % Torque due to friction at B
+else
+T_fr_A = [0,0,0]; % Torque due to friction at A
+T_fr_B = [0,0,0]; % Torque due to friction at B
+end
 
 %% FBD Equations
 %Link AB
@@ -218,7 +214,7 @@ eqn3=-fB+fC+wBC-F_friction_B==massBC*A_bc_com*newton;
 eqn4=momentVec(B, BC_com, -fB)+momentVec(C, BC_com, fC)-T_fr_B==massMoIBC * A_bc*newton; %only change the ==0 appropriately for newtons 2nd law
 % eqn4=momentVec(B, BC_com, -fB)+momentVec(C, BC_com, fC)-T_fb==massMoIBC * A_bc*newton; %only change the ==0 appropriately for newtons 2nd law
 % Piston
-eqn5=-fC+F_fr+F_N+wPiston==massPiston*A_piston*newton;
+eqn5=-fC+F_fr+wPiston==massPiston*A_piston*newton;
 
 solution = (solve([eqn1,eqn2,eqn3,eqn4,eqn5],[Ax,Ay,Bx,By,Cx,Cy,N,T]));
 end
