@@ -17,7 +17,7 @@ classdef PosSolverUtils
             % Initialize angular speed
             Mechanism = PosSolverUtils.initializeInputSpeed(Mechanism, input_speed, max_iterations);
 
-           % Main loop for calculating joint positions using the passed function for new positions
+            % Main loop for calculating joint positions using the passed function for new positions
             if nargin == 4 && ~isempty(calculateNewPositionsFunc)
                 [Mechanism] = PosSolverUtils.calculateJointPositions(Mechanism, theta, thetaIncrement, iteration, max_iterations, calculateNewPositionsFunc);
             end
@@ -63,7 +63,7 @@ classdef PosSolverUtils
             while ~(PosSolverUtils.determineEqual(Mechanism.Joint.B(1, :), Mechanism.Joint.B(iteration - 1, :)) && ...
                     ~isequal(iteration, 2) && forwardDir) && iteration < max_iterations
                 [Mechanism, theta, thetaIncrement, forwardDir, iteration] = PosSolverUtils.updateJointPositions(Mechanism, theta, thetaIncrement, iteration, forwardDir, calculateNewPositionsFunc);
-           end
+            end
 
             % Trim positions and speeds to the last filled iteration
             jointNames = fieldnames(Mechanism.Joint);
@@ -174,6 +174,58 @@ classdef PosSolverUtils
             else
                 result = [xIntersect(2) yIntersect(2) 0];
             end
+        end
+        % Utility function for circle-line intersection calculation
+        function result = circleLineIntersection(x0, y0, r, xPrev, yPrev, theta)
+            % Calculates the intersection points between a circle and a line defined by an angle and previous point
+            % Inputs:
+            % x0, y0: Coordinates of the circle's center
+            % r: Radius of the circle
+            % xPrev, yPrev: Coordinates of the previous joint position
+            % theta: Angle of the line in degrees
+
+            % Convert angle to radians for MATLAB trig functions
+            thetaRad = deg2rad(theta);
+
+            % Calculate slope (m) of the line
+            m = tan(thetaRad);
+
+            % Determine the line's y-intercept (b) using the point-slope form
+            b = yPrev - m * xPrev;
+
+            % Calculate intersection points using the circle equation
+            A = 1 + m^2;
+            B = 2*m*b - 2*x0 - 2*y0*m;
+            C = x0^2 + y0^2 + b^2 - 2*y0*b - r^2;
+            D = B^2 - 4*A*C; % Discriminant
+
+            % Initialize output
+            newX = NaN;
+            newY = NaN;
+
+            if D >= 0
+                % Calculate potential x-coordinates for intersection points
+                x1 = (-B + sqrt(D)) / (2*A);
+                x2 = (-B - sqrt(D)) / (2*A);
+                % Corresponding y-coordinates
+                y1 = m*x1 + b;
+                y2 = m*x2 + b;
+
+                % Choose the intersection point that is closer to the previous position
+                dist1 = sqrt((x1 - xPrev)^2 + (y1 - yPrev)^2);
+                dist2 = sqrt((x2 - xPrev)^2 + (y2 - yPrev)^2);
+
+                if dist1 < dist2
+                    newX = x1;
+                    newY = y1;
+                else
+                    newX = x2;
+                    newY = y2;
+                end
+            else
+                disp('Error: No real intersection points.');
+            end
+            result = [newX, newY, 0];
         end
 
         % Utility function to check if two arrays are approximately equal
