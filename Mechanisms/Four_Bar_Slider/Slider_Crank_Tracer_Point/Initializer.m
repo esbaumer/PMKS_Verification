@@ -2,11 +2,18 @@
 clear; close all; clc;
 
 % Use the function to find the project root
-currentDir = pwd; % Current directory
-projectRoot = GeneralUtils.findProjectRoot(currentDir, 'PMKS_Simulator_Verification');
+% currentDir = pwd; % Current directory
+% projectRoot = GeneralUtils.findProjectRoot(currentDir, 'PMKS_Simulator_Verification');
+% projectRoot = fullfile(currentDir, '..', '..', '..', 'CommonUtils');
 
 % Specify the path to CommonUtils relative to the project root
-utilsFolderPath = fullfile(projectRoot, 'CommonUtils');
+% utilsFolderPath = fullfile(projectRoot, 'CommonUtils');
+
+% Get the current script's directory
+currentDir = fileparts(mfilename('fullpath'));
+
+% Construct the path to the 'CommonUtils' directory
+utilsFolderPath = fullfile(currentDir, '..', '..', '..', 'CommonUtils');
 
 % Add this path to MATLAB's search paths
 addpath(utilsFolderPath);
@@ -40,21 +47,22 @@ Mechanism.MassMoI.BCD = 0.2;
 
 % Define angular velocity of the link where a motor is attached
 input_speed = 1.0472; % 10 rpm to 1.0472 rad/s
+save('Mechanism.mat', 'Mechanism');
 
 % Call PosSolver to calculate and store positions
 Mechanism = PosSolver(Mechanism, input_speed);
+save('Mechanism.mat', 'Mechanism');
 
 % Call VelAccSolver to calculate and store velocities and accelerations
 Mechanism = VelAccSolver(Mechanism);
+save('Mechanism.mat', 'Mechanism');
 
 % Call ForceSolver to calculate and store forces and torques
 %     % Scenarios: [newtonFlag, gravityFlag, frictionFlag]
 %     % scenarios = [0 0 0; 0 0 1; 0 1 0; 0 1 1; 1 0 0; 1 0 1; 1 1 0; 1 1 1];
 % scenarios = [1 1 0];
 % Mechanism = ForceSolver(Mechanism);
-
-% Optionally, save the fully initialized and solved Mechanism structure for later use
-save('Mechanism.mat', 'Mechanism');
+% save('Mechanism.mat', 'Mechanism');
 
 baseDir = 'Kin';
 csvDir = 'CSVOutput';

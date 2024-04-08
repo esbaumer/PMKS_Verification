@@ -55,15 +55,17 @@ tT=[0 0 T];
 mu = 0.34; % Coefficient of friction
 
 % Normal Force
-F_N = [N*cos(theta) N*sin(theta) 0];
-
+% F_N = [N*cos(theta), N*sin(theta), 0];
 % Determine the direction of the friction force at the slider-cylinder interface
 if Mechanism.LinVel.Joint.C(iter,1) > 0
-    F_fr = mu * F_N * -1; % Assuming horizontal motion
+    % F_fr = [mu*F_N*-1, 0]; % Assuming horizontal motion
+    F_fr =[-mu*N,N,0];
 elseif Mechanism.LinVel.Joint.C(iter,1) < 0
-    F_fr = mu * F_N * 1;
+    F_fr =[mu*N,N,0];
+    % F_fr = [0, mu * F_N * 1, 0];
 else
-    F_fr = mu * F_N * 0;
+    F_fr =[-mu*N*0,N,0];
+    % F_fr = [0, mu * F_N * 0, 0];
 end
 
 

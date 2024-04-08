@@ -57,20 +57,21 @@ Mechanism.MassMoI.CFG = 0.1;
 
 % Define angular velocity of the link where a motor is attached
 input_speed = 1.0472; % 10 rpm to 1.0472 rad/s
+save('Mechanism.mat', 'Mechanism');
 
 % Call PosSolver to calculate and store positions
 Mechanism = PosSolver(Mechanism, input_speed);
+save('Mechanism.mat', 'Mechanism');
 
 % Call VelAccSolver to calculate and store velocities and accelerations
 Mechanism = VelAccSolver(Mechanism);
+save('Mechanism.mat', 'Mechanism');
 
 % Call ForceSolver to calculate and store forces and torques
 %     % Scenarios: [newtonFlag, gravityFlag, frictionFlag]
 %     % scenarios = [0 0 0; 0 0 1; 0 1 0; 0 1 1; 1 0 0; 1 0 1; 1 1 0; 1 1 1];
 scenarios = [1 1 0];
 Mechanism = ForceSolver(Mechanism, scenarios);
-
-% Optionally, save the fully initialized and solved Mechanism structure for later use
 save('Mechanism.mat', 'Mechanism');
 
 baseDir = 'Kin';
