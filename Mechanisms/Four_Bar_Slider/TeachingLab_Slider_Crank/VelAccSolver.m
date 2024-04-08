@@ -45,8 +45,8 @@ LinVel.Joint.B = VelAccSolverUtils.velSolver(AngVel.AB,B-A);
 LinVel.Joint.C = Mechanism.LinVel.Joint.C(iter,:);
 
 % Determine the velocities at each link's center of mass
-LinVel.LinkCoM.AB = velSolver(AngVel.AB,AB_com - A);
-LinVel.LinkCoM.BC = velSolver(AngVel.BC,BC_com - B) + LinVel.Joint.B;
+LinVel.LinkCoM.AB = VelAccSolverUtils.velSolver(AngVel.AB,AB_com - A);
+LinVel.LinkCoM.BC = VelAccSolverUtils.velSolver(AngVel.BC,BC_com - B) + LinVel.Joint.B;
 
 jointNames = fieldnames(Mechanism.Joint);
 for i = 1:length(jointNames)

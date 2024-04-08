@@ -58,6 +58,17 @@ classdef ForceSolverUtils
                 Mechanism.(suffix).Joint.(jointName)(iter, :) = [double(solution.([jointName, 'x'])), double(solution.([jointName, 'y'])), 0];
             end
             Mechanism.(suffix).Torque(iter,:) = [0 0 double(solution.T)];
+            % Check if 'N' exists in the solution
+            if isfield(solution, 'N')
+                % Extract N value
+                N = double(solution.N);
+                % Calculate normal force components based on theta
+                normalForceX = N * cos(Mechanism.Theta);
+                normalForceY = N * sin(Mechanism.Theta);
+                
+                % Update Mechanism with normal force components
+                Mechanism.(suffix).NormalForce(iter,:) = [normalForceX, normalForceY, 0];
+            end
         end
         function [Mechanism] = initializeForceSolvers(Mechanism, numIterations)
             % Initialize with zeros for storing forces and moments

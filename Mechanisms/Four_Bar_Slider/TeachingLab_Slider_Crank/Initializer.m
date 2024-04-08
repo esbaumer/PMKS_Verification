@@ -1,8 +1,14 @@
 % Initialization
 clear; close all; clc;
 
-% Initilize path to call functions within Utils
-utilsFolderPath = fullfile(pwd);
+% Use the function to find the project root
+currentDir = pwd; % Current directory
+projectRoot = findProjectRoot(currentDir, 'PMKS_Simulator_Verification');
+
+% Specify the path to CommonUtils relative to the project root
+utilsFolderPath = fullfile(projectRoot, 'CommonUtils');
+
+% Add this path to MATLAB's search paths
 addpath(utilsFolderPath);
 
 % Initialize Mechanism structure with necessary fields
@@ -116,4 +122,23 @@ function writeMatrixToCSV(matrix, csvFilePath)
     end
     % Close the file
     fclose(fileId);
+end
+
+function rootPath = findProjectRoot(currentDir, targetDirName)
+    % Initialize the rootPath with the current directory
+    rootPath = currentDir;
+    
+    % Use fileparts to repeatedly move up one directory level
+    while true
+        [parentPath, dirName, ~] = fileparts(rootPath);
+        
+        % Check if the current directory name is the target
+        if strcmp(dirName, targetDirName)
+            return;
+        elseif isempty(parentPath) || strcmp(rootPath, parentPath)
+            error('Target project directory not found in the path hierarchy.');
+        else
+            rootPath = parentPath;
+        end
+    end
 end

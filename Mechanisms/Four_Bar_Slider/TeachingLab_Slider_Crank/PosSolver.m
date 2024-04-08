@@ -22,7 +22,7 @@ A = Mechanism.Joint.A(1, :);
 B = [A(1) + Mechanism.LinkLength.AB * cos(theta), A(2) + Mechanism.LinkLength.AB * sin(theta), 0];
 
 % Circle-line intersections for C
-C = circleLineIntersection(B(1), B(2), Mechanism.LinkLength.BC, Mechanism.Joint.C(iteration - 1, 1), Mechanism.Joint.C(iteration - 1, 2), 0);
+C = PosSolverUtils.circleLineIntersection(B(1), B(2), Mechanism.LinkLength.BC, Mechanism.Joint.C(iteration - 1, 1), Mechanism.Joint.C(iteration - 1, 2), 0);
 if isempty(C), valid = false; return; end
 
 % Update positions
