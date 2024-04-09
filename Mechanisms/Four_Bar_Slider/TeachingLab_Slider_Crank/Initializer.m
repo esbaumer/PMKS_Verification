@@ -21,8 +21,8 @@ addpath(utilsFolderPath);
 Mechanism = struct();
 
 A=[0 0 0]; %motor input
-B=[0,3.81,0]; %connection between crankshaft and connecting rod
-C=[14.756,0,0]; %connecting rod and piston 
+B=[0,0.381,0]; %connection between crankshaft and connecting rod
+C=[0.14756,0,0]; %connecting rod and piston 
 
 % Define initial joint positions (example values)
 Mechanism.Joint.A = A;
@@ -46,6 +46,23 @@ Mechanism.Mass.Piston = 1.31788;
 Mechanism.MassMoI.AB = 0.0004647594;
 Mechanism.MassMoI.BC = 0.0030344427; 
 
+% Desired for Stress Analysis. Maybe wanna include all the lengths to be
+% utilized within PosSolver
+Mechanism.ABELength = 10;
+Mechanism.BCFGLength = 10;
+Mechanism.CDHLength = 10;
+
+% Desired for Stress Analysis. Another idea that is since we know the
+% density, the mass, and the depth of the link, we could determine what the
+% cross sectional area would be. But for now, I think hard coding these
+% values are okay
+Mechanism.crossSectionalAreaABE = 10;
+Mechanism.crossSectionalAreaBCFG = 10;
+Mechanism.crossSectionalAreaCDH = 10;
+
+% Define the modulus of elasticity for each link
+Mechanism.modulusElasticity = 10e6;
+
 % Define angular velocity of the link where a motor is attached
 input_speed = 15.707963249999972; % 150 rpm to 15.707963249999972 rad/s
 save('Mechanism.mat', 'Mechanism');
@@ -65,10 +82,16 @@ scenarios = [1 1 0];
 Mechanism = ForceSolver(Mechanism, scenarios);
 save('Mechanism.mat', 'Mechanism');
 
+Mechanism = StressSolver(Mechanism, scenarios);
+save('Mechanism.mat', 'Mechanism');
+
+csvDir = 'CSVOutput';
 
 baseDir = 'Kin';
-csvDir = 'CSVOutput';
 GeneralUtils.exportMatricesToCSV(baseDir, csvDir);
 
 baseDir = 'Force';
+GeneralUtils.exportMatricesToCSV(baseDir, csvDir);
+
+baseDir = 'Stress';
 GeneralUtils.exportMatricesToCSV(baseDir, csvDir);

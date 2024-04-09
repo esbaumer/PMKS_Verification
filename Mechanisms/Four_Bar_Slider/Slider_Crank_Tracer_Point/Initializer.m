@@ -45,6 +45,23 @@ Mechanism.Mass.BCD= 10;
 Mechanism.MassMoI.AB = 0.1; 
 Mechanism.MassMoI.BCD = 0.2; 
 
+% Desired for Stress Analysis. Maybe wanna include all the lengths to be
+% utilized within PosSolver
+Mechanism.ABELength = 10;
+Mechanism.BCFGLength = 10;
+Mechanism.CDHLength = 10;
+
+% Desired for Stress Analysis. Another idea that is since we know the
+% density, the mass, and the depth of the link, we could determine what the
+% cross sectional area would be. But for now, I think hard coding these
+% values are okay
+Mechanism.crossSectionalAreaABE = 10;
+Mechanism.crossSectionalAreaBCFG = 10;
+Mechanism.crossSectionalAreaCDH = 10;
+
+% Define the modulus of elasticity for each link
+Mechanism.modulusElasticity = 10e6;
+
 % Define angular velocity of the link where a motor is attached
 input_speed = 1.0472; % 10 rpm to 1.0472 rad/s
 save('Mechanism.mat', 'Mechanism');
@@ -64,9 +81,16 @@ save('Mechanism.mat', 'Mechanism');
 % Mechanism = ForceSolver(Mechanism);
 % save('Mechanism.mat', 'Mechanism');
 
-baseDir = 'Kin';
+% Mechanism = StressSolver(Mechanism, scenarios);
+% save('Mechanism.mat', 'Mechanism');
+
 csvDir = 'CSVOutput';
+
+baseDir = 'Kin';
 GeneralUtils.exportMatricesToCSV(baseDir, csvDir);
 
 % baseDir = 'Force';
 % exportMatricesToCSV(baseDir, csvDir);
+
+% baseDir = 'Stress';
+% GeneralUtils.exportMatricesToCSV(baseDir, csvDir);
