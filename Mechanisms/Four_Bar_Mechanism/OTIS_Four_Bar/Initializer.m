@@ -1,11 +1,19 @@
 clear; close all; clc;
 
 % Use the function to find the project root
-currentDir = pwd; % Current directory
-projectRoot = GeneralUtils.findProjectRoot(currentDir, 'PMKS_Simulator_Verification');
+% currentDir = pwd; % Current directory
+% projectRoot = GeneralUtils.findProjectRoot(currentDir, 'PMKS_Simulator_Verification');
+% 
+% % Specify the path to CommonUtils relative to the project root
+% utilsFolderPath = fullfile(projectRoot, 'CommonUtils');
+% 
+% % Add this path to MATLAB's search paths
+% addpath(utilsFolderPath);
+% Get the current script's directory
+currentDir = fileparts(mfilename('fullpath'));
 
-% Specify the path to CommonUtils relative to the project root
-utilsFolderPath = fullfile(projectRoot, 'CommonUtils');
+% Construct the path to the 'CommonUtils' directory
+utilsFolderPath = fullfile(currentDir, '..', '..', '..', 'CommonUtils');
 
 % Add this path to MATLAB's search paths
 addpath(utilsFolderPath);

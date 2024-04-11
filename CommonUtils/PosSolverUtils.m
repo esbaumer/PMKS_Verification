@@ -287,8 +287,14 @@ classdef PosSolverUtils
         end
 
         function Mechanism = initializeInputSpeed(Mechanism, input_speed, max_iterations)
-            Mechanism.inputSpeed = zeros(max_iterations, 1);
-            Mechanism.inputSpeed(1) = input_speed; % 10 rpm to 1.0472 rad/s
+            % Assuming input_speed is a vector of different speeds
+            numSpeeds = length(input_speed); % Number of different speeds
+            % Initialize the inputSpeed matrix
+            Mechanism.inputSpeed = zeros(max_iterations, numSpeeds);
+            % Set the initial speed for each speed scenario
+            for i = 1:numSpeeds
+                Mechanism.inputSpeed(1, i) = input_speed(i);
+            end
         end
 
         function [xIntersect, yIntersect] = circleCircleMethod(x1, y1, r1, x2, y2, r2)

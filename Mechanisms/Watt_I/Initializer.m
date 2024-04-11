@@ -1,11 +1,20 @@
 clear; close all; clc;
 
-% Use the function to find the project root
-currentDir = pwd; % Current directory
-projectRoot = GeneralUtils.findProjectRoot(currentDir, 'PMKS_Simulator_Verification');
+% % Use the function to find the project root
+% currentDir = pwd; % Current directory
+% projectRoot = GeneralUtils.findProjectRoot(currentDir, 'PMKS_Simulator_Verification');
+% 
+% % Specify the path to CommonUtils relative to the project root
+% utilsFolderPath = fullfile(projectRoot, 'CommonUtils');
+% 
+% % Add this path to MATLAB's search paths
+% addpath(utilsFolderPath);
 
-% Specify the path to CommonUtils relative to the project root
-utilsFolderPath = fullfile(projectRoot, 'CommonUtils');
+% Get the current script's directory
+currentDir = fileparts(mfilename('fullpath'));
+
+% Construct the path to the 'CommonUtils' directory
+utilsFolderPath = fullfile(currentDir, '..', '..', 'CommonUtils');
 
 % Add this path to MATLAB's search paths
 addpath(utilsFolderPath);
@@ -57,20 +66,24 @@ Mechanism.MassMoI.CFG = 0.1;
 
 % Desired for Stress Analysis. Maybe wanna include all the lengths to be
 % utilized within PosSolver
-Mechanism.ABELength = 10;
-Mechanism.BCFGLength = 10;
-Mechanism.CDHLength = 10;
+Mechanism.ABLength = 10;
+Mechanism.BCDLength = 10;
+Mechanism.DELength = 10;
+Mechanism.EFLength = 10;
+Mechanism.CFGLength = 10;
 
 % Desired for Stress Analysis. Another idea that is since we know the
 % density, the mass, and the depth of the link, we could determine what the
 % cross sectional area would be. But for now, I think hard coding these
 % values are okay
-Mechanism.crossSectionalAreaABE = 10;
-Mechanism.crossSectionalAreaBCFG = 10;
-Mechanism.crossSectionalAreaCDH = 10;
+Mechanism.crossSectionalAreaAB = 10e-4; % square meters
+Mechanism.crossSectionalAreaBCD = 10e-4; % square meters
+Mechanism.crossSectionalAreaDE = 10e-4; % square meters
+Mechanism.crossSectionalAreaEF = 10e-4; % square meters
+Mechanism.crossSectionalAreaCFG = 10e-4; % square meters
 
 % Define the modulus of elasticity for each link
-Mechanism.modulusElasticity = 10e6;
+Mechanism.modulusElasticity = 200e9;
 
 % Define angular velocity of the link where a motor is attached
 input_speed = 1.0472; % 10 rpm to 1.0472 rad/s
@@ -88,6 +101,7 @@ save('Mechanism.mat', 'Mechanism');
 %     % Scenarios: [newtonFlag, gravityFlag, frictionFlag]
 %     % scenarios = [0 0 0; 0 0 1; 0 1 0; 0 1 1; 1 0 0; 1 0 1; 1 1 0; 1 1 1];
 scenarios = [1 1 0];
+
 Mechanism = ForceSolver(Mechanism, scenarios);
 save('Mechanism.mat', 'Mechanism');
 

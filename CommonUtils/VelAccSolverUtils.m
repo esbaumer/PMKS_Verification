@@ -26,24 +26,29 @@ classdef VelAccSolverUtils
                 initialBlankLinkVector.(linkNames{i}) = blankVector;
             end
 
-            [Mechanism] = VelAccSolverUtils.initializeAngVels(Mechanism, initialBlankLinkVector, numIterations);
-            [Mechanism] = VelAccSolverUtils.initializeLinVels(Mechanism, initialBlankJointVector, initialBlankLinkVector, numIterations);
-            [Mechanism] = VelAccSolverUtils.initializeAngAccs(Mechanism, initialBlankLinkVector, numIterations);
-            [Mechanism] = VelAccSolverUtils.initializeLinAccs(Mechanism, initialBlankJointVector, initialBlankLinkVector, numIterations);
+
+           numSpeeds = size(Mechanism.inputSpeed, 2); % Assuming inputSpeed has dimensions: iterations x speeds
+           [Mechanism] = VelAccSolverUtils.initializeAngVels(Mechanism, initialBlankLinkVector, numIterations, numSpeeds);
+           [Mechanism] = VelAccSolverUtils.initializeLinVels(Mechanism, initialBlankJointVector, initialBlankLinkVector, numIterations, numSpeeds);
+           [Mechanism] = VelAccSolverUtils.initializeAngAccs(Mechanism, initialBlankLinkVector, numIterations, numSpeeds);
+           [Mechanism] = VelAccSolverUtils.initializeLinAccs(Mechanism, initialBlankJointVector, initialBlankLinkVector, numIterations, numSpeeds);
 
             % Iterate through all iterations
-            for iter = 1:numIterations
-                % Extract joint positions for this iteration
-                JointPos = VelAccSolverUtils.extractJointPositions(Mechanism, iter);
-                LinkCoMPos = VelAccSolverUtils.extractLinkCoMPositions(Mechanism, iter);
+            numSpeeds = size(Mechanism.inputSpeed, 2); % Assuming inputSpeed is 2D: iterations x speeds
 
-                % Assuming input_speed is defined or extracted from Mechanism
-                input_speed = Mechanism.inputSpeed(iter); % Placeholder, adjust based on your Mechanism structure
+            for speedIndex = 1:numSpeeds
+                for iter = 1:numIterations
+                    % Extract joint positions for this iteration
+                    JointPos = VelAccSolverUtils.extractJointPositions(Mechanism, iter);
+                    LinkCoMPos = VelAccSolverUtils.extractLinkCoMPositions(Mechanism, iter);
 
-                % Calculate kinematics for the current iteration and store within the Mechanism
-                Mechanism = VelAccSolverUtils.determineKinematics(Mechanism, iter, JointPos, LinkCoMPos, input_speed, determineAngVelFunc, determineLinVelFunc, determineAngAccFunc, determineLinAccFunc);
+                    % Assuming input_speed is defined or extracted from Mechanism
+                    input_speed = Mechanism.inputSpeed(iter, speedIndex); % Placeholder, adjust based on your Mechanism structure
+
+                    % Calculate kinematics for the current iteration and store within the Mechanism
+                    Mechanism = VelAccSolverUtils.determineKinematics(Mechanism, iter, speedIndex, JointPos, LinkCoMPos, input_speed, determineAngVelFunc, determineLinVelFunc, determineAngAccFunc, determineLinAccFunc);
+                end
             end
-            % end
 
             % Save the updated Mechanism
             save('Mechanism.mat', 'Mechanism');
@@ -110,51 +115,52 @@ classdef VelAccSolverUtils
         end
 
         % Initialize AngVel, LinVel, AngAcc, LinAcc
-        function Mechanism = initializeAngVels(Mechanism, initialBlankLinkVector, max_iterations)
+        function Mechanism = initializeAngVels(Mechanism, initialBlankLinkVector, numIterations, numSpeeds)
             angVelNames = fieldnames(initialBlankLinkVector);
             for i = 1:length(angVelNames)
-                Mechanism.AngVel.(angVelNames{i}) = zeros(max_iterations, 3); % Initialize with zeros for each dimension (assuming 3D angular velocities)
+                % Allocate a 3D array: iterations x 3 (dimensions) x speeds
+                Mechanism.AngVel.(angVelNames{i}) = zeros(numIterations, 3, numSpeeds);
             end
         end
-        function Mechanism = initializeLinVels(Mechanism, initialBlankJointVector, initialBlankLinkVector, max_iterations)
+        function Mechanism = initializeLinVels(Mechanism, initialBlankJointVector, initialBlankLinkVector, max_iterations, numSpeeds)
             linJointVelNames = fieldnames(initialBlankJointVector);
             for i = 1:length(linJointVelNames)
-                Mechanism.LinVel.Joint.(linJointVelNames{i}) = zeros(max_iterations, 3); % Initialize with zeros for each dimension (assuming 3D angular velocities)
+                Mechanism.LinVel.Joint.(linJointVelNames{i}) = zeros(max_iterations, 3, numSpeeds); % Initialize with zeros for each dimension (assuming 3D angular velocities)
             end
             linLinkCoMVelNames = fieldnames(initialBlankLinkVector);
             for i = 1:length(linLinkCoMVelNames)
-                Mechanism.LinVel.LinkCoM.(linLinkCoMVelNames{i}) = zeros(max_iterations, 3); % Initialize with zeros for each dimension (assuming 3D angular velocities)
+                Mechanism.LinVel.LinkCoM.(linLinkCoMVelNames{i}) = zeros(max_iterations, 3, numSpeeds); % Initialize with zeros for each dimension (assuming 3D angular velocities)
             end
         end
-        function Mechanism = initializeAngAccs(Mechanism, initialBlankLinkVector, max_iterations)
+        function Mechanism = initializeAngAccs(Mechanism, initialBlankLinkVector, max_iterations, numSpeeds)
             angAccNames = fieldnames(initialBlankLinkVector);
             for i = 1:length(angAccNames)
-                Mechanism.AngAcc.(angAccNames{i}) = zeros(max_iterations, 3); % Initialize with zeros for each dimension (assuming 3D angular velocities)
+                Mechanism.AngAcc.(angAccNames{i}) = zeros(max_iterations, 3, numSpeeds); % Initialize with zeros for each dimension (assuming 3D angular velocities)
             end
         end
-        function Mechanism = initializeLinAccs(Mechanism, initialBlankJointVector, initialBlankLinkVector, max_iterations)
+        function Mechanism = initializeLinAccs(Mechanism, initialBlankJointVector, initialBlankLinkVector, max_iterations, numSpeeds)
             linJointNames = fieldnames(initialBlankJointVector);
             for i = 1:length(linJointNames)
-                Mechanism.LinAcc.Joint.(linJointNames{i}) = zeros(max_iterations, 3); % Initialize with zeros for each dimension (assuming 3D angular velocities)
+                Mechanism.LinAcc.Joint.(linJointNames{i}) = zeros(max_iterations, 3, numSpeeds); % Initialize with zeros for each dimension (assuming 3D angular velocities)
             end
             linLinkCoMAccNames = fieldnames(initialBlankLinkVector);
             for i = 1:length(linLinkCoMAccNames)
-                Mechanism.LinAcc.LinkCoM.(linLinkCoMAccNames{i}) = zeros(max_iterations, 3); % Initialize with zeros for each dimension (assuming 3D angular velocities)
+                Mechanism.LinAcc.LinkCoM.(linLinkCoMAccNames{i}) = zeros(max_iterations, 3, numSpeeds); % Initialize with zeros for each dimension (assuming 3D angular velocities)
             end
         end
 
-        function Mechanism = determineKinematics(Mechanism, iter, JointPos, LinkCoMPos, input_speed, determineAngVelFunc, determineLinVelFunc, determineAngAccFunc, determineLinAccFunc)
+        function Mechanism = determineKinematics(Mechanism, iter, speedIndex, JointPos, LinkCoMPos, input_speed, determineAngVelFunc, determineLinVelFunc, determineAngAccFunc, determineLinAccFunc)
             % Determine angular velocity
-            [Mechanism, AngVel] = feval(determineAngVelFunc, Mechanism, iter, JointPos, input_speed);
+            [Mechanism, AngVel] = feval(determineAngVelFunc, Mechanism, iter, speedIndex, JointPos, input_speed);
 
             % Determine linear velocity
-            [Mechanism] = feval(determineLinVelFunc, Mechanism, iter, JointPos, LinkCoMPos, AngVel);
+            [Mechanism] = feval(determineLinVelFunc, Mechanism, iter, speedIndex, JointPos, LinkCoMPos, AngVel);
 
             % Determine angular acceleration
-            [Mechanism, AngAcc] = feval(determineAngAccFunc, Mechanism, iter, JointPos, AngVel);
+            [Mechanism, AngAcc] = feval(determineAngAccFunc, Mechanism, iter, speedIndex, JointPos, AngVel);
 
             % Determine linear acceleration
-            [Mechanism] = feval(determineLinAccFunc, Mechanism, iter, JointPos, LinkCoMPos, AngVel, AngAcc);
+            [Mechanism] = feval(determineLinAccFunc, Mechanism, iter, speedIndex, JointPos, LinkCoMPos, AngVel, AngAcc);
         end
 
         % Save function for clarity and reusability
