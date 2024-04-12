@@ -65,22 +65,63 @@ classdef GeneralUtils
         end
 
         function writeMatrixToCSV(matrix, csvFilePath)
-            % Open CSV file
-            for speedIndex = 1:size(matrix, 3)
-                % Open a new CSV file for each speed
-                fileId = fopen(sprintf('%s_speed%d.csv', csvFilePath, speedIndex), 'w');
-                if fileId == -1
-                    error('Failed to open file for writing: %s_speed%d.csv', csvFilePath, speedIndex);
+            % Get the number of speeds from the third dimension of the matrix
+            numSpeeds = size(matrix, 3);
+
+            for speedIndex = 1:numSpeeds
+                % Determine the filename based on the number of speeds
+                if numSpeeds > 1
+                    % Check if csvFilePath already ends with '.csv', if so, strip it before appending
+                    if endsWith(csvFilePath, '.csv')
+                        baseFilename = csvFilePath(1:end-4);  % Remove '.csv' from the end
+                    else
+                        baseFilename = csvFilePath;
+                    end
+                    filename = sprintf('%s_speed%d.csv', baseFilename, speedIndex);
+                else
+                    % Check similarly for single speed files
+                    if endsWith(csvFilePath, '.csv')
+                        filename = csvFilePath;
+                    else
+                        filename = sprintf('%s.csv', csvFilePath);
+                    end
                 end
-                
+
+                % Open a new CSV file for writing
+                fileId = fopen(filename, 'w');
+                if fileId == -1
+                    error('Failed to open file for writing: %s', filename);
+                end
+
                 % Write each row of the matrix for the current speed
                 for i = 1:size(matrix, 1)
                     fprintf(fileId, '%f,%f,%f\n', matrix(i, :, speedIndex));
                 end
-                
+
                 % Close the file
                 fclose(fileId);
             end
+
+
+            % Open CSV file
+            % for speedIndex = 1:size(matrix, 3)
+            %     % Open a new CSV file for each speed
+            %     fileId = fopen(sprintf('%s_speed%d.csv', csvFilePath, speedIndex), 'w');
+            %     if fileId == -1
+            %         error('Failed to open file for writing: %s_speed%d.csv', csvFilePath, speedIndex);
+            %     end
+            %
+            %     % Write each row of the matrix for the current speed
+            %     for i = 1:size(matrix, 1)
+            %         fprintf(fileId, '%f,%f,%f\n', matrix(i, :, speedIndex));
+            %     end
+            %
+            %     % Close the file
+            %     fclose(fileId);
+            % end
+
+
+
             % fileId = fopen(csvFilePath, 'w');
             % % Check if the file is opened successfully
             % if fileId == -1
