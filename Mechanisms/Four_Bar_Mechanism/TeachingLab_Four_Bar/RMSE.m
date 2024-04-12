@@ -66,17 +66,7 @@ for sensorIdx = 1:length(sensors)
     end
 end
 
-% function linkData = readExperimentalLinkData(basePath)
-%     files = dir(fullfile(basePath, '*.csv')); % List all CSV files in the directory
-%     linkData = struct('linkName', {}, 'data', {}); % Initialize empty struct array
-%
-%     for i = 1:length(files)
-%         linkName = files(i).name(1:end-4); % Remove '.csv' from filename to get link name
-%         filePath = fullfile(files(i).folder, files(i).name);
-%         linkData(i).linkName = linkName;
-%         linkData(i).data = readtable(filePath); % Read CSV file into table
-%     end
-% end
+
 function jointData = readTheoreticalJointData(basePath)
 speeds = {'speed1', 'speed2', 'speed3'}; % Define the different speeds
 jointData = struct(); % Initialize an empty struct for storing data
@@ -432,459 +422,6 @@ theoAngVel = theoData.(linkName).(speed).AngVel; % Placeholder: Adjust to your s
 % This is a conceptual outline; specifics depend on your data's organization and needs
 end
 
-% function dataStruct = readTheoreticalData(basePath)
-% % Define mappings of categories to their relevant subcategories
-% categoryMap = containers.Map();
-% categoryMap('Acc') = {'AngAcc', 'LinAcc'};
-% categoryMap('Pos') = {'Joint', 'LinkCoM'};  % 'Pos' behaves differently
-% categoryMap('Vel') = {'AngVel', 'LinVel'};
-% 
-% dataStruct = struct(); % Initialize the main data structure
-% 
-% categoryKeys = categoryMap.keys;
-% for iCategory = 1:length(categoryKeys)
-%     category = categoryKeys{iCategory};
-%     subCategories = categoryMap(category);
-%     categoryPath = fullfile(basePath, category); % Path to the current category
-% 
-%     % Handle Position separately due to its structure
-%     if strcmp(category, 'Pos')
-%         handlePosSubdirectories(categoryPath, dataStruct, category);
-%     else
-%         % Handle Acceleration and Velocity categories
-%         for iSubCat = 1:length(subCategories)
-%             subCategory = subCategories{iSubCat};
-%             subCategoryPath = fullfile(categoryPath, subCategory);
-% 
-%             % Directly handle the specified subcategories for Acc and Vel
-%             if isfolder(subCategoryPath)
-%                 readAndStoreData(subCategoryPath, dataStruct, category, subCategory);
-%             end
-%         end
-%     end
-% end
-% end
-
-% function handlePosSubdirectories(path, dataStruct, category)
-% posSubDirs = {'Joint', 'LinkCoM'};
-% 
-% for iDir = 1:length(posSubDirs)
-%     dirPath = fullfile(path, posSubDirs{iDir});
-% 
-%     % Check if the directory exists; if not, continue to the next
-%     if isfolder(dirPath)
-%         readAndStoreData(dirPath, dataStruct, category, posSubDirs{iDir});
-%     end
-% end
-% end
-
-% function dataStruct = readAndStoreData(path, category, posSubDir, dataStruct)
-%     csvFiles = dir(fullfile(path, '*.csv'));
-% 
-%     for file = csvFiles'
-%         % Extract information from the filename using regexp correctly
-%         tokens = regexp(file.name, '^(.+?)_(speed\d+)\.csv$', 'tokens');
-%         if isempty(tokens) || isempty(tokens{1})
-%             continue; % Skip if the filename doesn't match the expected pattern or tokens are empty
-%         end
-% 
-%         % Correctly access the tokens based on the structure returned by regexp
-%         itemName = tokens{1}{1};  % Corrected access
-%         speed = tokens{1}{2};     % Corrected access
-% 
-%         % Read the CSV file into a table
-%         dataTable = readtable(fullfile(file.folder, file.name));
-% 
-%         % Ensure categories and subcategories exist in dataStruct
-%         if ~isfield(dataStruct, category)
-%             dataStruct.(category) = struct();
-%         end
-%         if ~isfield(dataStruct.(category), posSubDir)
-%             dataStruct.(category).(posSubDir) = struct();
-%         end
-%         if ~isfield(dataStruct.(category).(posSubDir), itemName)
-%             dataStruct.(category).(posSubDir).(itemName) = struct();
-%         end
-% 
-%         % Assign the table to the correct location in dataStruct
-%         dataStruct.(category).(posSubDir).(itemName).(speed) = dataTable;
-%     end
-% end
-
-% function dataStruct = readTheoreticalData(basePath)
-%     % Define mappings of categories to their relevant subcategories
-%     categoryMap = containers.Map({'Acc', 'Pos', 'Vel'}, ...
-%                                  {{'AngAcc', 'LinAcc'}, {'Joint', 'LinkCoM'}, {'AngVel', 'LinVel'}});
-% 
-%     dataStruct = struct(); % Initialize the main data structure
-% 
-%     % Iterate over each category like Acc, Pos, Vel
-%     for k = categoryMap.keys
-%         category = k{1};
-%         subCategories = categoryMap(category);
-%         categoryPath = fullfile(basePath, category); % Path to the current category
-% 
-%         % Handle each subcategory appropriately
-%         for subCategory = subCategories
-%             subCategoryPath = fullfile(categoryPath, subCategory{1});
-% 
-%             % Check if it's a 'Pos' category for different handling
-%             if strcmp(category, 'Pos')
-%                 handlePosSubdirectories(subCategoryPath, dataStruct, category, subCategory{1});
-%             else
-%                 % For Acc and Vel categories
-%                 handleGeneralSubdirectories(subCategoryPath, dataStruct, category, subCategory{1});
-%             end
-%         end
-%     end
-% end
-% 
-% function handlePosSubdirectories(path, dataStruct, category, posSubDir)
-%     % Read and handle files directly in the Pos subdirectories
-%     readAndStoreData(path, dataStruct, category, posSubDir);
-% end
-% 
-% function handleGeneralSubdirectories(path, dataStruct, category, subCategory)
-%     % Check if there are further subcategories like Joint or LinkCoM
-%     furtherSubs = {'Joint', 'LinkCoM'};
-%     for sub = furtherSubs
-%         subPath = fullfile(path, sub{1});
-%         if isfolder(subPath)
-%             readAndStoreData(subPath, dataStruct, category, subCategory, sub{1});
-%         end
-%     end
-% end
-% 
-% function readAndStoreData(path, dataStruct, category, subCategory, furtherSub)
-%     csvFiles = dir(fullfile(path, '*.csv'));
-%     for file = csvFiles'
-%         % Extract filename components correctly
-%         [itemName, speeds] = strtok(file.name, '_');
-%         speedTag = regexprep(speeds, {'_','.csv'}, ''); % Remove underscore and '.csv'
-% 
-%         % Construct the path to read the file
-%         fullPath = fullfile(file.folder, file.name);
-%         dataTable = readtable(fullPath);
-% 
-%         % Ensure the hierarchical structure in dataStruct
-%         if ~isfield(dataStruct, category)
-%             dataStruct.(category) = struct();
-%         end
-%         if ~isfield(dataStruct.(category), subCategory)
-%             dataStruct.(category).(subCategory) = struct();
-%         end
-%         if ~isfield(dataStruct.(category).(subCategory), furtherSub)
-%             dataStruct.(category).(subCategory).(furtherSub) = struct();
-%         end
-% 
-%         % Store data
-%         if ~isfield(dataStruct.(category).(subCategory).(furtherSub), itemName)
-%             dataStruct.(category).(subCategory).(furtherSub).(itemName) = struct();
-%         end
-% 
-%         dataStruct.(category).(subCategory).(furtherSub).(itemName).(speedTag) = dataTable;
-%     end
-% end
-
-% function dataStruct = readTheoreticalData(basePath)
-%     % Define mappings of categories to their relevant subcategories
-%     categoryMap = containers.Map({'Acc', 'Vel', 'Pos'}, ...
-%                                  {{'AngAcc', 'LinAcc'}, {'AngVel', 'LinVel'}, {'Joint', 'LinkCoM'}});
-% 
-%     dataStruct = struct(); % Initialize the main data structure
-% 
-%     % Iterate over each category like Acc, Pos, Vel
-%     for k = categoryMap.keys
-%         category = k{1};
-%         subCategories = categoryMap(category);
-%         categoryPath = fullfile(basePath, category); % Path to the current category
-% 
-%         % Handle each subcategory appropriately
-%         for subCategory = subCategories
-%             subCategoryPath = fullfile(categoryPath, subCategory{1});
-% 
-%             % Check if it's a 'Pos' category for different handling
-%             if strcmp(category, 'Pos')
-%                 dataStruct = handlePosSubdirectories(subCategoryPath, dataStruct, category);
-%             else
-%                 % For Acc and Vel categories
-%                 dataStruct = handleGeneralSubdirectories(subCategoryPath, dataStruct, category, subCategory{1});
-%             end
-%         end
-%     end
-% end
-% 
-% function dataStruct = handlePosSubdirectories(path, dataStruct, category)
-%     % Directly handle files in Pos subdirectories
-%     subDirs = {'Joint', 'LinkCoM'};
-%     for iSubDir = 1:length(subDirs)
-%         subDirPath = fullfile(path, subDirs{iSubDir});
-%         if isfolder(subDirPath)
-%             dataStruct = readAndStoreData(subDirPath, dataStruct, category, subDirs{iSubDir});
-%         end
-%     end
-% end
-% 
-% function dataStruct = handleGeneralSubdirectories(path, dataStruct, category, subCategory)
-%     % Read and store files directly in general subcategories
-%     dataStruct = readAndStoreData(path, dataStruct, category, subCategory);
-% end
-% 
-% function dataStruct = readAndStoreData(path, dataStruct, category, subCategory)
-%     csvFiles = dir(fullfile(path, '*.csv'));
-%     for file = csvFiles'
-%         % Extract filename components correctly
-%         [itemName, speeds] = strtok(file.name, '_');
-%         speedTag = regexprep(speeds, {'_','.csv'}, ''); % Remove underscore and '.csv'
-% 
-%         % Construct the path to read the file
-%         fullPath = fullfile(file.folder, file.name);
-%         dataTable = readtable(fullPath);
-% 
-%         % Ensure the hierarchical structure in dataStruct
-%         if ~isfield(dataStruct, category)
-%             dataStruct.(category) = struct();
-%         end
-%         if ~isfield(dataStruct.(category), subCategory)
-%             dataStruct.(category).(subCategory) = struct();
-%         end
-% 
-%         % Initialize further if needed
-%         if ~isfield(dataStruct.(category).(subCategory), itemName)
-%             dataStruct.(category).(subCategory).(itemName) = struct();
-%         end
-% 
-%         dataStruct.(category).(subCategory).(itemName).(speedTag) = dataTable;
-%     end
-% end
-
-% function dataStruct = readTheoreticalData(basePath)
-%     % Define mappings of categories to their relevant subcategories
-%     categoryMap = containers.Map({'Acc', 'Vel', 'Pos'}, ...
-%                                  {{'AngAcc', 'LinAcc'}, {'AngVel', 'LinVel'}, {'Joint', 'LinkCoM'}});
-% 
-%     dataStruct = struct(); % Initialize the main data structure
-% 
-%     % Iterate over each category like Acc, Pos, Vel
-%     for k = categoryMap.keys
-%         category = k{1};
-%         subCategories = categoryMap(category);
-%         categoryPath = fullfile(basePath, category); % Path to the current category
-% 
-%         % Process each subcategory appropriately
-%         for subCategoryIndex=1:1:length(subCategories)
-%             subCategory = subCategories(subCategoryIndex);
-%             subCategoryPath = fullfile(categoryPath, subCategory); % Correct subcategory path construction
-% 
-%             if strcmp(category, 'Pos')
-%                 % Handle Position differently, assuming it directly contains files
-%                 dataStruct = handlePosSubdirectories(subCategoryPath, dataStruct, category, subCategory);
-%             else
-%                 % For Acc and Vel categories with further subcategories
-%                 dataStruct = handleGeneralSubdirectories(subCategoryPath, dataStruct, category, subCategory);
-%             end
-%         end
-%     end
-% end
-% 
-% function dataStruct = handlePosSubdirectories(path, dataStruct, category, subCategory)
-%     % Check if the directory exists; if not, continue to the next
-%     if isfolder(path)
-%         dataStruct = readAndStoreData(path, dataStruct, category, subCategory);
-%     end
-% end
-% 
-% function dataStruct = handleGeneralSubdirectories(path, dataStruct, category, subCategory)
-%     % Read and store files directly in general subcategories
-%     if isfolder(path)
-%         dataStruct = readAndStoreData(path, dataStruct, category, subCategory);
-%     end
-% end
-% 
-% function dataStruct = readAndStoreData(path, dataStruct, category, subCategory)
-%     csvFiles = dir(fullfile(path{1}, '*.csv'));
-%     for file = csvFiles'
-%         % Correctly extract item name and speed tag from filename
-%         tokens = regexp(file.name, '^(.+?)_(speed\d+)\.csv$', 'tokens');
-%         if isempty(tokens)
-%             continue; % Skip if filename doesn't match expected format
-%         end
-% 
-%         itemName = tokens{1}{1};
-%         speedTag = tokens{1}{2};
-% 
-%         % Read the CSV file into a table
-%         dataTable = readtable(fullfile(file.folder, file.name));
-% 
-%         % Create nested structures based on category and subcategory
-%         if ~isfield(dataStruct, category)
-%             dataStruct.(category) = struct();
-%         end
-%         if ~isfield(dataStruct.(category), subCategory{1})
-%             dataStruct.(category).(subCategory{1}) = struct();
-%         end
-%         if ~isfield(dataStruct.(category).(subCategory{1}), itemName)
-%             dataStruct.(category).(subCategory{1}).(itemName) = struct();
-%         end
-%         dataStruct.(category).(subCategory{1}).(itemName).(speedTag) = dataTable;
-%     end
-% end
-
-% function dataStruct = readTheoreticalData(basePath)
-%     % Define mappings of categories to their relevant subcategories
-%     categoryMap = containers.Map({'Acc', 'Vel', 'Pos'}, ...
-%                                  {{'AngAcc', 'LinAcc'}, {'AngVel', 'LinVel'}, {'Joint', 'LinkCoM'}});
-% 
-%     dataStruct = struct();  % Initialize the main data structure
-% 
-%     % Iterate over each category like Acc, Pos, Vel
-%     for k = categoryMap.keys()
-%         category = k{1};
-%         subCategories = categoryMap(category);
-%         categoryPath = fullfile(basePath, category);
-% 
-%         for subCategory = subCategories
-%             subCategoryPath = fullfile(categoryPath, subCategory{1});
-% 
-%             % Check if further nesting is required (for LinAcc or LinVel)
-%             if any(strcmp(subCategory{1}, {'LinAcc', 'LinVel'}))
-%                 nestedDirs = {'Joint', 'LinkCoM'};
-%                 for nestedDir = nestedDirs
-%                     nestedPath = fullfile(subCategoryPath, nestedDir{1});
-%                     if isfolder(nestedPath)
-%                         dataStruct = readNestedData(nestedPath, dataStruct, category, subCategory{1}, nestedDir{1});
-%                     end
-%                 end
-%             else
-%                 dataStruct = readDataFromDir(subCategoryPath, dataStruct, category, subCategory{1});
-%             end
-%         end
-%     end
-% end
-% 
-% function dataStruct = readNestedData(path, dataStruct, category, subCategory, nestedDir)
-%     % Read data from nested directories like Joint and LinkCoM under LinAcc and LinVel
-%     csvFiles = dir(fullfile(path, '*.csv'));
-%     for file = csvFiles'
-%         [itemName, speedTag] = parseFileName(file.name);
-%         if isempty(itemName)
-%             continue;
-%         end
-%         dataTable = readtable(fullfile(file.folder, file.name));
-%         dataStruct = updateDataStruct(dataStruct, category, subCategory, nestedDir, itemName, speedTag, dataTable);
-%     end
-% end
-% 
-% function dataStruct = readDataFromDir(path, dataStruct, category, subCategory)
-%     % Read data directly from directories that do not have further subdirectories
-%     csvFiles = dir(fullfile(path, '*.csv'));
-%     for file = csvFiles'
-%         [itemName, speedTag] = parseFileName(file.name);
-%         if isempty(itemName)
-%             continue;
-%         end
-%         dataTable = readtable(fullfile(file.folder, file.name));
-%         dataStruct = updateDataStruct(dataStruct, category, subCategory, '', itemName, speedTag, dataTable);
-%     end
-% end
-% 
-% function [itemName, speedTag] = parseFileName(fileName)
-%     % Parse filenames that follow the pattern 'itemName_speedTag.csv'
-%     tokens = regexp(fileName, '^(.+?)_(speed\d+)\.csv$', 'tokens');
-%     if isempty(tokens)
-%         itemName = '';
-%         speedTag = '';
-%     else
-%         itemName = tokens{1}{1};
-%         speedTag = tokens{1}{2};
-%     end
-% end
-% 
-% function dataStruct = updateDataStruct(dataStruct, category, subCategory, nestedDir, itemName, speedTag, dataTable)
-%     % Update the data structure with new data
-%     if ~isfield(dataStruct, category)
-%         dataStruct.(category) = struct();
-%     end
-%     if ~isfield(dataStruct.(category), subCategory)
-%         dataStruct.(category).(subCategory) = struct();
-%     end
-%     targetSubCategory = nestedDir;
-%     if ~isempty(nestedDir) && ~isfield(dataStruct.(category).(subCategory), nestedDir)
-%         dataStruct.(category).(subCategory).(nestedDir) = struct();
-%         targetSubCategory = nestedDir;
-%     end
-%     if ~isfield(dataStruct.(category).(subCategory).(targetSubCategory), itemName)
-%         dataStruct.(category).(subCategory).(targetSubCategory).(itemName) = struct();
-%     end
-%     dataStruct.(category).(subCategory).(targetSubCategory).(itemName).(speedTag) = dataTable;
-% end
-% 
-
-% function dataStruct = readTheoreticalData(basePath)
-%     % Define mappings of categories to their relevant subcategories
-%     categoryMap = containers.Map({'Acc', 'Vel', 'Pos'}, ...
-%                                  {{'AngAcc', 'LinAcc'}, {'AngVel', 'LinVel'}, {'Joint', 'LinkCoM'}});
-% 
-%     dataStruct = struct();  % Initialize the main data structure
-% 
-%     % Iterate over each category like Acc, Pos, Vel
-%     for k = categoryMap.keys()
-%         category = k{1};
-%         subCategories = categoryMap(category);
-%         categoryPath = fullfile(basePath, category);
-% 
-%         for subCategory = subCategories
-%             subCategoryPath = fullfile(categoryPath, subCategory{1});
-% 
-%             % Check if further nesting is required (for LinAcc or LinVel)
-%             if any(strcmp(subCategory{1}, {'LinAcc', 'LinVel'}))
-%                 nestedDirs = {'Joint', 'LinkCoM'};
-%                 for nestedDir = nestedDirs
-%                     nestedPath = fullfile(subCategoryPath, nestedDir{1});
-%                     if isfolder(nestedPath)
-%                         dataStruct = readNestedData(nestedPath, dataStruct, category, subCategory{1}, nestedDir{1});
-%                     end
-%                 end
-%             else
-%                 dataStruct = readDataFromDir(subCategoryPath, dataStruct, category, subCategory{1});
-%             end
-%         end
-%     end
-% end
-% function dataStruct = readTheoreticalData(basePath)
-%     % Define mappings of categories to their relevant subcategories
-%     categoryMap = containers.Map({'Acc', 'Vel', 'Pos'}, ...
-%                                  {{'AngAcc', 'LinAcc'}, {'AngVel', 'LinVel'}, {'Joint', 'LinkCoM'}});
-% 
-%     dataStruct = struct(); % Initialize the main data structure
-% 
-%     % Iterate over each category like Acc, Pos, Vel
-%     for k = categoryMap.keys
-%         category = k{1};
-%         subCategories = categoryMap(category);
-%         categoryPath = fullfile(basePath, category); % Path to the current category
-% 
-%         % Process each subcategory appropriately
-%         for subCategory = subCategories
-%             subCategoryPath = fullfile(categoryPath, subCategory{1});
-% 
-%             if strcmp(category, 'Pos')
-%                 % Handle Position differently, assuming it directly contains files
-%                 dataStruct = readDataFromDirectory(subCategoryPath, dataStruct, category, subCategory{1}, '');
-%             else
-%                 % For Acc and Vel categories with further subcategories
-%                 subDirs = {'Joint', 'LinkCoM'}; % Assume these are the possible nested directories
-%                 for subDir = subDirs
-%                     nestedPath = fullfile(subCategoryPath, subDir{1});
-%                     if isfolder(nestedPath)
-%                         dataStruct = readDataFromDirectory(nestedPath, dataStruct, category, subCategory{1}, subDir{1});
-%                     end
-%                 end
-%             end
-%         end
-%     end
-% end
-
 function dataStruct = readTheoreticalData(basePath)
     % Define mappings of categories to their relevant subcategories
     categoryMap = containers.Map({'Acc', 'Vel', 'Pos'}, ...
@@ -905,6 +442,7 @@ function dataStruct = readTheoreticalData(basePath)
             if strcmp(category, 'Pos')
                 % Handle Position differently, assuming it directly contains files
                 dataStruct = readDataFromDirectory(subCategoryPath, dataStruct, category, subCategory{1}, '');
+                % dataStruct = readDataFromDirectory(subCategoryPath, dataStruct, category, '', subCategory{1});
             else
                 % For Acc and Vel categories
                 % Check if we're dealing with linear components that have nested directories
@@ -938,31 +476,6 @@ function [itemName, speedTag] = parseFileName(fileName)
     end
 end
 
-% function dataStruct = updateDataStruct(dataStruct, category, subCategory, nestedDir, itemName, speedTag, dataTable)
-%     % Update the data structure with new data
-%     if ~isfield(dataStruct, category)
-%         dataStruct.(category) = struct();
-%     end
-%     if ~isfield(dataStruct.(category), subCategory)
-%         dataStruct.(category).(subCategory) = struct();
-%     end
-% 
-%     % Decide the correct subcategory layer based on whether nestedDir is provided
-%     if isempty(nestedDir)
-%         targetCategory = subCategory;
-%     else
-%         if ~isfield(dataStruct.(category).(subCategory), nestedDir)
-%             dataStruct.(category).(subCategory).(nestedDir) = struct();
-%         end
-%         targetCategory = nestedDir;
-%     end
-% 
-%     if ~isfield(dataStruct.(category).(subCategory).(targetCategory), itemName)
-%         dataStruct.(category).(subCategory).(targetCategory).(itemName) = struct();
-%     end
-% 
-%     dataStruct.(category).(subCategory).(targetCategory).(itemName).(speedTag) = dataTable;
-% end
 function dataStruct = updateDataStruct(dataStruct, category, subCategory, nestedDir, itemName, speedTag, dataTable)
     % Ensure the base category structure exists
     if ~isfield(dataStruct, category)
@@ -974,10 +487,9 @@ function dataStruct = updateDataStruct(dataStruct, category, subCategory, nested
         dataStruct.(category).(subCategory) = struct();
     end
     
-    % Decide on the final target based on whether nestedDir is provided
+    % Check if a nested directory is provided and update accordingly
     finalTarget = dataStruct.(category).(subCategory);
     if ~isempty(nestedDir)
-        % Check and create nestedDir if it doesn't exist
         if ~isfield(finalTarget, nestedDir)
             finalTarget.(nestedDir) = struct();
         end
@@ -990,7 +502,11 @@ function dataStruct = updateDataStruct(dataStruct, category, subCategory, nested
     end
     
     % Update the final structure with the new data table under the correct speed tag
-    finalTarget.(itemName).(speedTag) = dataTable;
+    if ~isempty(speedTag)
+        finalTarget.(itemName).(speedTag) = dataTable;
+    else
+        finalTarget.(itemName).default = dataTable; % Use 'default' if no speedTag
+    end
 
     % Reflect the changes back to the main data structure
     if isempty(nestedDir)
@@ -1003,16 +519,25 @@ end
 function dataStruct = readDataFromDirectory(path, dataStruct, category, subCategory, nestedDir)
     csvFiles = dir(fullfile(path, '*.csv'));
     for file = csvFiles'
-        % Parse the file name to extract item and speed
-        [itemName, speedTag] = parseFileName(file.name);
-        if isempty(itemName)
-            continue;
+        % Extract information from the filename; handle optional speed tag
+        tokens = regexp(file.name, '^(.+?)(?:_(speed\d+))?\.csv$', 'tokens');
+        if isempty(tokens) || isempty(tokens{1})
+            continue; % Skip if filename doesn't match expected format
         end
+
+        itemName = tokens{1}{1}; % Item name is always the first token, directly accessed
+        speedTag = ''; % Default speed tag is empty
+        if size(tokens{1}, 2) > 1 % Check if there is a speed tag
+            speedTag = tokens{1}{2}; % Speed tag is the second token if it exists
+        end
+
+        % Read the CSV file into a table
         dataTable = readtable(fullfile(file.folder, file.name));
+
+        % Update the data structure
         dataStruct = updateDataStruct(dataStruct, category, subCategory, nestedDir, itemName, speedTag, dataTable);
     end
 end
-
 
 function dataStruct = readDataFromDir(path, dataStruct, category, subCategory)
     % Read data directly from directories that do not have further subdirectories
