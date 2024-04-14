@@ -2,11 +2,19 @@
 clear; close all; clc;
 
 % Use the function to find the project root
-currentDir = pwd; % Current directory
-projectRoot = GeneralUtils.findProjectRoot(currentDir, 'PMKS_Simulator_Verification');
+% currentDir = pwd; % Current directory
+% projectRoot = GeneralUtils.findProjectRoot(currentDir, 'PMKS_Simulator_Verification');
+% 
+% % Specify the path to CommonUtils relative to the project root
+% utilsFolderPath = fullfile(projectRoot, 'CommonUtils');
+% 
+% % Add this path to MATLAB's search paths
+% addpath(utilsFolderPath);
 
-% Specify the path to CommonUtils relative to the project root
-utilsFolderPath = fullfile(projectRoot, 'CommonUtils');
+currentDir = fileparts(mfilename('fullpath'));
+
+% Construct the path to the 'CommonUtils' directory
+utilsFolderPath = fullfile(currentDir, '..', '..', '..', 'CommonUtils');
 
 % Add this path to MATLAB's search paths
 addpath(utilsFolderPath);
@@ -81,6 +89,10 @@ input_speed = zeros(1, 3);
 input_speed(1) = GeneralUtils.rpmToRadPerSec(10);
 input_speed(2) = GeneralUtils.rpmToRadPerSec(20);
 input_speed(3) = GeneralUtils.rpmToRadPerSec(30);
+
+input_speed_str = [10, 20, 30];
+
+Mechanism.input_speed_str = input_speed_str;
 
 save('Mechanism.mat', 'Mechanism');
 

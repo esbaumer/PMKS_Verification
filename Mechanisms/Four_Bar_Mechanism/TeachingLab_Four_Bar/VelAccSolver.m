@@ -3,8 +3,9 @@ function Mechanism = VelAccSolver(Mechanism)
 end
 
 %% Velocity loops
-function [Mechanism, AngVel] = determineAngVel(Mechanism, iter, speedIndex, JointPos, input_speed)
-%velocity equations from given loops
+function [Mechanism, AngVel] = determineAngVel(Mechanism, iter, speedStr, JointPos, input_speed)
+
+% velocity equations from given loops
 syms wBCFG wCDI 
 omegaABEH=[0 0 input_speed];
 omegaBCFG=[0 0 wBCFG];
@@ -28,10 +29,11 @@ AngVel.CDI=[0 0 double(solution.wCDI)]; %angular velocity of DE
 
 linkNames = fieldnames(Mechanism.LinkCoM);
 for i = 1:length(linkNames)
-    Mechanism.AngVel.(linkNames{i})(iter,:, speedIndex) = AngVel.(linkNames{i});
+        Mechanism.AngVel.(linkNames{i}).(speedStr)(iter,:) = AngVel.(linkNames{i});
 end
 end
-function [Mechanism] = determineLinVel(Mechanism, iter, speedIndex, JointPos, LinkCoMPos, AngVel)
+function [Mechanism] = determineLinVel(Mechanism, iter, speedStr, JointPos, LinkCoMPos, AngVel)
+
 % Determine the velocities at each joint
 A = JointPos.A;
 B = JointPos.B;
@@ -64,19 +66,19 @@ LinVel.LinkCoM.CDI= VelAccSolverUtils.velSolver(AngVel.CDI,CDI_com - D);
 
 jointNames = fieldnames(Mechanism.Joint);
 for i = 1:length(jointNames)
-    Mechanism.LinVel.Joint.(jointNames{i})(iter,:, speedIndex) = LinVel.Joint.(jointNames{i});
+    Mechanism.LinVel.Joint.(jointNames{i}).(speedStr)(iter,:) = LinVel.Joint.(jointNames{i});
 end
 tracerPointNames = fieldnames(Mechanism.TracerPoint);
 for i = 1:length(tracerPointNames)
-    Mechanism.LinVel.Joint.(tracerPointNames{i})(iter,:, speedIndex) = LinVel.Joint.(tracerPointNames{i});
+    Mechanism.LinVel.Joint.(tracerPointNames{i}).(speedStr)(iter,:) = LinVel.Joint.(tracerPointNames{i});
 end
 linkNames = fieldnames(Mechanism.LinkCoM);
 for i = 1:length(linkNames)
-    Mechanism.LinVel.LinkCoM.(linkNames{i})(iter,:, speedIndex) = LinVel.LinkCoM.(linkNames{i});
+    Mechanism.LinVel.LinkCoM.(linkNames{i}).(speedStr)(iter,:) = LinVel.LinkCoM.(linkNames{i});
 end
 
 end
-function [Mechanism, AngAcc] = determineAngAcc(Mechanism, iter, speedIndex, Pos, AngVel)
+function [Mechanism, AngAcc] = determineAngAcc(Mechanism, iter, speedStr, Pos, AngVel)
 A = Pos.A;
 B = Pos.B;
 C = Pos.C;
@@ -102,10 +104,10 @@ AngAcc.CDI=[0 0 double(solution.aCDI)]; %angular acceleration of CDI
 
 linkNames = fieldnames(Mechanism.LinkCoM);
 for i = 1:length(linkNames)
-    Mechanism.AngAcc.(linkNames{i})(iter,:, speedIndex) = AngAcc.(linkNames{i});
+    Mechanism.AngAcc.(linkNames{i}).(speedStr)(iter,:) = AngAcc.(linkNames{i});
 end
 end
-function [Mechanism] = determineLinAcc(Mechanism, iter, speedIndex, JointPos, LinkCoMPos, AngVel, AngAcc)
+function [Mechanism] = determineLinAcc(Mechanism, iter, speedStr, JointPos, LinkCoMPos, AngVel, AngAcc)
 A = JointPos.A;
 B = JointPos.B;
 C = JointPos.C;
@@ -138,14 +140,14 @@ LinAcc.LinkCoM.CDI= VelAccSolverUtils.accSolver(AngVel.CDI,AngAcc.CDI,CDI_com - 
 
 jointNames = fieldnames(Mechanism.Joint);
 for i = 1:length(jointNames)
-    Mechanism.LinAcc.Joint.(jointNames{i})(iter,:, speedIndex) = LinAcc.Joint.(jointNames{i});
+    Mechanism.LinAcc.Joint.(jointNames{i}).(speedStr)(iter,:) = LinAcc.Joint.(jointNames{i});
 end
 tracerPointNames = fieldnames(Mechanism.TracerPoint);
 for i = 1:length(tracerPointNames)
-    Mechanism.LinAcc.Joint.(tracerPointNames{i})(iter,:, speedIndex) = LinAcc.Joint.(tracerPointNames{i});
+    Mechanism.LinAcc.Joint.(tracerPointNames{i}).(speedStr)(iter,:) = LinAcc.Joint.(tracerPointNames{i});
 end
 linkNames = fieldnames(Mechanism.LinkCoM);
 for i = 1:length(linkNames)
-    Mechanism.LinAcc.LinkCoM.(linkNames{i})(iter,:, speedIndex) = LinAcc.LinkCoM.(linkNames{i});
+    Mechanism.LinAcc.LinkCoM.(linkNames{i}).(speedStr)(iter,:) = LinAcc.LinkCoM.(linkNames{i});
 end
 end

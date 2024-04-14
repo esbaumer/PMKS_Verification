@@ -15,10 +15,10 @@ sensors = {'E', 'F', 'G', 'H', 'I'};
 sensorToLinkMap = containers.Map({'E', 'F', 'G', 'H', 'I'}, {'ABEH', 'BCFG', 'BCFG', 'ABEH', 'CDI'});
 
 % Define speeds
-speeds = {'speed1', 'speed2', 'speed3'};
+speeds = {'f10RPM', 'f20RPM', 'f30RPM'};
 
 expData = readExperimentalData(ExperimentalPath);
-theoreticalData = readTheoreticalData(TheoreticalPath);
+theoData = readTheoreticalData(TheoreticalPath);
 
 % Define a map from sensors to their respective data types
 sensorDataTypes = containers.Map(...
@@ -39,7 +39,7 @@ for sensor = keys(sensorDataTypes)
     currentSensor = sensor{1};
     dataTypes = sensorDataTypes(currentSensor);  % Retrieve data types for current sensor
     % Compute RMSE for the current sensor across its specified data types
-    rmseResults.(currentSensor) = calculateRMSEForSensor(expData, theoreticalData, currentSensor, dataTypes, speeds);
+    rmseResults.(currentSensor) = calculateRMSEForSensor(expData, theoData, currentSensor, dataTypes, speeds);
 end
 
 % Save results to CSV
@@ -207,19 +207,64 @@ function results = calculateRMSEForSensor(expData, theoData, sensor, dataTypes, 
     end
 end
 
-% TODO: Update the retrieval functions appropriately
+% Retriev the desired experimental data
 function expData = retrieveExpData(dataSet, sensor, dataType, speed)
-    % Placeholder for actual retrieval logic
-    % Example:
-    if isfield(dataSet, sensor) && isfield(dataSet.(sensor), dataType) && isfield(dataSet.(sensor).(dataType), speed)
-        expData = dataSet.(sensor).(dataType).(speed);
+    % Map sensors to their respective data sources (CoolTerm or WitMotion)
+    sensorSourceMap = containers.Map({'E', 'F', 'G', 'H', 'I'}, ...
+                                     {'CoolTerm', 'CoolTerm', 'CoolTerm', 'WitMotion', 'WitMotion'});
+    source = sensorSourceMap(sensor);
+    
+    % Check if the required data is available
+    if isfield(dataSet, source) && isfield(dataSet.(source), speed)
+        rawData = dataSet.(source).(speed); % nxm table of data
+        expData = processData(rawData, sensor, dataType);
     else
         expData = []; % Return empty if not found
     end
 end
+function processedData = processData(rawData, sensor, dataType)
+    % Initialize processed data structure
+    processedData = struct('Time', [], 'Values', []);
+    
+    % Define sensor-specific columns and process data accordingly
+    sensorDataMap = containers.Map(...
+        {'E', 'F', 'G', 'H', 'I'}, ...
+        {8:13, 4:7, 14:19, 1:3, 4:6} ...  % Example column indices for each sensor
+    );
+    columnIndices = sensorDataMap(sensor);
+    
+    % Extract data based on dataType
+    switch dataType
+            % TODO: don't determine the mean, just pull the values based
+            % from respective time domain. Most likely do a comparison
+            % between the theoretical values to the experimental values and
+            % get the values that most closely match the thoeretical values
+        case 'Angle'
+            processedData.Values = mean(rawData(:, columnIndices(1:3)), 2); % Example: mean of first three columns
+        case 'LinVel'
+            processedData.Values = rawData(:, columnIndices(4)); % Example: fourth column
+        case 'AngVel'
+            % Further processing can be added here
+    end
+    
+    % Example time column extraction
+    processedData.Time = rawData(:, 2); % Assuming second column is time
+    
+    % Filter data to remove outliers or bad data
+    processedData = filterData(processedData);
+end
+
+function filteredData = filterData(data)
+    % Example filtering operation
+    filteredData = data;
+    % goodIndices = data.Values < threshold; % Define 'threshold' based on your criteria
+    % filteredData = struct('Time', data.Time(goodIndices), 'Values', data.Values(goodIndices));
+end
+% Retriev the desired theoretical data
 function theoData = retrieveTheoData(dataSet, sensor, dataType, speed)
     % Placeholder for actual retrieval logic
     % Example:
+    % TODO: Determine logic for pulling the theoretical data
     if isfield(dataSet, sensor) && isfield(dataSet.(sensor), dataType) && isfield(dataSet.(sensor).(dataType), speed)
         theoData = dataSet.(sensor).(dataType).(speed);
     else
@@ -231,8 +276,9 @@ function rmseResults = calculateRMSE(expDataSet, theoDataSet, sensor, dataType, 
     rmseResults = struct(); % Initialize results structure
 
     % Retrieve experimental and theoretical data for the given sensor, dataType, and speed
-    expData = retrieveExpData(expDataSet, sensor, dataType, speed);
     theoData = retrieveTheoData(theoDataSet, sensor, dataType, speed);
+    % TODO: Make sure you add theoData as a input argument
+    expData = retrieveExpData(expDataSet, theoData, sensor, dataType, speed);
     
     % Calculate RMSE if both experimental and theoretical data are available
     if ~isempty(expData) && ~isempty(theoData)

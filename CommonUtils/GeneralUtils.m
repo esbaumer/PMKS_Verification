@@ -101,38 +101,6 @@ classdef GeneralUtils
                 % Close the file
                 fclose(fileId);
             end
-
-
-            % Open CSV file
-            % for speedIndex = 1:size(matrix, 3)
-            %     % Open a new CSV file for each speed
-            %     fileId = fopen(sprintf('%s_speed%d.csv', csvFilePath, speedIndex), 'w');
-            %     if fileId == -1
-            %         error('Failed to open file for writing: %s_speed%d.csv', csvFilePath, speedIndex);
-            %     end
-            %
-            %     % Write each row of the matrix for the current speed
-            %     for i = 1:size(matrix, 1)
-            %         fprintf(fileId, '%f,%f,%f\n', matrix(i, :, speedIndex));
-            %     end
-            %
-            %     % Close the file
-            %     fclose(fileId);
-            % end
-
-
-
-            % fileId = fopen(csvFilePath, 'w');
-            % % Check if the file is opened successfully
-            % if fileId == -1
-            %     error('Failed to open file for writing: %s', csvFilePath);
-            % end
-            % % Write each row of the matrix to the CSV file
-            % for i = 1:size(matrix, 1)
-            %     fprintf(fileId, '%f,%f,%f\n', matrix(i, 1), matrix(i, 2), matrix(i, 3));
-            % end
-            % % Close the file
-            % fclose(fileId);
         end
 
         function projectRoot = findProjectRoot(currentDir, targetDirName)

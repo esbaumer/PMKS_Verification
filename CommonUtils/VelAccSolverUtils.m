@@ -27,14 +27,11 @@ classdef VelAccSolverUtils
             end
 
 
-           numSpeeds = size(Mechanism.inputSpeed, 2); % Assuming inputSpeed has dimensions: iterations x speeds
-           [Mechanism] = VelAccSolverUtils.initializeAngVels(Mechanism, initialBlankLinkVector, numIterations, numSpeeds);
-           [Mechanism] = VelAccSolverUtils.initializeLinVels(Mechanism, initialBlankJointVector, initialBlankLinkVector, numIterations, numSpeeds);
-           [Mechanism] = VelAccSolverUtils.initializeAngAccs(Mechanism, initialBlankLinkVector, numIterations, numSpeeds);
-           [Mechanism] = VelAccSolverUtils.initializeLinAccs(Mechanism, initialBlankJointVector, initialBlankLinkVector, numIterations, numSpeeds);
-
-            % Iterate through all iterations
-            numSpeeds = size(Mechanism.inputSpeed, 2); % Assuming inputSpeed is 2D: iterations x speeds
+            numSpeeds = size(Mechanism.inputSpeed, 2); % Assuming inputSpeed has dimensions: iterations x speeds
+            [Mechanism] = VelAccSolverUtils.initializeAngVels(Mechanism, initialBlankLinkVector, numIterations, Mechanism.input_speed_str);
+            [Mechanism] = VelAccSolverUtils.initializeLinVels(Mechanism, initialBlankJointVector, initialBlankLinkVector, numIterations, Mechanism.input_speed_str);
+            [Mechanism] = VelAccSolverUtils.initializeAngAccs(Mechanism, initialBlankLinkVector, numIterations, Mechanism.input_speed_str);
+            [Mechanism] = VelAccSolverUtils.initializeLinAccs(Mechanism, initialBlankJointVector, initialBlankLinkVector, numIterations, Mechanism.input_speed_str);
 
             for speedIndex = 1:numSpeeds
                 for iter = 1:numIterations
@@ -45,8 +42,11 @@ classdef VelAccSolverUtils
                     % Assuming input_speed is defined or extracted from Mechanism
                     input_speed = Mechanism.inputSpeed(iter, speedIndex); % Placeholder, adjust based on your Mechanism structure
 
+                    % Define the speed field name
+                    speedStr = ['f' num2str(Mechanism.input_speed_str(speedIndex)) 'RPM'];
+
                     % Calculate kinematics for the current iteration and store within the Mechanism
-                    Mechanism = VelAccSolverUtils.determineKinematics(Mechanism, iter, speedIndex, JointPos, LinkCoMPos, input_speed, determineAngVelFunc, determineLinVelFunc, determineAngAccFunc, determineLinAccFunc);
+                    Mechanism = VelAccSolverUtils.determineKinematics(Mechanism, iter, speedStr, JointPos, LinkCoMPos, input_speed, determineAngVelFunc, determineLinVelFunc, determineAngAccFunc, determineLinAccFunc);
                 end
             end
 
@@ -115,72 +115,104 @@ classdef VelAccSolverUtils
         end
 
         % Initialize AngVel, LinVel, AngAcc, LinAcc
-        function Mechanism = initializeAngVels(Mechanism, initialBlankLinkVector, numIterations, numSpeeds)
+        function Mechanism = initializeAngVels(Mechanism, initialBlankLinkVector, numIterations, speeds)
             angVelNames = fieldnames(initialBlankLinkVector);
             for i = 1:length(angVelNames)
-                % Allocate a 3D array: iterations x 3 (dimensions) x speeds
-                Mechanism.AngVel.(angVelNames{i}) = zeros(numIterations, 3, numSpeeds);
+                for j = 1:length(speeds)
+                    rpmName = ['f' num2str(speeds(j)) 'RPM'];
+                    Mechanism.AngVel.(angVelNames{i}).(rpmName) = zeros(numIterations, 3); % Removing the third dimension for speeds
+                end
             end
         end
-        function Mechanism = initializeLinVels(Mechanism, initialBlankJointVector, initialBlankLinkVector, max_iterations, numSpeeds)
+        function Mechanism = initializeLinVels(Mechanism, initialBlankJointVector, initialBlankLinkVector, numIterations, speeds)
+            % Initialize linear velocities for joints
             linJointVelNames = fieldnames(initialBlankJointVector);
             for i = 1:length(linJointVelNames)
-                Mechanism.LinVel.Joint.(linJointVelNames{i}) = zeros(max_iterations, 3, numSpeeds); % Initialize with zeros for each dimension (assuming 3D angular velocities)
+                for j = 1:length(speeds)
+                    rpmName = ['f' num2str(speeds(j)) 'RPM'];
+                    Mechanism.LinVel.Joint.(linJointVelNames{i}).(rpmName) = zeros(numIterations, 3);
+                end
             end
+            % Initialize linear velocities for Link CoM
             linLinkCoMVelNames = fieldnames(initialBlankLinkVector);
             for i = 1:length(linLinkCoMVelNames)
-                Mechanism.LinVel.LinkCoM.(linLinkCoMVelNames{i}) = zeros(max_iterations, 3, numSpeeds); % Initialize with zeros for each dimension (assuming 3D angular velocities)
+                for j = 1:length(speeds)
+                    rpmName = ['f' num2str(speeds(j)) 'RPM'];
+                    Mechanism.LinVel.LinkCoM.(linLinkCoMVelNames{i}).(rpmName) = zeros(numIterations, 3);
+                end
             end
         end
-        function Mechanism = initializeAngAccs(Mechanism, initialBlankLinkVector, max_iterations, numSpeeds)
+        function Mechanism = initializeAngAccs(Mechanism, initialBlankLinkVector, numIterations, speeds)
             angAccNames = fieldnames(initialBlankLinkVector);
             for i = 1:length(angAccNames)
-                Mechanism.AngAcc.(angAccNames{i}) = zeros(max_iterations, 3, numSpeeds); % Initialize with zeros for each dimension (assuming 3D angular velocities)
+                for j = 1:length(speeds)
+                    rpmName = ['f' num2str(speeds(j)) 'RPM'];
+                    Mechanism.AngAcc.(angAccNames{i}).(rpmName) = zeros(numIterations, 3);
+                end
             end
         end
-        function Mechanism = initializeLinAccs(Mechanism, initialBlankJointVector, initialBlankLinkVector, max_iterations, numSpeeds)
-            linJointNames = fieldnames(initialBlankJointVector);
-            for i = 1:length(linJointNames)
-                Mechanism.LinAcc.Joint.(linJointNames{i}) = zeros(max_iterations, 3, numSpeeds); % Initialize with zeros for each dimension (assuming 3D angular velocities)
+        function Mechanism = initializeLinAccs(Mechanism, initialBlankJointVector, initialBlankLinkVector, numIterations, speeds)
+            % Initialize linear accelerations for joints
+            linJointAccNames = fieldnames(initialBlankJointVector);
+            for i = 1:length(linJointAccNames)
+                for j = 1:length(speeds)
+                    rpmName = ['f' num2str(speeds(j)) 'RPM'];
+                    Mechanism.LinAcc.Joint.(linJointAccNames{i}).(rpmName) = zeros(numIterations, 3);
+                end
             end
+            % Initialize linear accelerations for Link CoM
             linLinkCoMAccNames = fieldnames(initialBlankLinkVector);
             for i = 1:length(linLinkCoMAccNames)
-                Mechanism.LinAcc.LinkCoM.(linLinkCoMAccNames{i}) = zeros(max_iterations, 3, numSpeeds); % Initialize with zeros for each dimension (assuming 3D angular velocities)
+                for j = 1:length(speeds)
+                    rpmName = ['f' num2str(speeds(j)) 'RPM'];
+                    Mechanism.LinAcc.LinkCoM.(linLinkCoMAccNames{i}).(rpmName) = zeros(numIterations, 3);
+                end
             end
         end
 
-        function Mechanism = determineKinematics(Mechanism, iter, speedIndex, JointPos, LinkCoMPos, input_speed, determineAngVelFunc, determineLinVelFunc, determineAngAccFunc, determineLinAccFunc)
+        function Mechanism = determineKinematics(Mechanism, iter, speedStr, JointPos, LinkCoMPos, input_speed, determineAngVelFunc, determineLinVelFunc, determineAngAccFunc, determineLinAccFunc)
             % Determine angular velocity
-            [Mechanism, AngVel] = feval(determineAngVelFunc, Mechanism, iter, speedIndex, JointPos, input_speed);
+            [Mechanism, AngVel] = feval(determineAngVelFunc, Mechanism, iter, speedStr, JointPos, input_speed);
 
             % Determine linear velocity
-            [Mechanism] = feval(determineLinVelFunc, Mechanism, iter, speedIndex, JointPos, LinkCoMPos, AngVel);
+            [Mechanism] = feval(determineLinVelFunc, Mechanism, iter, speedStr, JointPos, LinkCoMPos, AngVel);
 
             % Determine angular acceleration
-            [Mechanism, AngAcc] = feval(determineAngAccFunc, Mechanism, iter, speedIndex, JointPos, AngVel);
+            [Mechanism, AngAcc] = feval(determineAngAccFunc, Mechanism, iter, speedStr, JointPos, AngVel);
 
             % Determine linear acceleration
-            [Mechanism] = feval(determineLinAccFunc, Mechanism, iter, speedIndex, JointPos, LinkCoMPos, AngVel, AngAcc);
+            [Mechanism] = feval(determineLinAccFunc, Mechanism, iter, speedStr, JointPos, LinkCoMPos, AngVel, AngAcc);
         end
 
         % Save function for clarity and reusability
-        function saveData(folder, dataStruct)
-            % Ensure the folder exists
-            if ~exist(folder, 'dir')
-                mkdir(folder);
+        function saveData(baseFolder, dataStruct)
+            % Ensure the base folder exists
+            if ~exist(baseFolder, 'dir')
+                mkdir(baseFolder);
             end
 
-            names = fieldnames(dataStruct); % Get all field names of the structure
+            names = fieldnames(dataStruct); % Get all component names (e.g., 'JointA', 'JointB')
             for i = 1:length(names)
-                name = names{i};
-                data = dataStruct.(name); % Extract data
+                component = names{i};  % Example: 'JointA'
+                speedNames = fieldnames(dataStruct.(component)); % Get all speed fields ('f10RPM', 'f20RPM', 'f30RPM')
 
-                % Create a temporary struct with the extracted data
-                tempStruct = struct(name, data);
+                for j = 1:length(speedNames)
+                    speedName = speedNames{j};  % Example: 'f10RPM'
+                    speedFolder = fullfile(baseFolder, speedName);  % Directory name includes speed
 
-                % Correctly use the -struct option by providing the variable name of the temporary struct
-                save(fullfile(folder, name), '-struct', 'tempStruct', name);
+                    % Ensure the speed directory exists
+                    if ~exist(speedFolder, 'dir')
+                        mkdir(speedFolder);
+                    end
+
+                    data = dataStruct.(component).(speedName);  % Extract data for the current speed
+                    fileName = [component '.mat'];  % File name based on the component, example: 'JointA.mat'
+
+                    % Save the data to a .mat file in the speed directory
+                    save(fullfile(speedFolder, fileName), 'data');
+                end
             end
         end
+
     end
 end
