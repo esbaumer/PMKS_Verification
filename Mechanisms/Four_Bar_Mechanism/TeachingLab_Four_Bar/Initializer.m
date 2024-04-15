@@ -61,9 +61,9 @@ Mechanism.LinkCoM.BCFG = [0 0 0];
 Mechanism.LinkCoM.CDI = [0 0 0];
 
 % Define masses for each link or joint
-Mechanism.Angle.ABEH = [0 0 atan2((Mechanism.LinkCoM.ABEH(2) - A(2)), Mechanism.LinkCoM.ABEH(1) - A(1))];
-Mechanism.Angle.BCFG = [0 0 atan2((Mechanism.LinkCoM.BCFG(2) - B(2)), Mechanism.LinkCoM.BCFG(1) - B(1))];
-Mechanism.Angle.CDI = [0 0 atan2((Mechanism.LinkCoM.CDI(2) - C(2)), Mechanism.LinkCoM.CDI(1) - C(1))];
+Mechanism.Angle.ABEH = [0 0 rad2deg(atan2((Mechanism.LinkCoM.ABEH(2) - A(2)), Mechanism.LinkCoM.ABEH(1) - A(1)))];
+Mechanism.Angle.BCFG = [0 0 rad2deg(atan2((Mechanism.LinkCoM.BCFG(2) - B(2)), Mechanism.LinkCoM.BCFG(1) - B(1)))];
+Mechanism.Angle.CDI = [0 0 rad2deg(atan2((Mechanism.LinkCoM.CDI(2) - C(2)), Mechanism.LinkCoM.CDI(1) - C(1)))];
 
 % Define masses for each link
 Mechanism.Mass.ABEH = 5; 

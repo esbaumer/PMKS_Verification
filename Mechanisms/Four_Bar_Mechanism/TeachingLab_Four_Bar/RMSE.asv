@@ -474,8 +474,8 @@ try
                     % a joint position... Adjust accordingly if
                     % desired...
                     theoData = double(dataField.(sensorFields{i}){:, 3}); 
-                    adjustment = table2array(expData.Values(1,1)) - theoData(1,1);
-                    theoData = theoData + adjustment;
+                    adjustment = double(expData.Values(1)) - theoData(1,1);
+                    theoData = theoData(:,3) + adjustment;
                     % theoData = dataField.(sensorFields{i});  % Get the entire data if no speed is involved
                 end
             end
@@ -503,14 +503,13 @@ if ~isempty(expData) && ~isempty(theoData)
     timePerRevolution = 60 / rpmValue;  % Calculate the time for one full revolution (in seconds)
     numDataPoints = size(theoData, 1);  % Number of data points in the theoretical data
     theoreticalTime = linspace(0, timePerRevolution, numDataPoints);  % Create a linearly spaced time array
-    theoreticalTime = theoreticalTime.';
 
     % Calculate RMSE if both experimental and theoretical data are available
     timestampsRaw = expData.Time;
     timestamps = timestampsRaw - timestampsRaw(1,1);
     timestamps = table2array(timestamps) / 1000;
 
-    interpolatedTheoData = interp1(theoreticalTime, theoData, timestamps, 'linear', 'extrap');
+    interpolatedTheoData = interp1(theoreticalTime, table2array(theoData(:,3)), timestamps, 'linear', 'extrap');
     rmse = sqrt(mean((expData.Values - interpolatedTheoData).^2));
 
     % Store RMSE in the results structure
