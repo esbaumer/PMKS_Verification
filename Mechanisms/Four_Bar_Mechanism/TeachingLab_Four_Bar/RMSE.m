@@ -54,7 +54,7 @@ saveResultsToCSV(rmseResults, resultsFilename);
 function dataStruct = readTheoreticalData(basePath)
 % Define mappings of categories to their relevant subcategories
 categoryMap = containers.Map({'Acc', 'Vel', 'Pos'}, ...
-    {{'AngAcc', 'LinAcc'}, {'AngVel', 'LinVel'}, {'Joint', 'LinkCoM'}});  % No subcategories for Pos
+    {{'AngAcc', 'LinAcc'}, {'AngVel', 'LinVel'}, {'Angle', 'Point'}});  % No subcategories for Pos
 
 dataStruct = struct(); % Initialize the main data structure
 
@@ -68,10 +68,8 @@ for k = categoryMap.keys
 
     for subCategory = subCategories
         subCategoryPath = fullfile(categoryPath, subCategory{1});
-        if strcmp(subCategory{1}, 'LinAcc') || strcmp(subCategory{1}, 'LinVel')
+        if strcmp(subCategory{1}, 'LinAcc') || strcmp(subCategory{1}, 'LinVel') || strcmp(subCategory{1}, 'Point')
             dataStruct = processNestedDirectories(subCategoryPath, dataStruct, category, subCategory{1});
-        elseif strcmp(category, 'Pos')
-            dataStruct = processNestedDirectories(categoryPath, dataStruct, category, '');
         else
             dataStruct = processSpeedDirectories(subCategoryPath, dataStruct, category, subCategory{1}, '');
         end
@@ -134,24 +132,24 @@ if ~isfield(dataStruct, category)
     dataStruct.(category) = struct();
 end
 
-if strcmp(category, 'Pos') % Pos, which is a special case
-    finalTarget = dataStruct.(category);
-    if ~isempty(nestedDir)
-        if ~isfield(finalTarget, nestedDir)
-            finalTarget.(nestedDir) = struct();
-        end
-        finalTarget = finalTarget.(nestedDir);
-    end
-
-    if ~isfield(finalTarget, itemName)
-        finalTarget.(itemName) = struct();
-    end
-
-    finalTarget.(itemName) = dataTable;
-
-    dataStruct.(category).(nestedDir) = finalTarget;
-    return;
-end
+% if strcmp(category, 'Pos') % Pos, which is a special case
+%     finalTarget = dataStruct.(category);
+%     if ~isempty(nestedDir)
+%         if ~isfield(finalTarget, nestedDir)
+%             finalTarget.(nestedDir) = struct();
+%         end
+%         finalTarget = finalTarget.(nestedDir);
+%     end
+% 
+%     if ~isfield(finalTarget, itemName)
+%         finalTarget.(itemName) = struct();
+%     end
+% 
+%     finalTarget.(itemName) = dataTable;
+% 
+%     dataStruct.(category).(nestedDir) = finalTarget;
+%     return;
+% end
 
 subCategoryField = subCategory;
 
@@ -174,7 +172,7 @@ end
 if ~isempty(speedTag)
     finalTarget.(itemName).(speedTag) = dataTable;
 else
-    finalTarget.(itemName).default = dataTable;
+    finalTarget.(itemName) = dataTable;
 end
 
 if isempty(nestedDir)
