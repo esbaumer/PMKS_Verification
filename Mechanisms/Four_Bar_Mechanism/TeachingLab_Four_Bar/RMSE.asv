@@ -256,7 +256,11 @@ if ~isfield(dataStruct, category)
 end
 
 if strcmp(category, 'Pos') % Pos, which is a special case
-    finalTarget = dataStruct.(category);
+    if ~isfield(dataStruct.(category), subCategoryField)
+        dataStruct.(category).(subCategoryField) = struct();
+    end
+
+    finalTarget = dataStruct.(category).(subCategoryField);
     if ~isempty(nestedDir)
         if ~isfield(finalTarget, nestedDir)
             finalTarget.(nestedDir) = struct();
@@ -268,9 +272,17 @@ if strcmp(category, 'Pos') % Pos, which is a special case
         finalTarget.(itemName) = struct();
     end
 
-        finalTarget.(itemName) = dataTable;
+    if ~isempty(speedTag)
+        finalTarget.(itemName).(speedTag) = dataTable;
+    else
+        finalTarget.(itemName).default = dataTable;
+    end
 
-        dataStruct.(category).(nestedDir) = finalTarget;
+    if isempty(nestedDir)
+        dataStruct.(category).(subCategoryField) = finalTarget;
+    else
+        dataStruct.(category).(subCategoryField).(nestedDir) = finalTarget;
+    end
     return;
 end
 
