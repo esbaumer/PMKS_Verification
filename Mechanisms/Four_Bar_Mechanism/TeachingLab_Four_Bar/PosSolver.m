@@ -88,6 +88,11 @@ Mechanism.LinkCoM.ABEH(iteration, :) = PosSolverUtils.circleCircleIntersection(A
 Mechanism.LinkCoM.BCFG(iteration, :) = PosSolverUtils.circleCircleIntersection(B(1), B(2), Mechanism.LinkLength.BCFG_CoM_B, C(1), C(2), Mechanism.LinkLength.BCFG_CoM_C, Mechanism.LinkCoM.BCFG(iteration - 1, 1), Mechanism.LinkCoM.BCFG(iteration - 1, 2));
 Mechanism.LinkCoM.CDI(iteration, :) = PosSolverUtils.circleCircleIntersection(C(1), C(2), Mechanism.LinkLength.CDI_CoM_C, D(1), D(2), Mechanism.LinkLength.CDI_CoM_D, Mechanism.LinkCoM.CDI(iteration - 1, 1), Mechanism.LinkCoM.CDI(iteration - 1, 2));
 
+Mechanism.Angle.ABEH(iteration, :) = [0,0, [atan2(Mechanism.LinkCoM.ABEH(iteration,2) - A(2), Mechanism.LinkCoM.ABEH(iteration,1) - A(1))]];
+Mechanism.Angle.BCFG(iteration, :) = [0,0, [atan2(Mechanism.LinkCoM.BCFG(iteration,2) - B(2), Mechanism.LinkCoM.BCFG(iteration,1) - B(1))]];
+Mechanism.Angle.CDI(iteration, :) = [0,0, [atan2(Mechanism.LinkCoM.CDI(iteration,2) - C(2), Mechanism.LinkCoM.CDI(iteration,1) - C(1))]];
+
+
 for inputSpeedCol = 1:1:length(Mechanism.inputSpeed(1,:))
     if (forwardDir)
         Mechanism.inputSpeed(iteration, inputSpeedCol) = Mechanism.inputSpeed(1, inputSpeedCol);

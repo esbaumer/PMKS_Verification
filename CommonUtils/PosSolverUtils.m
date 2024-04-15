@@ -24,7 +24,7 @@ classdef PosSolverUtils
 
             baseDir = 'Kin/Pos';
             % Save joint positions
-            PosSolverUtils.saveJointPositions(Mechanism, baseDir)
+            PosSolverUtils.saveJointPositions(Mechanism)
         end
 
         % Function to initialize variables for the simulation
@@ -54,6 +54,12 @@ classdef PosSolverUtils
                 Mechanism.LinkCoM.(linkNames{i}) = zeros(max_iterations, 3); % Initialize with zeros
                 Mechanism.LinkCoM.(linkNames{i})(1, :) = initialLinkPosition; % Set initial position
             end
+            angleName = fieldnames(Mechanism.Angle);
+            for i = 1:length(angleName)
+                initialAnglePosition = Mechanism.Angle.(angleName{i});
+                Mechanism.Angle.(linkNames{i}) = zeros(max_iterations, 3); % Initialize with zeros
+                Mechanism.Angle.(linkNames{i})(1, :) = initialAnglePosition; % Set initial position
+            end
         end
 
         % Main function to calculate joint positions through iterations
@@ -77,6 +83,10 @@ classdef PosSolverUtils
             linkNames = fieldnames(Mechanism.LinkCoM);
             for i = 1:length(linkNames)
                 Mechanism.LinkCoM.(linkNames{i}) = Mechanism.LinkCoM.(linkNames{i})(1:iteration-1,:);
+            end
+            angleNames = fieldnames(Mechanism.Angle);
+            for i = 1:length(angleNames)
+                Mechanism.Angle.(angleNames{i}) = Mechanism.Angle.(angleNames{i})(1:iteration-1,:);
             end
             Mechanism.inputSpeed= Mechanism.inputSpeed(1:iteration-1,:);
         end
@@ -234,57 +244,254 @@ classdef PosSolverUtils
             result = all(abs(arr1 - arr2) < tolerance);
         end
 
-        function saveJointPositions(Mechanism, baseDir)
-
+        % function saveJointPositions(Mechanism, baseDir)
+        %
+        %     % Create Directory for Saving Results
+        %     folderName = 'Kin';
+        %     if ~exist(folderName, 'dir')
+        %         mkdir(folderName);  % Create the directory if it doesn't exist
+        %     end
+        %
+        %     % Save Joint Positions in the Created Directory
+        %     save('Mechanism.mat', 'Mechanism');
+        %
+        %
+        %     jointNames = fieldnames(Mechanism.Joint);
+        %     jointFolder = fullfile(baseDir, 'Joint');
+        %     if ~exist(jointFolder, 'dir')
+        %         mkdir(jointFolder);
+        %     end
+        %
+        %     for i = 1:length(jointNames)
+        %         jointName = jointNames{i};
+        %         % Create a temporary struct with the field name as the joint name
+        %         tempStruct = struct(jointName, Mechanism.Joint.(jointName));
+        %         % Save this struct using the -struct option
+        %         save(fullfile(jointFolder, jointName), '-struct', 'tempStruct', jointName);
+        %     end
+        %
+        %     tracerPointNames = fieldnames(Mechanism.TracerPoint);
+        %
+        %     for i = 1:length(tracerPointNames)
+        %         tracerPointName = tracerPointNames{i};
+        %         % Create a temporary struct with the field name as the joint name
+        %         tempStruct = struct(tracerPointName, Mechanism.TracerPoint.(tracerPointName));
+        %         % Save this struct using the -struct option
+        %         save(fullfile(jointFolder, tracerPointName), '-struct', 'tempStruct', tracerPointName);
+        %     end
+        %
+        %     % Save link CoM positions
+        %     linkNames = fieldnames(Mechanism.LinkCoM);
+        %     linkCoMFolder = fullfile(baseDir, 'LinkCoM');
+        %     if ~exist(linkCoMFolder, 'dir')
+        %         mkdir(linkCoMFolder);
+        %     end
+        %
+        %     for i = 1:length(linkNames)
+        %         linkName = linkNames{i};
+        %         % Create a temporary struct with the field name as the link name
+        %         tempStruct = struct(linkName, Mechanism.LinkCoM.(linkName));
+        %         % Save this struct using the -struct option
+        %         save(fullfile(linkCoMFolder, linkName), '-struct', 'tempStruct', linkName);
+        %     end
+        %
+        %     % Save Angle for links
+        % end
+        % function saveJointPositions(Mechanism, baseDir)
+        %     % Create Directory for Saving Results
+        %     folderName = 'Kin';
+        %     if ~exist(folderName, 'dir')
+        %         mkdir(folderName);  % Create the directory if it doesn't exist
+        %     end
+        %
+        %     % Save Joint Positions in the Created Directory
+        %     save(fullfile(folderName, 'Mechanism.mat'), 'Mechanism');
+        %
+        %     % Directory for Joints and Links under Pos
+        %     posDir = fullfile(folderName, 'Pos');
+        %     if ~exist(posDir, 'dir')
+        %         mkdir(posDir);
+        %     end
+        %
+        %     jointFolder = fullfile(posDir, 'Joint');
+        %     linkCoMFolder = fullfile(posDir, 'LinkCoM');
+        %     angleFolder = fullfile(posDir, 'Angle');
+        %
+        %     % Create subdirectories if they don't exist
+        %     if ~exist(jointFolder, 'dir')
+        %         mkdir(jointFolder);
+        %     end
+        %     if ~exist(linkCoMFolder, 'dir')
+        %         mkdir(linkCoMFolder);
+        %     end
+        %     if ~exist(angleFolder, 'dir')
+        %         mkdir(angleFolder);
+        %     end
+        %
+        %     % Save Joint data
+        %     jointNames = fieldnames(Mechanism.Joint);
+        %     for i = 1:length(jointNames)
+        %         jointName = jointNames{i};
+        %         tempStruct = struct(jointName, Mechanism.Joint.(jointName));
+        %         save(fullfile(jointFolder, jointName), '-struct', 'tempStruct', jointName);
+        %     end
+        %
+        %     % Save Tracer Point data
+        %     tracerPointNames = fieldnames(Mechanism.TracerPoint);
+        %     for i = 1:length(tracerPointNames)
+        %         tracerPointName = tracerPointNames{i};
+        %         tempStruct = struct(tracerPointName, Mechanism.TracerPoint.(tracerPointName));
+        %         save(fullfile(jointFolder, tracerPointName), '-struct', 'tempStruct', tracerPointName);
+        %     end
+        %
+        %     % Save Link CoM data
+        %     linkNames = fieldnames(Mechanism.LinkCoM);
+        %     for i = 1:length(linkNames)
+        %         linkName = linkNames{i};
+        %         tempStruct = struct(linkName, Mechanism.LinkCoM.(linkName));
+        %         save(fullfile(linkCoMFolder, linkName), '-struct', 'tempStruct', linkName);
+        %     end
+        %
+        %     % Save Angle data
+        %     angleNames = fieldnames(Mechanism.Angle);
+        %     for i = 1:length(angleNames)
+        %         angleName = angleNames{i};
+        %         tempStruct = struct(angleName, Mechanism.Angle.(angleName));
+        %         save(fullfile(angleFolder, angleName), '-struct', 'tempStruct', angleName);
+        %     end
+        % end
+        % function saveJointPositions(Mechanism)
+        %     % Create Directory for Saving Results
+        %     folderName = 'Kin';
+        %     if ~exist(folderName, 'dir')
+        %         mkdir(folderName);  % Create the directory if it doesn't exist
+        %     end
+        %
+        %     % Directory for Joints and Links under Pos
+        %     posDir = fullfile(folderName, 'Pos');
+        %     if ~exist(posDir, 'dir')
+        %         mkdir(posDir);
+        %     end
+        %
+        %     jointFolder = fullfile(posDir, 'Joint');
+        %     linkCoMFolder = fullfile(posDir, 'LinkCoM');
+        %
+        %     % Angle data is saved directly under Kin, not under Pos
+        %     angleFolder = fullfile(folderName, 'Angle');  % Changed from posDir to folderName
+        %
+        %     % Create subdirectories if they don't exist
+        %     if ~exist(jointFolder, 'dir')
+        %         mkdir(jointFolder);
+        %     end
+        %     if ~exist(linkCoMFolder, 'dir')
+        %         mkdir(linkCoMFolder);
+        %     end
+        %     if ~exist(angleFolder, 'dir')
+        %         mkdir(angleFolder);
+        %     end
+        %
+        %     % Save Joint data
+        %     jointNames = fieldnames(Mechanism.Joint);
+        %     for i = 1:length(jointNames)
+        %         jointName = jointNames{i};
+        %         tempStruct = struct(jointName, Mechanism.Joint.(jointName));
+        %         save(fullfile(jointFolder, jointName), '-struct', 'tempStruct', jointName);
+        %     end
+        %
+        %
+        %     % Save Tracer Point data
+        %     tracerPointNames = fieldnames(Mechanism.TracerPoint);
+        %     for i = 1:length(tracerPointNames)
+        %         tracerPointName = tracerPointNames{i};
+        %         tempStruct = struct(tracerPointName, Mechanism.TracerPoint.(tracerPointName));
+        %         save(fullfile(jointFolder, tracerPointName), '-struct', 'tempStruct', tracerPointName);
+        %     end
+        %
+        %      % Save Link CoM data
+        %     linkNames = fieldnames(Mechanism.LinkCoM);
+        %     for i = 1:length(linkNames)
+        %         linkName = linkNames{i};
+        %         tempStruct = struct(linkName, Mechanism.LinkCoM.(linkName));
+        %         save(fullfile(linkCoMFolder, linkName), '-struct', 'tempStruct', linkName);
+        %     end
+        %
+        %     % Save Angle data
+        %     angleNames = fieldnames(Mechanism.Angle);
+        %     for i = 1:length(angleNames)
+        %         angleName = angleNames{i};
+        %         tempStruct = struct(angleName, Mechanism.Angle.(angleName));
+        %         save(fullfile(angleFolder, angleName), '-struct', 'tempStruct', angleName);
+        %     end
+        % end
+        function saveJointPositions(Mechanism)
             % Create Directory for Saving Results
             folderName = 'Kin';
             if ~exist(folderName, 'dir')
                 mkdir(folderName);  % Create the directory if it doesn't exist
             end
 
-            % Save Joint Positions in the Created Directory
-            save('Mechanism.mat', 'Mechanism');
+            % Directory for Joints, Links, and Angles under Pos
+            posDir = fullfile(folderName, 'Pos');
+            if ~exist(posDir, 'dir')
+                mkdir(posDir);
+            end
 
+            % Additional Point folder under Pos for Joint and LinkCoM
+            pointFolder = fullfile(posDir, 'Point');
+            if ~exist(pointFolder, 'dir')
+                mkdir(pointFolder);
+            end
 
-            jointNames = fieldnames(Mechanism.Joint);
-            jointFolder = fullfile(baseDir, 'Joint');
+            jointFolder = fullfile(pointFolder, 'Joint');
+            linkCoMFolder = fullfile(pointFolder, 'LinkCoM');
+
+            % Angle data is saved directly under Pos
+            angleFolder = fullfile(posDir, 'Angle');  % Changed location under Pos
+
+            % Create subdirectories if they don't exist
             if ~exist(jointFolder, 'dir')
                 mkdir(jointFolder);
             end
-
-            for i = 1:length(jointNames)
-                jointName = jointNames{i};
-                % Create a temporary struct with the field name as the joint name
-                tempStruct = struct(jointName, Mechanism.Joint.(jointName));
-                % Save this struct using the -struct option
-                save(fullfile(jointFolder, jointName), '-struct', 'tempStruct', jointName);
-            end
-
-            tracerPointNames = fieldnames(Mechanism.TracerPoint);
-
-            for i = 1:length(tracerPointNames)
-                tracerPointName = tracerPointNames{i};
-                % Create a temporary struct with the field name as the joint name
-                tempStruct = struct(tracerPointName, Mechanism.TracerPoint.(tracerPointName));
-                % Save this struct using the -struct option
-                save(fullfile(jointFolder, tracerPointName), '-struct', 'tempStruct', tracerPointName);
-            end
-
-            % Save link CoM positions
-            linkNames = fieldnames(Mechanism.LinkCoM);
-            linkCoMFolder = fullfile(baseDir, 'LinkCoM');
             if ~exist(linkCoMFolder, 'dir')
                 mkdir(linkCoMFolder);
             end
+            if ~exist(angleFolder, 'dir')
+                mkdir(angleFolder);
+            end
 
+            % Save Joint data
+            jointNames = fieldnames(Mechanism.Joint);
+            for i = 1:length(jointNames)
+                jointName = jointNames{i};
+                tempStruct = struct(jointName, Mechanism.Joint.(jointName));
+                save(fullfile(jointFolder, jointName), '-struct', 'tempStruct', jointName);
+            end
+
+            % Save Tracer Point data
+            tracerPointNames = fieldnames(Mechanism.TracerPoint);
+            for i = 1:length(tracerPointNames)
+                tracerPointName = tracerPointNames{i};
+                tempStruct = struct(tracerPointName, Mechanism.TracerPoint.(tracerPointName));
+                save(fullfile(jointFolder, tracerPointName), '-struct', 'tempStruct', tracerPointName);
+            end
+
+            % Save Link CoM data
+            linkNames = fieldnames(Mechanism.LinkCoM);
             for i = 1:length(linkNames)
                 linkName = linkNames{i};
-                % Create a temporary struct with the field name as the link name
                 tempStruct = struct(linkName, Mechanism.LinkCoM.(linkName));
-                % Save this struct using the -struct option
                 save(fullfile(linkCoMFolder, linkName), '-struct', 'tempStruct', linkName);
             end
+
+            % Save Angle data
+            angleNames = fieldnames(Mechanism.Angle);
+            for i = 1:length(angleNames)
+                angleName = angleNames{i};
+                tempStruct = struct(angleName, Mechanism.Angle.(angleName));
+                save(fullfile(angleFolder, angleName), '-struct', 'tempStruct', angleName);
+            end
         end
+
 
         function Mechanism = initializeInputSpeed(Mechanism, input_speed, max_iterations)
             % Assuming input_speed is a vector of different speeds
