@@ -2,7 +2,7 @@ function Mechanism = ForceSolver(Mechanism, scenarios)
     Mechanism = ForceSolverUtils.ForceSolver(Mechanism, scenarios, @performForceAnalysis);
 end
 
-function solution = performForceAnalysis(Mechanism, iter, JointPos, LinkCoMPos, newton, grav, friction)
+function solution = performForceAnalysis(Mechanism, iter, speedStr, JointPos, LinkCoMPos, newton, grav, friction)
 % Pull the mass of each component
 massABE = Mechanism.Mass.ABE;
 massBCFG = Mechanism.Mass.BCFG;
@@ -14,14 +14,14 @@ massMoIBCFG = Mechanism.MassMoI.BCFG;
 massMoICDH = Mechanism.MassMoI.CDH;
 
 % Pull the angular acceleration of each link
-A_abe = Mechanism.AngAcc.ABE(iter,:);
-A_bcfg = Mechanism.AngAcc.BCFG(iter,:);
-A_cdh = Mechanism.AngAcc.CDH(iter,:);
+A_abe = Mechanism.AngAcc.ABE.(speedStr)(iter,:);
+A_bcfg = Mechanism.AngAcc.BCFG.(speedStr)(iter,:);
+A_cdh = Mechanism.AngAcc.CDH.(speedStr)(iter,:);
 
 % Pull the acceleration of each link at its center of mass
-A_abe_com = Mechanism.LinAcc.LinkCoM.ABE(iter,:);
-A_bcfg_com = Mechanism.LinAcc.LinkCoM.BCFG(iter,:);
-A_cdh_com = Mechanism.LinAcc.LinkCoM.CDH(iter,:);
+A_abe_com = Mechanism.LinAcc.LinkCoM.ABE.(speedStr)(iter,:);
+A_bcfg_com = Mechanism.LinAcc.LinkCoM.BCFG.(speedStr)(iter,:);
+A_cdh_com = Mechanism.LinAcc.LinkCoM.CDH.(speedStr)(iter,:);
 
 % Extract positions for each joint
 A = JointPos.A;
@@ -61,12 +61,12 @@ r_abe_com_a = norm(ABE_com - A);
 r_bcfg_com_b = norm(BCFG_com - B);
 r_cdh_com_c = norm(CDH_com - C);
 
-A_noFriction_x = Mechanism.NewtonForceGravNoFriction.Joint.A(iter,1);
-A_noFriction_y = Mechanism.NewtonForceGravNoFriction.Joint.A(iter,2);
-B_noFriction_x = Mechanism.NewtonForceGravNoFriction.Joint.B(iter,1); 
-B_noFriction_y = Mechanism.NewtonForceGravNoFriction.Joint.B(iter,2);
-C_noFriction_x = Mechanism.NewtonForceGravNoFriction.Joint.C(iter,1); 
-C_noFriction_y = Mechanism.NewtonForceGravNoFriction.Joint.C(iter,2);
+A_noFriction_x = Mechanism.ForceAnalysis.Newton.Grav.NoFriction.(speedStr).Joint.A(iter,1);
+A_noFriction_y = Mechanism.ForceAnalysis.Newton.Grav.NoFriction.(speedStr).Joint.A(iter,2);
+B_noFriction_x = Mechanism.ForceAnalysis.Newton.Grav.NoFriction.(speedStr).Joint.B(iter,1); 
+B_noFriction_y = Mechanism.ForceAnalysis.Newton.Grav.NoFriction.(speedStr).Joint.B(iter,2);
+C_noFriction_x = Mechanism.ForceAnalysis.Newton.Grav.NoFriction.(speedStr).Joint.C(iter,1); 
+C_noFriction_y = Mechanism.ForceAnalysis.Newton.Grav.NoFriction.(speedStr).Joint.C(iter,2);
 
 % Correcting angle calculation
 A_theta = atan2(A_noFriction_y, A_noFriction_x);

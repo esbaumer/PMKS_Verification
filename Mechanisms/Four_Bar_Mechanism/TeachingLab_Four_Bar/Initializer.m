@@ -35,14 +35,6 @@ G = [2.3 4.52 0]; % Coolterm, 3
 H = [-0.207 6.48 0]; % WitMotion, 1
 I = [2.3 4.52 0]; % WitMotion, 2
 
-massABEH = 13.68;
-massBCFG = 33.07;
-massCDI = 57.7;
-
-massMoIABEH = 0.43;
-massMoIBCFG = 5.75;
-massMoICDI = 30.36;
-
 % Define initial joint positions (example values)
 Mechanism.Joint.A = A;
 Mechanism.Joint.B = B;
@@ -55,25 +47,25 @@ Mechanism.TracerPoint.G = G; % Coolterm, 3
 Mechanism.TracerPoint.H = H; % WitMotion, 1
 Mechanism.TracerPoint.I = I; % WitMotion, 2
 
-% Define masses for each link or joint
+% Define link's center of mass positions
 Mechanism.LinkCoM.ABEH = [0 0 0];
 Mechanism.LinkCoM.BCFG = [0 0 0];
 Mechanism.LinkCoM.CDI = [0 0 0];
 
-% Define masses for each link or joint
+% Define angles for each link
 Mechanism.Angle.ABEH = [0 0 rad2deg(atan2((Mechanism.LinkCoM.ABEH(2) - A(2)), Mechanism.LinkCoM.ABEH(1) - A(1)))];
 Mechanism.Angle.BCFG = [0 0 rad2deg(atan2((Mechanism.LinkCoM.BCFG(2) - B(2)), Mechanism.LinkCoM.BCFG(1) - B(1)))];
 Mechanism.Angle.CDI = [0 0 rad2deg(atan2((Mechanism.LinkCoM.CDI(2) - C(2)), Mechanism.LinkCoM.CDI(1) - C(1)))];
 
 % Define masses for each link
-Mechanism.Mass.ABEH = 5; 
-Mechanism.Mass.BCFG = 10;
-Mechanism.Mass.CDI = 5; 
+Mechanism.Mass.ABEH = 13.68; 
+Mechanism.Mass.BCFG = 33.07;
+Mechanism.Mass.CDI = 57.7;
 
 % Define mass moments of inertia for each link
-Mechanism.MassMoI.ABEH = 0.1; 
-Mechanism.MassMoI.BCFG = 0.2; 
-Mechanism.MassMoI.CDI = 0.1; 
+Mechanism.MassMoI.ABEH = 0.43; 
+Mechanism.MassMoI.BCFG = 5.75;
+Mechanism.MassMoI.CDI = 30.36;
 
 % Desired for Stress Analysis. Maybe wanna include all the lengths to be
 % utilized within PosSolver
@@ -88,6 +80,9 @@ Mechanism.CDILength = 10;
 Mechanism.crossSectionalAreaABEH = 10;
 Mechanism.crossSectionalAreaBCFG = 10;
 Mechanism.crossSectionalAreaCDI = 10;
+
+% Define the modulus of elasticity for each link
+Mechanism.modulusElasticity = 10e6;
 
 % Define angular velocity of the link where a motor is attached
 input_speed = zeros(1, 3);
