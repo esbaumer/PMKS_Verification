@@ -29,11 +29,11 @@ sensorDataTypes = containers.Map(...
     % {'AngVel'}, ... % Data types for sensor G
     % {'AngVel', 'LinAcc'}, ...  % Data types for sensor H
     % {'AngVel', 'LinVel', 'AngAcc'}  ... % Data types for sensor I
-    {'Angle', 'LinVel'}, ...  % Data types for sensor E
-    {'AngVel', 'LinAcc'}, ... % Data types for sensor F
-    {'AngAcc', 'LinVel'}, ... % Data types for sensor G
+    {'Angle', 'AngVel'}, ...  % Data types for sensor E
+    {'Angle', 'AngVel'}, ... % Data types for sensor F
+    {'Angle', 'AngVel'}, ... % Data types for sensor G
     {'Angle', 'AngVel', 'LinAcc'}, ...  % Data types for sensor H
-    {'AngVel', 'LinVel', 'AngAcc'}  ... % Data types for sensor I
+    {'Angle', 'AngVel', 'LinAcc'}  ... % Data types for sensor I
     }...
     );
 
@@ -49,7 +49,7 @@ end
 
 % Save results to CSV
 resultsFilename = 'RMSE_Results.csv';
-saveResultsToCSV(rmseResults, resultsFilename);
+% saveResultsToCSV(rmseResults, resultsFilename);
 
 function dataStruct = readTheoreticalData(basePath)
 % Define mappings of categories to their relevant subcategories
@@ -371,7 +371,7 @@ validData = rawData(validStartIndex:validEndIndex, :);
 
 % Define map for selecting the correct Y column index based on sensor and dataType
 yColumnMap = containers.Map(...
-    {'FVel', 'FAngle', 'EVel', 'EAngle', 'GVel', 'GAngle'}, ...
+    {'FAngVel', 'FAngle', 'EAngVel', 'EAngle', 'GAngVel', 'GAngle'}, ...
     {1, 2, 1, 3, 1, 3});
 
 % Get the correct Y column index using the map
@@ -407,21 +407,71 @@ cleanData = data(all(~isnan(data), 2), :);  % Discard any rows with NaNs
 end
 
 
-% For WitMotion Data Processing
-function witMotionData = processWitMotionData(rawData, theoDataSet, sensorID, dataType)
-% Determine the index for zero crossing in Angle Y
-zeroCrossings = find(diff(sign(rawData(:, 11))) > 0) + 1;  % Assumes Angle Y is in the 11th column
-if length(zeroCrossings) < 2
-    error('Not enough zero crossings found.');
+function witMotionData = processWitMotionData(rawData, sensorType, dataType)
+    % Constants for column indices based on data type
+    TIME_COL = 1; % Time column index
+    SENSOR_ID_COL = 2; % Sensor ID column index
+    ANGLE_Y_COL = 11; % Column index for Angle Y
+
+    % Mapping sensor types to their corresponding sensor ID
+    sensorMap = containers.Map(...
+        {'H', 'I'}, ...
+        {'WT901BLE68(ef:e4:2c:bf:73:a9)', 'WT901BLE68(d2:5a:50:4a:21:12)'});
+    inputLinkID = sensorMap('H');  % Always use sensor 'H' for zero crossing reference
+
+    % Filter data for the input link to find zero crossings
+    inputLinkData = rawData(strcmp(rawData{:, SENSOR_ID_COL}, inputLinkID), :);
+    zeroCrossings = find(diff(sign(table2array(inputLinkData(:, ANGLE_Y_COL)))) > 0) + 1;
+    if length(zeroCrossings) < 2
+        error('Not enough zero crossings found for input link.');
+    end
+
+    % Determine start and end times for valid data using input link zero crossings
+    validStartTime = duration(table2array(inputLinkData(zeroCrossings(1), TIME_COL)));
+    validEndTime = duration(table2array(inputLinkData(zeroCrossings(2), TIME_COL)));
+
+    % Filter data for the current sensor type
+    sensorID = sensorMap(sensorType);
+    sensorData = rawData(strcmp(rawData{:, SENSOR_ID_COL}, sensorID), :);
+
+    % Find indices in sensorData that are within the valid time range determined by the input link
+    validIndices = sensorData{:, TIME_COL} >= validStartTime & sensorData{:, TIME_COL} <= validEndTime;
+    if sum(validIndices) == 0
+        error('No data found for the current sensor within the valid time range.');
+    end
+
+    % Extract data slice based on the valid time indices
+    validData = sensorData(validIndices, :);
+
+    % Further refinement based on dataType to extract only relevant data
+    dataColumns = getDataColumns(dataType);
+    refinedData = validData(:, dataColumns);
+
+    % Prepare output structure
+    witMotionData = struct();
+    witMotionData.Time = validData(:, TIME_COL);
+    % TODO: Update this accordingly
+    witMotionData.Values = refinedData(:,1);
+    % witMotionData.Values = refinedData;
+    witMotionData.SensorID = sensorID;  % Include sensor ID in the output for reference
 end
 
-validStartIndex = zeroCrossings(1);
-validEndIndex = zeroCrossings(2);
-
-% Extract the valid data slice
-witMotionData = rawData(validStartIndex:validEndIndex, :);
-return;
+function cols = getDataColumns(dataType)
+    % Define data columns for different data types
+    switch dataType
+        case 'LinAcc'
+            cols = 4:6; % Columns for acceleration data
+        case 'AngVel'
+            cols = 7:9; % Columns for angular velocity data
+        case 'Angle'
+            cols = 10:12; % Columns for angle data
+        otherwise
+            cols = [];
+    end
 end
+
+% return;
+% end
 
 
 % Retriev the desired theoretical data
@@ -467,15 +517,17 @@ try
             if contains(sensorFields{i}, sensor)
                 % Handle cases with and without speed specification
                 if ~isempty(speed) && isfield(dataField.(sensorFields{i}), speed)
-                    theoData = dataField.(sensorFields{i}).(speed);
+                    theoData = table2array(dataField.(sensorFields{i}).(speed)(:,3));
                 else
                     % Assuming expData and theoData are columns of
                     % angles. TODO: There may be condition that this is
                     % a joint position... Adjust accordingly if
                     % desired...
-                    theoData = double(dataField.(sensorFields{i}){:, 3}); 
-                    adjustment = double(expData.Values(1)) - theoData(1,1);
-                    theoData = theoData(:,3) + adjustment;
+                    theoData = double(dataField.(sensorFields{i}){:, 3});
+                    % TODO: Make sure I have table2array in appropriate
+                    % places so I don't have to call it here
+                    adjustment = table2array(expData.Values(1,1)) - theoData(1,1);
+                    theoData = theoData + adjustment;
                     % theoData = dataField.(sensorFields{i});  % Get the entire data if no speed is involved
                 end
             end
@@ -503,13 +555,14 @@ if ~isempty(expData) && ~isempty(theoData)
     timePerRevolution = 60 / rpmValue;  % Calculate the time for one full revolution (in seconds)
     numDataPoints = size(theoData, 1);  % Number of data points in the theoretical data
     theoreticalTime = linspace(0, timePerRevolution, numDataPoints);  % Create a linearly spaced time array
+    theoreticalTime = theoreticalTime.';
 
     % Calculate RMSE if both experimental and theoretical data are available
     timestampsRaw = expData.Time;
     timestamps = timestampsRaw - timestampsRaw(1,1);
     timestamps = table2array(timestamps) / 1000;
 
-    interpolatedTheoData = interp1(theoreticalTime, table2array(theoData(:,3)), timestamps, 'linear', 'extrap');
+    interpolatedTheoData = interp1(theoreticalTime, theoData, timestamps, 'linear', 'extrap');
     rmse = sqrt(mean((expData.Values - interpolatedTheoData).^2));
 
     % Store RMSE in the results structure
