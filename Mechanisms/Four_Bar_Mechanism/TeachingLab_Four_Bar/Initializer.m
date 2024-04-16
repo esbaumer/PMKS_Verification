@@ -22,18 +22,31 @@ addpath(utilsFolderPath);
 % Initialize Mechanism structure with necessary fields
 Mechanism = struct();
 
-% Define Coordinates of Joints in 3D Space (x, y, z)
-A = [-2.14 3.025 0];
-B = [-0.719 3.025 0];
-C = [1.85 5.83 0];
-D = [2.14 3.025 0];
+% % Define Coordinates of Joints in 3D Space (x, y, z)
+% A = [-2.14 3.025 0];
+% B = [-0.719 3.025 0];
+% C = [1.85 5.83 0];
+% D = [2.14 3.025 0];
+% 
+% % Tracer Points for where the sensors are located
+% E = [0.228 5 0]; % Coolterm, 1
+% F = [-0.207 6.48 0]; % Coolterm, 2
+% G = [2.3 4.52 0]; % Coolterm, 3
+% H = [-0.207 6.48 0]; % WitMotion, 1
+% I = [2.3 4.52 0]; % WitMotion, 2
+
+% Define Coordinates of Joints in 3D Space (x, y, z). Units are mm
+A = [0, 0, 0];
+B = [151.97, 0, 0];
+C = [304.58, 344.73, 0];
+D = [457.20, 0, 0];
 
 % Tracer Points for where the sensors are located
-E = [0.228 5 0]; % Coolterm, 1
-F = [-0.207 6.48 0]; % Coolterm, 2
-G = [2.3 4.52 0]; % Coolterm, 3
-H = [-0.207 6.48 0]; % WitMotion, 1
-I = [2.3 4.52 0]; % WitMotion, 2
+E = [184.9, 207.46, 0]; % Coolterm, 2
+F = [90.5, 333.5, 0]; % Coolterm, 3
+G = [417.98, 193.55, 0]; % Coolterm, 1
+H = [75.98, 102.78, 0]; % WitMotion, 1
+I = [417.98, 195.20, 0]; % WitMotion, 2
 
 % Define initial joint positions (example values)
 Mechanism.Joint.A = A;
@@ -48,24 +61,24 @@ Mechanism.TracerPoint.H = H; % WitMotion, 1
 Mechanism.TracerPoint.I = I; % WitMotion, 2
 
 % Define link's center of mass positions
-Mechanism.LinkCoM.ABEH = [0 0 0];
-Mechanism.LinkCoM.BCFG = [0 0 0];
-Mechanism.LinkCoM.CDI = [0 0 0];
+Mechanism.LinkCoM.ABEH = [-6.38, 2.39,0];
+Mechanism.LinkCoM.BCFG = [185.73, 209.10, 0];
+Mechanism.LinkCoM.CDI = [472.56, -20.80, 0];
 
 % Define angles for each link
 Mechanism.Angle.ABEH = [0 0 rad2deg(atan2((Mechanism.LinkCoM.ABEH(2) - A(2)), Mechanism.LinkCoM.ABEH(1) - A(1)))];
 Mechanism.Angle.BCFG = [0 0 rad2deg(atan2((Mechanism.LinkCoM.BCFG(2) - B(2)), Mechanism.LinkCoM.BCFG(1) - B(1)))];
 Mechanism.Angle.CDI = [0 0 rad2deg(atan2((Mechanism.LinkCoM.CDI(2) - C(2)), Mechanism.LinkCoM.CDI(1) - C(1)))];
 
-% Define masses for each link
-Mechanism.Mass.ABEH = 13.68; 
-Mechanism.Mass.BCFG = 33.07;
-Mechanism.Mass.CDI = 57.7;
+% Define masses for each link (kg)
+Mechanism.Mass.ABEH = 10.458382; 
+Mechanism.Mass.BCFG = 0.626202;
+Mechanism.Mass.CDI = 4.901229;
 
 % Define mass moments of inertia for each link
-Mechanism.MassMoI.ABEH = 0.43; 
-Mechanism.MassMoI.BCFG = 5.75;
-Mechanism.MassMoI.CDI = 30.36;
+Mechanism.MassMoI.ABEH = 52777966.276354; 
+Mechanism.MassMoI.BCFG = 10871793.503827;
+Mechanism.MassMoI.CDI = 63343618.03601;
 
 % Desired for Stress Analysis. Maybe wanna include all the lengths to be
 % utilized within PosSolver
