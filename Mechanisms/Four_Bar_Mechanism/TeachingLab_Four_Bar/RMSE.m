@@ -24,11 +24,6 @@ theoData = readTheoreticalData(TheoreticalPath);
 sensorDataTypes = containers.Map(...
     {'E', 'F', 'G', 'H', 'I'}, ...
     {...
-    % {'AngVel'}, ...  % Data types for sensor E
-    % {'AngVel'}, ... % Data types for sensor F
-    % {'AngVel'}, ... % Data types for sensor G
-    % {'AngVel', 'LinAcc'}, ...  % Data types for sensor H
-    % {'AngVel', 'LinVel', 'AngAcc'}  ... % Data types for sensor I
     {'Angle', 'AngVel'}, ...  % Data types for sensor E
     {'Angle', 'AngVel'}, ... % Data types for sensor F
     {'Angle', 'AngVel'}, ... % Data types for sensor G
@@ -133,25 +128,6 @@ if ~isfield(dataStruct, category)
     dataStruct.(category) = struct();
 end
 
-% if strcmp(category, 'Pos') % Pos, which is a special case
-%     finalTarget = dataStruct.(category);
-%     if ~isempty(nestedDir)
-%         if ~isfield(finalTarget, nestedDir)
-%             finalTarget.(nestedDir) = struct();
-%         end
-%         finalTarget = finalTarget.(nestedDir);
-%     end
-%
-%     if ~isfield(finalTarget, itemName)
-%         finalTarget.(itemName) = struct();
-%     end
-%
-%     finalTarget.(itemName) = dataTable;
-%
-%     dataStruct.(category).(nestedDir) = finalTarget;
-%     return;
-% end
-
 subCategoryField = subCategory;
 
 if ~isfield(dataStruct.(category), subCategoryField)
@@ -254,84 +230,6 @@ else
     expData = []; % Return empty if not found
 end
 end
-% function processedData = processData(rawData, sensor, dataType)
-% % Initialize processed data structure
-% processedData = struct('Time', [], 'Values', []);
-%
-% % Define sensor-specific columns and process data accordingly
-% sensorDataMap = containers.Map(...
-%     {'E', 'F', 'G', 'H', 'I'}, ...
-%     {8:13, 4:7, 14:19, 1:3, 4:6} ...  % Example column indices for each sensor
-%     );
-% columnIndices = sensorDataMap(sensor);
-%
-% % Extract data based on dataType
-% switch dataType
-%     % TODO: don't determine the mean, just pull the values based
-%     % from respective time domain. Most likely do a comparison
-%     % between the theoretical values to the experimental values and
-%     % get the values that most closely match the thoeretical values
-%     case 'Angle'
-%         processedData.Values = mean(rawData(:, columnIndices(1:3)), 2); % Example: mean of first three columns
-%     case 'LinVel'
-%         processedData.Values = rawData(:, columnIndices(4)); % Example: fourth column
-%     case 'AngVel'
-%         % Further processing can be added here
-% end
-%
-% % Example time column extraction
-% processedData.Time = rawData(:, 2); % Assuming second column is time
-%
-% % Filter data to remove outliers or bad data
-% processedData = filterData(processedData);
-% end
-
-
-% function filteredData = filterData(data)
-% % Example filtering operation
-% filteredData = data;
-% % goodIndices = data.Values < threshold; % Define 'threshold' based on your criteria
-% % filteredData = struct('Time', data.Time(goodIndices), 'Values', data.Values(goodIndices));
-% end
-
-% function processedData = processData(rawData, sensor, dataType)
-%     % Initialize processed data structure
-%     processedData = struct('Time', [], 'Values', []);
-%
-%     % Define sensor-specific columns and process data accordingly
-%     sensorDataMap = containers.Map(...
-%         {'E', 'F', 'G', 'H', 'I'}, ...
-%         {8:13, 4:7, 14:19, 1:3, 4:6} ...  % Example column indices for each sensor
-%         );
-%     columnIndices = sensorDataMap(sensor);
-%
-%     % Extract data based on dataType
-%     switch dataType
-%         case 'Angle'
-%             processedData.Values = rawData(:, columnIndices(1:3)); % Use all angle columns
-%         case 'LinVel'
-%             processedData.Values = rawData(:, columnIndices(4)); % Use specific LinVel column
-%         case 'AngVel'
-%             processedData.Values = rawData(:, columnIndices(5:end)); % Use all AngVel columns
-%     end
-%
-%     % Extract time column - example uses the 1st column for time
-%     processedData.Time = rawData(:, 1);
-%
-%     % Filter data to remove outliers or bad data
-%     processedData = filterData(processedData);
-%
-%     return;
-% end
-
-% function filteredData = filterData(data)
-%     % Placeholder for data filtering logic
-%     % Example: Remove outliers using median and interquartile range
-%     validIdx = (data.Values > (median(data.Values) - 1.5*iqr(data.Values))) & ...
-%                (data.Values < (median(data.Values) + 1.5*iqr(data.Values)));
-%     filteredData.Values = data.Values(validIdx);
-%     filteredData.Time = data.Time(validIdx);
-% end
 
 % For CoolTerm Data Processing
 function coolTermData = processCoolTermData(rawData, sensorID, dataType)
@@ -380,15 +278,13 @@ yColumnIndex = columns(yColumnMap([sensorID dataType]));
 
 YData = validData(:, yColumnIndex);
 XData = validData(:, 2);
-% Refine data by ensuring continuity and removing spikes
+% Refine data by ensuring continuity and removing spikes (maybe do later)
 % refinedData = validData(refinedDataIndices, :);
 % continuousData = removeSpikes(refinedData, columns);
 
 % Store processed data for output
 coolTermData.Time = XData;  % Time column
 coolTermData.Values = YData;  % Extracted values based on dataType and sensor
-% coolTermData.Time = continuousData(:, 2);  % Time column
-% coolTermData.Values = continuousData(:, columns);  % Extracted values based on dataType and sensor
 end
 
 function isClose = compareData(experimental, theoretical)
@@ -470,10 +366,6 @@ function cols = getDataColumns(dataType)
             cols = [];
     end
 end
-
-% return;
-% end
-
 
 % Retriev the desired theoretical data
 function theoData = retrieveTheoData(dataSet, expData, sensor, dataType, speed)
