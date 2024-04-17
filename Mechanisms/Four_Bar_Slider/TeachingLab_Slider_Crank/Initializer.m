@@ -37,6 +37,10 @@ Mechanism.TracerPoint = struct();
 Mechanism.LinkCoM.AB = Utils.determineCoM([A; B]);
 Mechanism.LinkCoM.BC = Utils.determineCoM([B; C]);
 
+% Define angles for each link
+Mechanism.Angle.AB = [0 0 rad2deg(atan2((Mechanism.LinkCoM.AB(2) - A(2)), Mechanism.LinkCoM.AB(1) - A(1)))];
+Mechanism.Angle.BC = [0 0 rad2deg(atan2((Mechanism.LinkCoM.BC(2) - B(2)), Mechanism.LinkCoM.BC(1) - B(1)))];
+
 % Define masses for each link
 Mechanism.Mass.AB = 1.08532;
 Mechanism.Mass.BC= 0.50144;
@@ -64,7 +68,17 @@ Mechanism.crossSectionalAreaCDH = 10;
 Mechanism.modulusElasticity = 10e6;
 
 % Define angular velocity of the link where a motor is attached
-input_speed = 15.707963249999972; % 150 rpm to 15.707963249999972 rad/s
+input_speed = zeros(1, 3);
+input_speed(1) = GeneralUtils.rpmToRadPerSec(30);
+input_speed(2) = GeneralUtils.rpmToRadPerSec(100);
+input_speed(3) = GeneralUtils.rpmToRadPerSec(150);
+
+input_speed_str = [30, 100, 150];
+
+Mechanism.input_speed_str = input_speed_str;
+
+% Define angular velocity of the link where a motor is attached
+% input_speed = 15.707963249999972; % 150 rpm to 15.707963249999972 rad/s
 save('Mechanism.mat', 'Mechanism');
 
 % Call PosSolver to calculate and store positions
@@ -82,8 +96,8 @@ scenarios = [1 1 0];
 Mechanism = ForceSolver(Mechanism, scenarios);
 save('Mechanism.mat', 'Mechanism');
 
-Mechanism = StressSolver(Mechanism, scenarios);
-save('Mechanism.mat', 'Mechanism');
+% Mechanism = StressSolver(Mechanism, scenarios);
+% save('Mechanism.mat', 'Mechanism');
 
 csvDir = 'CSVOutput';
 
@@ -93,5 +107,5 @@ GeneralUtils.exportMatricesToCSV(baseDir, csvDir);
 baseDir = 'Force';
 GeneralUtils.exportMatricesToCSV(baseDir, csvDir);
 
-baseDir = 'Stress';
-GeneralUtils.exportMatricesToCSV(baseDir, csvDir);
+% baseDir = 'Stress';
+% GeneralUtils.exportMatricesToCSV(baseDir, csvDir);

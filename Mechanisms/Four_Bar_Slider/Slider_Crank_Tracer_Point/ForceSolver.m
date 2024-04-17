@@ -1,114 +1,32 @@
-function Mechanism = ForceSolver(Mechanism)
-
-% Assuming numIterations is defined by the size of an array in Mechanism
-numIterations = size(Mechanism.Joint.A, 1);
-
-% Initialize fields for storing static analysis data
-[Mechanism] = initializeForceSolvers(Mechanism, numIterations);
-
-% Iterate through all iterations for static analysis
-for iter = 1:numIterations
-    % Extract joint and link center of mass positions for this iteration
-    JointPos = extractJointPositions(Mechanism, iter);
-    LinkCoMPos = extractLinkCoMPositions(Mechanism, iter);
-
-    % Perform static analysis calculations for the current iteration
-    solution = performForceAnalysis(Mechanism, iter, JointPos, LinkCoMPos, 0, 0);
-    jointNames = fieldnames(Mechanism.Joint);
-    for i = 1:length(jointNames)
-        Mechanism.StaticForceNoGrav.Joint.(jointNames{i})(iter, :) = [double(solution.([jointNames{i}, 'x'])), double(solution.([jointNames{i}, 'y'])), 0];
-    end
-    Mechanism.StaticForceNoGrav.Torque(iter,:) = [0 0 double(solution.T)];
-
-    solution = performForceAnalysis(Mechanism, iter, JointPos, LinkCoMPos, 0, 1);
-    jointNames = fieldnames(Mechanism.Joint);
-    for i = 1:length(jointNames)
-        Mechanism.StaticForceGrav.Joint.(jointNames{i})(iter, :) = [double(solution.([jointNames{i}, 'x'])), double(solution.([jointNames{i}, 'y'])), 0];
-    end
-    Mechanism.StaticForceGrav.Torque(iter,:) = [0 0 double(solution.T)];
-
-    solution = performForceAnalysis(Mechanism, iter, JointPos, LinkCoMPos, 1, 0);
-    jointNames = fieldnames(Mechanism.Joint);
-    for i = 1:length(jointNames)
-        Mechanism.NewtonForceNoGrav.Joint.(jointNames{i})(iter, :) = [double(solution.([jointNames{i}, 'x'])), double(solution.([jointNames{i}, 'y'])), 0];
-    end
-    Mechanism.NewtonForceNoGrav.Torque(iter,:) = [0 0 double(solution.T)];
-
-    solution = performForceAnalysis(Mechanism, iter, JointPos, LinkCoMPos, 1, 1);
-    jointNames = fieldnames(Mechanism.Joint);
-    for i = 1:length(jointNames)
-        Mechanism.NewtonForceGrav.Joint.(jointNames{i})(iter, :) = [double(solution.([jointNames{i}, 'x'])), double(solution.([jointNames{i}, 'y'])), 0];
-    end
-    Mechanism.NewtonForceGrav.Torque(iter,:) = [0 0 double(solution.T)];
+function Mechanism = ForceSolver(Mechanism, scenarios)
+    Mechanism = ForceSolverUtils.ForceSolver(Mechanism, scenarios, @performForceAnalysis);
 end
 
-% Save the updated Mechanism with static analysis results
-save('Mechanism.mat', 'Mechanism');
 
-baseFolder = 'Force';
-% Save Force Data
-saveForceData(baseFolder, Mechanism);
-end
-
-function [Mechanism] = initializeForceSolvers(Mechanism, numIterations)
-% Initialize with zeros for storing forces and moments
-jointNames = fieldnames(Mechanism.Joint);
-for i = 1:length(jointNames)
-    Mechanism.StaticForceGrav.Joint.(jointNames{i}) = zeros(numIterations, 3); % Assuming 3D forces
-    Mechanism.StaticForceNoGrav.Joint.(jointNames{i}) = zeros(numIterations, 3); % Assuming 3D forces
-    Mechanism.NewtonForceGrav.Joint.(jointNames{i}) = zeros(numIterations, 3); % Assuming 3D forces
-    Mechanism.NewtonForceNoGrav.Joint.(jointNames{i}) = zeros(numIterations, 3); % Assuming 3D forces
-end
-Mechanism.StaticForceGrav.Torque = zeros(numIterations, 3); % Assuming 3D forces
-Mechanism.StaticForceNoGrav.Torque = zeros(numIterations, 3); % Assuming 3D forces
-Mechanism.NewtonForceGrav.Torque = zeros(numIterations, 3); % Assuming 3D forces
-Mechanism.NewtonForceNoGrav.Torque = zeros(numIterations, 3); % Assuming 3D forces
-end
-
-function solution = performForceAnalysis(Mechanism, iter, JointPos, LinkCoMPos, newton, grav)
+function solution = performForceAnalysis(Mechanism, iter, speedStr, JointPos, LinkCoMPos, newton, grav, friction)
 % Here, you'd implement your equations based on static conditions
 % For each joint and link, calculate forces and moments ensuring sum of forces = 0 and sum of moments = 0
 
 massAB = Mechanism.Mass.AB;
 massBC = Mechanism.Mass.BC;
-massCDE = Mechanism.Mass.CDE;
-massEF = Mechanism.Mass.EF;
-massFG = Mechanism.Mass.FG;
 
 massMoIAB = Mechanism.MassMoI.AB;
 massMoIBC = Mechanism.MassMoI.BC;
-massMoICDE = Mechanism.MassMoI.CDE;
-massMoIEF = Mechanism.MassMoI.EF;
-massMoIFG = Mechanism.MassMoI.FG;
 
-A_ab = Mechanism.AngAcc.AB(iter,:);
-A_bc = Mechanism.AngAcc.BC(iter,:);
-A_cde = Mechanism.AngAcc.CDE(iter,:);
-A_ef = Mechanism.AngAcc.EF(iter,:);
-A_fg = Mechanism.AngAcc.FG(iter,:);
+A_ab = Mechanism.AngAcc.AB.(speedStr)(iter,:);
+A_bc = Mechanism.AngAcc.BC.(speedStr)(iter,:);
 
-A_ab_com = Mechanism.LinAcc.LinkCoM.AB(iter,:);
-A_bc_com = Mechanism.LinAcc.LinkCoM.BC(iter,:);
-A_cde_com = Mechanism.LinAcc.LinkCoM.CDE(iter,:);
-A_ef_com = Mechanism.LinAcc.LinkCoM.EF(iter,:);
-A_fg_com = Mechanism.LinAcc.LinkCoM.FG(iter,:);
+A_ab_com = Mechanism.LinAcc.LinkCoM.AB.(speedStr)(iter,:);
+A_bc_com = Mechanism.LinAcc.LinkCoM.BC.(speedStr)(iter,:);
 
 % This is a placeholder for the actual static analysis logic
 % You'll need to adapt this to your specific requirements
 A = JointPos.A;
 B = JointPos.B;
 C = JointPos.C;
-D = JointPos.D;
-E = JointPos.E;
-F = JointPos.F;
-G = JointPos.G;
-H = Mechanism.TracerPoint.H(iter, :);
 
 AB_com = LinkCoMPos.AB;
 BC_com = LinkCoMPos.BC;
-CDE_com = LinkCoMPos.CDE;
-EF_com = LinkCoMPos.EF;
-FG_com = LinkCoMPos.FG;
 
 syms Ax Ay Bx By Cx Cy Dx Dy Ex Ey Fx Fy Gx Gy T
 
@@ -118,24 +36,13 @@ g = [0 -9.81 0]; %defining gravity to find weight of each link m/s^2
 fA=[Ax Ay 0];
 fB=[Bx By 0];
 fC=[Cx Cy 0];
-fD=[Dx Dy 0];
-fE=[Ex Ey 0];
-fF=[Fx Fy 0];
-fG=[Gx Gy 0];
 
 % Weight of each link
 wAB=massAB *g * grav;
 wBC=massBC *g * grav;
-wCDE=massCDE *g * grav;
-wEF=massEF *g * grav;
-wFG=massFG *g * grav;
 
 % Unknown torque of the system
 tT=[0 0 T];
-
-% Force of the applied load
-LoadForce=[0 -200 0];
-LoadPos = H;
 
 %% Static Equilibrium Equations
 %Link AB

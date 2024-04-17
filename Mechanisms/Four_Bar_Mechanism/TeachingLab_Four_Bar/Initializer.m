@@ -93,7 +93,6 @@ input_speed(3) = GeneralUtils.rpmToRadPerSec(30);
 input_speed_str = [10, 20, 30];
 
 Mechanism.input_speed_str = input_speed_str;
-
 save('Mechanism.mat', 'Mechanism');
 
 % Call PosSolver to calculate and store positions
