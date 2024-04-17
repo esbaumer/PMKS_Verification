@@ -109,3 +109,16 @@ GeneralUtils.exportMatricesToCSV(baseDir, csvDir);
 
 % baseDir = 'Stress';
 % GeneralUtils.exportMatricesToCSV(baseDir, csvDir);
+
+% Define a map from sensors to their respective data types
+sensorDataTypes = containers.Map(...
+    {'E', 'F', 'G', 'H'}, ...
+    {...
+    {'Angle', 'AngVel', 'LinAcc'}, ...  % Data types for sensor E
+    {'Angle', 'AngVel', 'LinAcc'}, ... % Data types for sensor F
+    {'Angle', 'AngVel', 'LinAcc'}, ... % Data types for sensor G
+    {'Angle', 'AngVel', 'LinAcc'}, ...  % Data types for sensor H
+    }...
+    );
+
+% Mechanism = RMSE(Mechanism, sensorDataTypes);
