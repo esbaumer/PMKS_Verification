@@ -45,7 +45,7 @@ end
 % Save results to CSV
 resultsFilename = 'RMSE_Results.csv';
 % Verify this logic later and make sure this function works
-% saveResultsToCSV(rmseResults, resultsFilename);
+saveResultsToCSV(rmseResults, resultsFilename);
 
 function dataStruct = readTheoreticalData(basePath)
 % Define mappings of categories to their relevant subcategories
@@ -200,7 +200,7 @@ end
 function results = calculateRMSEForSensor(expData, theoData, sensor, dataTypes, speeds)
 results = struct();
 for dataType = dataTypes
-    results.(dataType{1}) = struct();  % Initialize a struct for each data type
+    % results.(dataType{1}) = struct();  % Initialize a struct for each data type
     for speed = speeds
         % Calculate RMSE using a hypothetical function, for a given dataType and speed
         rmseValue = calculateRMSE(expData, theoData, sensor, dataType{1}, speed{1});
@@ -236,9 +236,9 @@ function coolTermData = processCoolTermData(rawData, sensorID, dataType)
 % Define sensor columns for angles and angular velocities
 sensorColumnsMap = containers.Map(...
     {'F', 'E', 'G'}, ...
-    {struct('Angle', [5:7], 'AngVel', 4), ...
-    struct('Angle', [8:10], 'AngVel', [11:13]), ...
-    struct('Angle', [14:16], 'AngVel', [17:19])});
+    {struct('Angle', 5:7, 'AngVel', 4), ...
+    struct('Angle', 8:10, 'AngVel', 11:13), ...
+    struct('Angle', 14:16, 'AngVel', 17:19)});
 columns = sensorColumnsMap(sensorID).(dataType);
 
 binarySignal = rawData.Var3;  % Adjust 'Var3' to the correct variable name if different
@@ -436,7 +436,7 @@ end
 
 
 function rmseResults = calculateRMSE(expDataSet, theoDataSet, sensor, dataType, speed)
-rmseResults = struct(); % Initialize results structure
+% rmseResults = struct(); % Initialize results structure
 
 % Retrieve experimental and theoretical data for the given sensor, dataType, and speed
 expData = retrieveExpData(expDataSet, sensor, dataType, speed);
@@ -459,7 +459,7 @@ if ~isempty(expData) && ~isempty(theoData)
     rmse = sqrt(mean((expData.Values - interpolatedTheoData).^2));
 
     % Store RMSE in the results structure
-    rmseResults = rmse;
+    rmseResults = table2array(rmse);
 else
     warning('Missing data for sensor %s, data type %s, speed %s', sensor, dataType, speed);
     rmseResults = NaN; % Assign NaN to indicate missing data calculation

@@ -5,15 +5,15 @@ end
 % Function to calculate distances between joints
 function Mechanism = calculateDistances(Mechanism)
 % Points
-A = Mechanism.Joint.A;
-B = Mechanism.Joint.B;
-C = Mechanism.Joint.C;
-D = Mechanism.Joint.D;
-E = Mechanism.TracerPoint.E;
-F = Mechanism.TracerPoint.F;
-G = Mechanism.TracerPoint.G;
-H = Mechanism.TracerPoint.H;
-I = Mechanism.TracerPoint.I;
+A = Mechanism.Joint.A(1,:);
+B = Mechanism.Joint.B(1,:);
+C = Mechanism.Joint.C(1,:);
+D = Mechanism.Joint.D(1,:);
+E = Mechanism.TracerPoint.E(1,:);
+F = Mechanism.TracerPoint.F(1,:);
+G = Mechanism.TracerPoint.G(1,:);
+H = Mechanism.TracerPoint.H(1,:);
+I = Mechanism.TracerPoint.I(1,:);
 % Distance Between Points
 % Link ABEH
 Mechanism.LinkLength.AB = norm(A - B);
@@ -84,7 +84,7 @@ Mechanism.TracerPoint.I(iteration, :) = I;
 utilsFolderPath = fullfile(pwd);
 addpath(utilsFolderPath);
 
-Mechanism.LinkCoM.ABEH(iteration, :) = PosSolverUtils.circleCircleIntersection(A(1), A(2), Mechanism.LinkLength.ABEH_CoM_A, B(1), B(2), Mechanism.LinkLength.ABEH_CoM_B, Mechanism.LinkCoM.ABEH(iteration - 1, 2), Mechanism.LinkCoM.ABEH(iteration - 1, 1));
+Mechanism.LinkCoM.ABEH(iteration, :) = PosSolverUtils.circleCircleIntersection(A(1), A(2), Mechanism.LinkLength.ABEH_CoM_A, B(1), B(2), Mechanism.LinkLength.ABEH_CoM_B, Mechanism.LinkCoM.ABEH(iteration - 1, 1), Mechanism.LinkCoM.ABEH(iteration - 1, 2));
 Mechanism.LinkCoM.BCFG(iteration, :) = PosSolverUtils.circleCircleIntersection(B(1), B(2), Mechanism.LinkLength.BCFG_CoM_B, C(1), C(2), Mechanism.LinkLength.BCFG_CoM_C, Mechanism.LinkCoM.BCFG(iteration - 1, 1), Mechanism.LinkCoM.BCFG(iteration - 1, 2));
 Mechanism.LinkCoM.CDI(iteration, :) = PosSolverUtils.circleCircleIntersection(C(1), C(2), Mechanism.LinkLength.CDI_CoM_C, D(1), D(2), Mechanism.LinkLength.CDI_CoM_D, Mechanism.LinkCoM.CDI(iteration - 1, 1), Mechanism.LinkCoM.CDI(iteration - 1, 2));
 
