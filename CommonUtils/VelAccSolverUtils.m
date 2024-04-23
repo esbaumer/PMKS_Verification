@@ -18,6 +18,11 @@ classdef VelAccSolverUtils
             for i = 1:length(jointNames)
                 initialBlankJointVector.(jointNames{i}) = blankVector;
             end
+            jointNames = fieldnames(Mechanism.TracerPoint); % Get all joint names from Mechanism
+            for i = 1:length(jointNames)
+                initialBlankJointVector.(jointNames{i}) = blankVector;
+            end
+            
 
             % Initialize blank link vector dynamically
             linkNames = fieldnames(Mechanism.LinkCoM); % Get all link names from Mechanism

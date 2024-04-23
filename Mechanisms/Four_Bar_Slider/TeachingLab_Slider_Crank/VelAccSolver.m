@@ -58,6 +58,10 @@ jointNames = fieldnames(Mechanism.Joint);
 for i = 1:length(jointNames)
     Mechanism.LinVel.Joint.(jointNames{i}).(speedStr)(iter,:) = LinVel.Joint.(jointNames{i});
 end
+jointNames = fieldnames(Mechanism.TracerPoint);
+for i = 1:length(jointNames)
+    Mechanism.LinVel.Joint.(jointNames{i}).(speedStr)(iter,:) = LinVel.Joint.(jointNames{i});
+end
 % Mechanism.LinVel.Joint.D(iter,:) = LinVel.Joint.D;
 linkNames = fieldnames(Mechanism.LinkCoM);
 for i = 1:length(linkNames)
@@ -111,13 +115,17 @@ LinAcc.Joint.A = [0 0 0];
 LinAcc.Joint.B = VelAccSolverUtils.accSolver(AngVel.AB, AngAcc.AB,B-A);
 LinAcc.Joint.C = Mechanism.LinAcc.Joint.C.(speedStr)(iter,:);
 LinAcc.Joint.E = VelAccSolverUtils.accSolver(AngVel.BCEF, AngAcc.BCEF,E-B) + LinAcc.Joint.B;
-LinAcc.Joint.F = 0;
+LinAcc.Joint.F = Mechanism.LinAcc.Joint.C.(speedStr)(iter,:);
 
 % Determine the accelerations at each link's center of mass
 LinAcc.LinkCoM.AB = VelAccSolverUtils.accSolver(AngVel.AB,AngAcc.AB,AB_com - A);
 LinAcc.LinkCoM.BCEF= VelAccSolverUtils.accSolver(AngVel.BCEF,AngAcc.BCEF,BCEF_com - B) + LinAcc.Joint.B;
 
 jointNames = fieldnames(Mechanism.Joint);
+for i = 1:length(jointNames)
+    Mechanism.LinAcc.Joint.(jointNames{i}).(speedStr)(iter,:) = LinAcc.Joint.(jointNames{i});
+end
+jointNames = fieldnames(Mechanism.TracerPoint);
 for i = 1:length(jointNames)
     Mechanism.LinAcc.Joint.(jointNames{i}).(speedStr)(iter,:) = LinAcc.Joint.(jointNames{i});
 end

@@ -1,6 +1,6 @@
 classdef RMSEUtils
     methods(Static)
-        function Mechanism = RMSESolver(Mechanism, sensorDataTypes)
+        function Mechanism = RMSESolver(Mechanism, sensorDataTypes, sensorSourceMap)
             TheoreticalPath = 'CSVOutput';
 
             % Define the base paths for experimental data
@@ -10,7 +10,7 @@ classdef RMSEUtils
             speeds = formatSpeeds(Mechanism.input_speed_str);
             % {'f10RPM', 'f20RPM', 'f30RPM'};
 
-            expData = RMSEUtils.readExperimentalData(ExperimentalPath);
+            expData = RMSEUtils.readExperimentalData(ExperimentalPath, sensorSourceMap, speeds);
             theoData = RMSEUtils.readTheoreticalData(TheoreticalPath);
 
             % Calculate RMSE for all sensors according to specified data types in the map
@@ -20,7 +20,7 @@ classdef RMSEUtils
                 currentSensor = sensor{1};
                 dataTypes = sensorDataTypes(currentSensor);  % Retrieve data types for current sensor
                 % Compute RMSE for the current sensor across its specified data types
-                rmseResults.(currentSensor) = RMSEUtils.calculateRMSEForSensor(expData, theoData, currentSensor, dataTypes, speeds);
+                rmseResults.(currentSensor) = RMSEUtils.calculateRMSEForSensor(expData, theoData, currentSensor, sensorSourceMap, dataTypes, speeds);
             end
 
             % Save results to CSV
@@ -142,10 +142,12 @@ classdef RMSEUtils
         end
 
 
-        function expData = readExperimentalData(baseExperimentalPath)
+        function expData = readExperimentalData(baseExperimentalPath, sensorSourceMap, speeds)
             expData = struct(); % Initialize
-            subFolders = {'CoolTerm', 'WitMotion'}; % Subdirectories to iterate through
-            filenames = {'10RPM', '20RPM', '30RPM'}; % RPM filenames
+            % subFolders = {'CoolTerm', 'WitMotion'}; % Subdirectories to iterate through
+            % filenames = {'10RPM', '20RPM', '30RPM'}; % RPM filenames
+            subFolders = mapValuesToUniqueArray(sensorSourceMap);
+            filenames = speeds;
 
             for i = 1:length(subFolders)
                 % Initialize sub-structures for each subfolder
@@ -153,7 +155,7 @@ classdef RMSEUtils
                 currentPath = fullfile(baseExperimentalPath, subFolders{i}); % Path to current subdirectory
 
                 for j = 1:length(filenames)
-                    safeFieldName = ['f' filenames{j}]; % Prepend 'f' to ensure the name starts with a letter
+                    safeFieldName = filenames{j};
 
                     % Construct file path
                     if strcmp(subFolders{i}, 'CoolTerm') % For 'CoolTerm', read XLSX files
@@ -173,23 +175,29 @@ classdef RMSEUtils
                             opts.PreserveVariableNames = true;
                             expData.(subFolders{i}).(safeFieldName) = readtable(csvPath, opts);
                         end
-                    elseif strcmp(subFolders{i}, 'PythonGraph') % For 'WitMotion', read CSV files
-
+                    elseif strcmp(subFolders{i}, 'PythonGraph') % For 'PythonGraph', read XLSX files
+                        xlsxPath = fullfile(currentPath, filenames{j} + ".xlsx");
+                        % Check and read XLSX file
+                        if isfile(xlsxPath)
+                            expData.(subFolders{i}).(safeFieldName) = readtable(xlsxPath);
+                            % If needed, you can specify 'Range' and other options in 'readtable'
+                        end
                     else
-                        % Not sure what this data is ???
+                        % Handle other cases or give a warning/error
+                        warning('Unknown subfolder type: %s', subFolders{i});
                     end
                 end
             end
         end
 
         % Function to calculate RMSE for a given sensor and its data types
-        function results = calculateRMSEForSensor(expData, theoData, sensor, dataTypes, speeds)
+        function results = calculateRMSEForSensor(expData, theoData, sensor, sensorSourceMap, dataTypes, speeds)
             results = struct();
             for dataType = dataTypes
                 % results.(dataType{1}) = struct();  % Initialize a struct for each data type
                 for speed = speeds
                     % Calculate RMSE using a hypothetical function, for a given dataType and speed
-                    rmseValue = RMSEUtils.calculateRMSE(expData, theoData, sensor, dataType{1}, speed{1});
+                    rmseValue = RMSEUtils.calculateRMSE(expData, theoData, sensor, sensorSourceMap, dataType{1}, speed{1});
                     % Store RMSE value in the struct under its corresponding speed
                     results.(dataType{1}).(speed{1}) = rmseValue;
                 end
@@ -199,18 +207,20 @@ classdef RMSEUtils
         % Retriev the desired experimental data
         function expData = retrieveExpData(dataSet, sensor, sensorSourceMap, dataType, speed)
             % Map sensors to their respective data sources (CoolTerm or WitMotion)
-            sensorSourceMap = containers.Map({'E', 'F', 'G', 'H', 'I'}, ...
-                {'CoolTerm', 'CoolTerm', 'CoolTerm', 'WitMotion', 'WitMotion'});
             source = sensorSourceMap(sensor);
-
             % Check if the required data is available
             if isfield(dataSet, source) && isfield(dataSet.(source), speed)
                 rawData = dataSet.(source).(speed); % nxm table of data
                 % expData = processData(rawData, sensor, dataType);
                 if (strcmp(source, 'CoolTerm'))
                     expData = RMSEUtils.processCoolTermData(rawData, sensor, dataType);
-                else
+                elseif (strcmp(source, 'WitMotion'))
                     expData = RMSEUtils.processWitMotionData(rawData, sensor, dataType);
+                elseif (strcmp(source, 'PythonGraph'))
+                    expData = RMSEUtils.processPythonGraphData(rawData, sensor, dataType);
+                else
+                    warming('Application utilized to analyze data is unknown');
+                    expData = [];
                 end
             else
                 expData = []; % Return empty if not found
@@ -339,6 +349,83 @@ classdef RMSEUtils
             witMotionData.SensorID = sensorID;  % Include sensor ID in the output for reference
         end
 
+        function pythonGraphData = processPythonGraphData(rawData, sensor, dataType)
+            % Constants for column indices
+            HALL_SENSOR_COL = 1;
+            EST_RPM_COL = 2;
+            PISTON_DISP_COL = 3;
+            ADXL_PISTON_LIN_ACC_COL = 4;
+            BNO_ORIENTATION_START_COL = 5; % X, Y, Z orientation start from this column
+            BNO_ORIENTATION_END_COL = 7; % X, Y, Z orientation end at this column
+            BNO_ANG_VEL_COL = 8;
+
+            binarySignal = rawData.HallSensor;  % Adjust 'Var3' to the correct variable name if different
+
+            % Identify valid data segments based on binary signals
+            oneIndices = find(binarySignal == 1);
+            validSegments = find(diff(oneIndices) > 1);  % Find non-consecutive ones
+
+            if isempty(validSegments) || length(validSegments) < 2
+                error('Valid data segments not found.');
+            end
+
+            if isempty(validSegments) || length(validSegments) < 2
+                error('Valid data segments not found.');
+            end
+
+            % Define the range for valid data based on identified segments
+            validStartIndex = oneIndices(validSegments(1));
+            validEndIndex = oneIndices(validSegments(2));
+
+            % Extract data within the valid range
+            validData = rawData(validStartIndex:validEndIndex, :);
+
+            % Determine columns based on dataType
+            switch dataType
+                case 'Angle'
+                    columns = BNO_ORIENTATION_START_COL:BNO_ORIENTATION_END_COL;
+                case 'AngVel'
+                    columns = BNO_ANG_VEL_COL;
+                case 'LinAcc'
+                    columns = ADXL_PISTON_LIN_ACC_COL;
+                otherwise
+                    error('Unknown dataType specified');
+            end
+
+            % Insert a time step column based on estimated RPM (convert to radians per second first)
+            estRpm = rawData{validStartIndex, EST_RPM_COL};
+            omega = estRpm * (2 * pi / 60); % Convert RPM to radians per second
+            timesteps = (0 : height(validData) - 1)' / omega; % Create a timestep array
+            validData.Timestep = seconds(timesteps); % Insert as duration in seconds
+
+            % Select and store the desired data based on dataType and sensor
+            pythonGraphData = struct();
+            % pythonGraphData.Time = validData.Timestep; % Use the new Timestep column
+            % pythonGraphData.Values = validData(:, columns); % Data of interest
+            % pythonGraphData.SensorID = sensor; % Include sensor ID for reference
+
+            yColumnMap = containers.Map(...
+                {'EAngle', 'EAngVel', 'FLinAcc'}, ...
+                {2, 1, 1});
+
+            % Get the correct Y column index using the map
+            % sensorID = sensorMap(sensorType);
+            % sensorID = 
+
+            yColumnIndex = columns(yColumnMap([sensor dataType]));
+
+            YData = table2array(validData(:, yColumnIndex));
+            XData = timesteps;
+            % Refine data by ensuring continuity and removing spikes (maybe do later)
+            % refinedData = validData(refinedDataIndices, :);
+            % continuousData = removeSpikes(refinedData, columns);
+
+            % Store processed data for output
+            pythonGraphData.Time = XData;  % Time column
+            pythonGraphData.Values = YData;  % Extracted values based on dataType and sensor
+        end
+
+
         function cols = getDataColumns(dataType)
             % Define data columns for different data types
             switch dataType
@@ -371,6 +458,7 @@ classdef RMSEUtils
             if any(strcmp(dataType, {'LinVel', 'LinAcc', 'Point'}))  % These involve Joint or LinkCoM
                 if length(sensor) == 1  % Assuming sensor names for Joints are single characters
                     subCategory = 'Joint';
+                    % subCategory = 'TracerPoint';
                 else
                     subCategory = 'LinkCoM';
                 end
@@ -396,7 +484,8 @@ classdef RMSEUtils
                         if contains(sensorFields{i}, sensor)
                             % Handle cases with and without speed specification
                             if ~isempty(speed) && isfield(dataField.(sensorFields{i}), speed)
-                                theoData = table2array(dataField.(sensorFields{i}).(speed)(:,3));
+                                theoData = table2array(dataField.(sensorFields{i}).(speed)(:,1));
+                                % theoData = table2array(dataField.(sensorFields{i}).(speed)(:,3));
                             else
                                 % Assuming expData and theoData are columns of
                                 % angles. TODO: There may be condition that this is
@@ -421,11 +510,11 @@ classdef RMSEUtils
         end
 
 
-        function rmseResults = calculateRMSE(expDataSet, theoDataSet, sensor, dataType, speed)
+        function rmseResults = calculateRMSE(expDataSet, theoDataSet, sensor, sensorSourceMap, dataType, speed)
             % rmseResults = struct(); % Initialize results structure
 
             % Retrieve experimental and theoretical data for the given sensor, dataType, and speed
-            expData = RMSEUtils.retrieveExpData(expDataSet, sensor, dataType, speed);
+            expData = RMSEUtils.retrieveExpData(expDataSet, sensor, sensorSourceMap, dataType, speed);
             theoData = RMSEUtils.retrieveTheoData(theoDataSet, expData, sensor, dataType, speed);
 
             % Calculate RMSE if both experimental and theoretical data are available
@@ -439,13 +528,13 @@ classdef RMSEUtils
                 % Calculate RMSE if both experimental and theoretical data are available
                 timestampsRaw = expData.Time;
                 timestamps = timestampsRaw - timestampsRaw(1,1);
-                timestamps = table2array(timestamps) / 1000;
+                timestamps = timestamps / 1000;
 
                 interpolatedTheoData = interp1(theoreticalTime, theoData, timestamps, 'linear', 'extrap');
                 rmse = sqrt(mean((expData.Values - interpolatedTheoData).^2));
 
                 % Store RMSE in the results structure
-                rmseResults = table2array(rmse);
+                rmseResults = rmse;
             else
                 warning('Missing data for sensor %s, data type %s, speed %s', sensor, dataType, speed);
                 rmseResults = NaN; % Assign NaN to indicate missing data calculation
@@ -506,4 +595,26 @@ for i = 1:length(input_speed_str)
     speeds{i} = ['f' num2str(input_speed_str(i)) 'RPM'];
 end
 end
+
+function subFolders = mapValuesToUniqueArray(sensorSourceMap)
+% Get all values from the map as a cell array
+allValues = values(sensorSourceMap);
+
+% Ensure all values are in a cell array of strings
+if iscell(allValues{1})
+    % Flatten the cell array in case it's nested
+    allValues = [allValues{:}];
+else
+    % If the single value is not in a cell, wrap it
+    allValues = allValues;
+end
+
+% Find unique values to avoid duplicates
+uniqueValues = unique(allValues, 'stable');  % 'stable' keeps the original order
+
+% Return the unique values as a cell array
+subFolders = uniqueValues;
+end
+
+
 
