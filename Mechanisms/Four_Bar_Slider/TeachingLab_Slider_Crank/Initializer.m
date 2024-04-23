@@ -20,9 +20,11 @@ addpath(utilsFolderPath);
 % Initialize Mechanism structure with necessary fields
 Mechanism = struct();
 
-A=[0 0 0]; %motor input
-B=[0,0.381,0]; %connection between crankshaft and connecting rod
-C=[0.14756,0,0]; %connecting rod and piston 
+A=[0 0 0]; % motor input
+B=[0,0.381,0]; % connection between crankshaft and connecting rod
+C=[0.14756,0,0]; % connecting rod and piston 
+E=[0.08,0.15,0]; % BNO sensor attached to the connecting rod
+F=[0.14756,0.1,0]; % ADXL sensor on the front of the piston
 
 % Define initial joint positions (example values)
 Mechanism.Joint.A = A;
@@ -31,49 +33,49 @@ Mechanism.Joint.C = C;
 Mechanism.Theta = 0;
 
 % Define Tracer Points 
-Mechanism.TracerPoint = struct();
+Mechanism.TracerPoint.E = E; % BNO Sensor, Python Graph
+Mechanism.TracerPoint.F = F; % ADXL Sensor, Python Graph
 
 % Define masses for each link or joint
-Mechanism.LinkCoM.AB = Utils.determineCoM([A; B]);
-Mechanism.LinkCoM.BC = Utils.determineCoM([B; C]);
+Mechanism.LinkCoM.AB = [0 0.1 0];
+Mechanism.LinkCoM.BCEF = [0.5 0.7 0];
 
 % Define angles for each link
 Mechanism.Angle.AB = [0 0 rad2deg(atan2((Mechanism.LinkCoM.AB(2) - A(2)), Mechanism.LinkCoM.AB(1) - A(1)))];
-Mechanism.Angle.BC = [0 0 rad2deg(atan2((Mechanism.LinkCoM.BC(2) - B(2)), Mechanism.LinkCoM.BC(1) - B(1)))];
+Mechanism.Angle.BCEF = [0 0 rad2deg(atan2((Mechanism.LinkCoM.BCEF(2) - B(2)), Mechanism.LinkCoM.BCEF(1) - B(1)))];
 
 % Define masses for each link
 Mechanism.Mass.AB = 1.08532;
-Mechanism.Mass.BC= 0.50144;
+Mechanism.Mass.BCEF= 0.50144;
 Mechanism.Mass.Piston = 1.31788;
 
 % Define mass moments of inertia for each link
 Mechanism.MassMoI.AB = 0.0004647594;
-Mechanism.MassMoI.BC = 0.0030344427; 
+Mechanism.MassMoI.BCEF = 0.0030344427; 
 
 % Desired for Stress Analysis. Maybe wanna include all the lengths to be
 % utilized within PosSolver
-Mechanism.ABELength = 10;
-Mechanism.BCFGLength = 10;
-Mechanism.CDHLength = 10;
+Mechanism.ABLength = 10;
+Mechanism.BCEFLength = 10;
 
 % Desired for Stress Analysis. Another idea that is since we know the
 % density, the mass, and the depth of the link, we could determine what the
 % cross sectional area would be. But for now, I think hard coding these
 % values are okay
-Mechanism.crossSectionalAreaABE = 10;
-Mechanism.crossSectionalAreaBCFG = 10;
-Mechanism.crossSectionalAreaCDH = 10;
+Mechanism.crossSectionalAreaAB = 10;
+Mechanism.crossSectionalAreaBCEF = 10;
+Mechanism.crossSectionalAreaCD = 10;
 
 % Define the modulus of elasticity for each link
 Mechanism.modulusElasticity = 10e6;
 
 % Define angular velocity of the link where a motor is attached
 input_speed = zeros(1, 3);
-input_speed(1) = GeneralUtils.rpmToRadPerSec(30);
-input_speed(2) = GeneralUtils.rpmToRadPerSec(100);
-input_speed(3) = GeneralUtils.rpmToRadPerSec(150);
+input_speed(1) = GeneralUtils.rpmToRadPerSec(35);
+input_speed(2) = GeneralUtils.rpmToRadPerSec(50);
+input_speed(3) = GeneralUtils.rpmToRadPerSec(70);
 
-input_speed_str = [30, 100, 150];
+input_speed_str = [35, 50, 70];
 
 Mechanism.input_speed_str = input_speed_str;
 
@@ -110,15 +112,18 @@ GeneralUtils.exportMatricesToCSV(baseDir, csvDir);
 % baseDir = 'Stress';
 % GeneralUtils.exportMatricesToCSV(baseDir, csvDir);
 
+% load('Mechanism')
+
 % Define a map from sensors to their respective data types
 sensorDataTypes = containers.Map(...
-    {'E', 'F', 'G', 'H'}, ...
+    {'E', 'F'}, ...
     {...
-    {'Angle', 'AngVel', 'LinAcc'}, ...  % Data types for sensor E
-    {'Angle', 'AngVel', 'LinAcc'}, ... % Data types for sensor F
-    {'Angle', 'AngVel', 'LinAcc'}, ... % Data types for sensor G
-    {'Angle', 'AngVel', 'LinAcc'}, ...  % Data types for sensor H
+    {'Angle', 'AngVel'}, ...  % Data types for sensor B
+    {'LinAcc'}, ... % Data types for sensor C
     }...
     );
 
-% Mechanism = RMSE(Mechanism, sensorDataTypes);
+sensorSourceMap = containers.Map({'E', 'F'}, ...
+    {'PythonGraph', 'PythonGraph'});
+
+Mechanism = RMSE(Mechanism, sensorDataTypes);

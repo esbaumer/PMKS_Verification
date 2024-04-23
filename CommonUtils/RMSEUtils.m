@@ -156,14 +156,14 @@ classdef RMSEUtils
                     safeFieldName = ['f' filenames{j}]; % Prepend 'f' to ensure the name starts with a letter
 
                     % Construct file path
-                    if i == 1  % For 'CoolTerm', read XLSX files
+                    if strcmp(subFolders{i}, 'CoolTerm') % For 'CoolTerm', read XLSX files
                         xlsxPath = fullfile(currentPath, filenames{j} + ".xlsx");
                         % Check and read XLSX file
                         if isfile(xlsxPath)
                             expData.(subFolders{i}).(safeFieldName) = readtable(xlsxPath);
                             % expData.(subFolders{i}).(safeFieldName) = readtable(xlsxPath, 'Range', 'A1'); % Adjust 'Range' if necessary
                         end
-                    else  % For 'WitMotion', read CSV files
+                    elseif strcmp(subFolders{i}, 'WitMotion') % For 'WitMotion', read CSV files
                         csvPath = fullfile(currentPath, filenames{j} + ".csv");
                         % Check and read CSV file, including headers
                         if isfile(csvPath)
@@ -173,6 +173,10 @@ classdef RMSEUtils
                             opts.PreserveVariableNames = true;
                             expData.(subFolders{i}).(safeFieldName) = readtable(csvPath, opts);
                         end
+                    elseif strcmp(subFolders{i}, 'PythonGraph') % For 'WitMotion', read CSV files
+
+                    else
+                        % Not sure what this data is ???
                     end
                 end
             end
@@ -193,7 +197,7 @@ classdef RMSEUtils
         end
 
         % Retriev the desired experimental data
-        function expData = retrieveExpData(dataSet, sensor, dataType, speed)
+        function expData = retrieveExpData(dataSet, sensor, sensorSourceMap, dataType, speed)
             % Map sensors to their respective data sources (CoolTerm or WitMotion)
             sensorSourceMap = containers.Map({'E', 'F', 'G', 'H', 'I'}, ...
                 {'CoolTerm', 'CoolTerm', 'CoolTerm', 'WitMotion', 'WitMotion'});
@@ -493,13 +497,13 @@ classdef RMSEUtils
 end
 
 function speeds = formatSpeeds(input_speed_str)
-    % Initialize the cell array to store formatted speeds
-    speeds = cell(1, length(input_speed_str));
-    
-    % Loop through each speed and format it
-    for i = 1:length(input_speed_str)
-        % Format the string with 'f' at the start and 'RPM' at the end
-        speeds{i} = ['f' num2str(input_speed_str(i)) 'RPM'];
-    end
+% Initialize the cell array to store formatted speeds
+speeds = cell(1, length(input_speed_str));
+
+% Loop through each speed and format it
+for i = 1:length(input_speed_str)
+    % Format the string with 'f' at the start and 'RPM' at the end
+    speeds{i} = ['f' num2str(input_speed_str(i)) 'RPM'];
+end
 end
 
