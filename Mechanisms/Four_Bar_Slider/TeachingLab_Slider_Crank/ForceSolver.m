@@ -5,20 +5,20 @@ end
 function solution = performForceAnalysis(Mechanism, iter, speedStr, JointPos, LinkCoMPos, newton, grav, friction)
 % Pull the mass of each component
 massAB = Mechanism.Mass.AB;
-massBCEF = Mechanism.Mass.BCEF;
+massBCE = Mechanism.Mass.BCE;
 massPiston = Mechanism.Mass.Piston;
 
 % Pull the mass moment of inertia of each component
 massMoIAB = Mechanism.MassMoI.AB;
-massMoIBCEF = Mechanism.MassMoI.BCEF;
+massMoIBCE = Mechanism.MassMoI.BCE;
 
 % Pull the angular acceleration of each link
 A_ab = Mechanism.AngAcc.AB.(speedStr)(iter,:);
-A_bcef = Mechanism.AngAcc.BCEF.(speedStr)(iter,:);
+A_bce = Mechanism.AngAcc.BCE.(speedStr)(iter,:);
 
 % Pull the acceleration of each link at its center of mass
 A_ab_com = Mechanism.LinAcc.LinkCoM.AB.(speedStr)(iter,:);
-A_bcef_com = Mechanism.LinAcc.LinkCoM.BCEF.(speedStr)(iter,:);
+A_bce_com = Mechanism.LinAcc.LinkCoM.BCE.(speedStr)(iter,:);
 A_piston = Mechanism.LinAcc.Joint.C.(speedStr)(iter,:);
 
 % Extract positions for each joint
@@ -28,7 +28,7 @@ C = JointPos.C;
 
 % Extract positions for each link's center of mass
 AB_com = LinkCoMPos.AB;
-BCEF_com = LinkCoMPos.BCEF;
+BCE_com = LinkCoMPos.BCE;
 
 % Extract the angle that the slider travels on
 theta = Mechanism.Theta;
@@ -46,7 +46,7 @@ fC=[Cx Cy 0];
 
 % Weight of each link
 wAB=massAB*g*grav;
-wBCEF=massBCEF*g*grav;
+wBCE=massBCE*g*grav;
 wPiston = massPiston*g*grav;
 
 % Unknown torque of the system
@@ -71,7 +71,7 @@ end
 
 % Torque provided by friction on Joint A
 r_ab_com_a = norm(AB_com - A);
-r_bcef_com_b = norm(BCEF_com - B);
+r_bce_com_b = norm(BCE_com - B);
 
 A_noFriction_x = Mechanism.ForceAnalysis.Newton.Grav.NoFriction.(speedStr).Joint.A(iter,1);
 A_noFriction_y = Mechanism.ForceAnalysis.Newton.Grav.NoFriction.(speedStr).Joint.A(iter,2);
@@ -101,7 +101,7 @@ end
 % Calculate torques due to friction conditionally
 if friction == 1
 T_fr_A = [0,0, mu * norm(F_normal_A) * r_ab_com_a]; % Torque due to friction at A
-T_fr_B = [0,0, mu * norm(F_normal_B) * r_bcef_com_b]; % Torque due to friction at B
+T_fr_B = [0,0, mu * norm(F_normal_B) * r_bce_com_b]; % Torque due to friction at B
 else
 T_fr_A = [0,0,0]; % Torque due to friction at A
 T_fr_B = [0,0,0]; % Torque due to friction at B
@@ -112,10 +112,10 @@ end
 eqn1=fA+fB+wAB+F_friction_A+F_friction_B==massAB*A_ab_com*newton;
 eqn2=ForceSolverUtils.momentVec(A, AB_com, fA) + ForceSolverUtils.momentVec(B,  AB_com,fB)+tT+T_fr_A+T_fr_B==massMoIAB * A_ab*newton; %only change the ==0 appropriately for newtons 2nd law
 % eqn2=ForceSolverUtils.momentVec(A, AB_com, fA) + ForceSolverUtils.momentVec(B,  AB_com,fB)+T_fb+tT==massMoIAB * A_ab*newton; %only change the ==0 appropriately for newtons 2nd law
-%Link BCEF
-eqn3=-fB+fC+wBCEF-F_friction_B==massBCEF*A_bcef_com*newton;
-eqn4=ForceSolverUtils.momentVec(B, BCEF_com, -fB)+ForceSolverUtils.momentVec(C, BCEF_com, fC)-T_fr_B==massMoIBCEF * A_bcef*newton; %only change the ==0 appropriately for newtons 2nd law
-% eqn4=ForceSolverUtils.momentVec(B, BCEF_com, -fB)+ForceSolverUtils.momentVec(C, BCEF_com, fC)-T_fb==massMoIBCEF * A_bcef*newton; %only change the ==0 appropriately for newtons 2nd law
+%Link BCE
+eqn3=-fB+fC+wBCE-F_friction_B==massBCE*A_bce_com*newton;
+eqn4=ForceSolverUtils.momentVec(B, BCE_com, -fB)+ForceSolverUtils.momentVec(C, BCE_com, fC)-T_fr_B==massMoIBCE * A_bce*newton; %only change the ==0 appropriately for newtons 2nd law
+% eqn4=ForceSolverUtils.momentVec(B, BCE_com, -fB)+ForceSolverUtils.momentVec(C, BCE_com, fC)-T_fb==massMoIBCE * A_bce*newton; %only change the ==0 appropriately for newtons 2nd law
 % Piston
 eqn5=-fC+F_fr+wPiston==massPiston*A_piston*newton;
 

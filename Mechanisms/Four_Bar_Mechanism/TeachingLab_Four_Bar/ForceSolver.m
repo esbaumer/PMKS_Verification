@@ -6,21 +6,21 @@ function solution = performForceAnalysis(Mechanism, iter, speedStr, JointPos, Li
 % Here, you'd implement your equations based on static conditions
 % For each joint and link, calculate forces and moments ensuring sum of forces = 0 and sum of moments = 0
 
-massABEH = Mechanism.Mass.ABEH;
-massBCFG = Mechanism.Mass.BCFG;
-massCDI = Mechanism.Mass.CDI;
+massABH = Mechanism.Mass.ABH;
+massBCEF = Mechanism.Mass.BCEF;
+massCDGI = Mechanism.Mass.CDGI;
 
-massMoIABEH = Mechanism.MassMoI.ABEH;
-massMoIBCFG = Mechanism.MassMoI.BCFG;
-massMoICDI = Mechanism.MassMoI.CDI;
+massMoIABH = Mechanism.MassMoI.ABH;
+massMoIBCEF = Mechanism.MassMoI.BCEF;
+massMoICDGI = Mechanism.MassMoI.CDGI;
 
-A_abeh = Mechanism.AngAcc.ABEH.(speedStr)(iter,:);
-A_bcfg = Mechanism.AngAcc.BCFG.(speedStr)(iter,:);
-A_cdi = Mechanism.AngAcc.CDI.(speedStr)(iter,:);
+A_abeh = Mechanism.AngAcc.ABH.(speedStr)(iter,:);
+A_bcfg = Mechanism.AngAcc.BCEF.(speedStr)(iter,:);
+A_cdgi = Mechanism.AngAcc.CDGI.(speedStr)(iter,:);
 
-A_abeh_com = Mechanism.LinAcc.LinkCoM.ABEH.(speedStr)(iter,:);
-A_bcfg_com = Mechanism.LinAcc.LinkCoM.BCFG.(speedStr)(iter,:);
-A_cdi_com = Mechanism.LinAcc.LinkCoM.CDI.(speedStr)(iter,:);
+A_abeh_com = Mechanism.LinAcc.LinkCoM.ABH.(speedStr)(iter,:);
+A_bcfg_com = Mechanism.LinAcc.LinkCoM.BCEF.(speedStr)(iter,:);
+A_cdgi_com = Mechanism.LinAcc.LinkCoM.CDGI.(speedStr)(iter,:);
 
 % This is a placeholder for the actual static analysis logic
 % You'll need to adapt this to your specific requirements
@@ -29,9 +29,9 @@ B = JointPos.B;
 C = JointPos.C;
 D = JointPos.D;
 
-ABEH_com = LinkCoMPos.ABEH;
-BCFG_com = LinkCoMPos.BCFG;
-CDI_com = LinkCoMPos.CDI;
+ABH_com = LinkCoMPos.ABH;
+BCEF_com = LinkCoMPos.BCEF;
+CDGI_com = LinkCoMPos.CDGI;
 
 mu = 0.20;
 
@@ -48,17 +48,17 @@ fC=[Cx Cy 0];
 fD=[Dx Dy 0];
 
 % Weight of each link
-wABEH=massABEH*g*grav;
-wBCFG=massBCFG*g*grav;
-wCDI=massCDI*g*grav;
+wABH=massABH*g*grav;
+wBCEF=massBCEF*g*grav;
+wCDGI=massCDGI*g*grav;
 
 % Unknown torque of the system
 tT=[0 0 T];
 
 % Torque provided by friction on Joint A
-r_abeh_com_a = norm(ABEH_com - A);
-r_bcfg_com_b = norm(BCFG_com - B);
-r_cdi_com_c = norm(CDI_com - C);
+r_abeh_com_a = norm(ABH_com - A);
+r_bcfg_com_b = norm(BCEF_com - B);
+r_cdgi_com_c = norm(CDGI_com - C);
 
 A_noFriction_x = Mechanism.ForceAnalysis.Newton.Grav.NoFriction.(speedStr).Joint.A(iter,1);
 A_noFriction_y = Mechanism.ForceAnalysis.Newton.Grav.NoFriction.(speedStr).Joint.A(iter,2);
@@ -89,18 +89,18 @@ F_friction_C = mu * norm(F_normal_C) * [-sin(C_theta), cos(C_theta), 0] * fricti
 % Assuming r_abeh_com_a and r_bcfg_com_b are correctly calculated lever arms
 T_fr_A = [0,0, mu * norm(F_normal_A) * r_abeh_com_a * friction]; % Torque due to friction at A
 T_fr_B = [0,0, mu * norm(F_normal_B) * r_bcfg_com_b * friction]; % Torque due to friction at B
-T_fr_C = [0,0, mu * norm(F_normal_B) * r_cdi_com_c * friction]; % Torque due to friction at B
+T_fr_C = [0,0, mu * norm(F_normal_B) * r_cdgi_com_c * friction]; % Torque due to friction at B
 
 %% FBD Equations
-%Link ABEH
-eqn1=fA+fB+wABEH+F_friction_A+F_friction_B==massABEH*A_abeh_com*newton;
-eqn2=ForceSolverUtils.momentVec(A, ABEH_com, fA) + ForceSolverUtils.momentVec(B,  ABEH_com,fB)+tT+T_fr_A+T_fr_B==massMoIABEH * A_abeh*newton; %only change the ==0 appropriately for newtons 2nd law
-%Link BCFG
-eqn3=-fB+fC+wBCFG-F_friction_B+F_friction_C==massBCFG*A_bcfg_com*newton;
-eqn4=ForceSolverUtils.momentVec(B, BCFG_com, -fB)+ForceSolverUtils.momentVec(C, BCFG_com, fC)-T_fr_B+T_fr_C==massMoIBCFG * A_bcfg*newton; %only change the ==0 appropriately for newtons 2nd law
-%Link CDI
-eqn5=-fC+fD+wCDI-F_friction_C==massCDI*A_cdi_com*newton;
-eqn6=ForceSolverUtils.momentVec(C, CDI_com, -fC)+ForceSolverUtils.momentVec(D, CDI_com, fD)-T_fr_C==massMoICDI * A_cdi*newton; %only change the ==0 appropriately for newtons 2nd law
+%Link ABH
+eqn1=fA+fB+wABH+F_friction_A+F_friction_B==massABH*A_abeh_com*newton;
+eqn2=ForceSolverUtils.momentVec(A, ABH_com, fA) + ForceSolverUtils.momentVec(B,  ABH_com,fB)+tT+T_fr_A+T_fr_B==massMoIABH * A_abeh*newton; %only change the ==0 appropriately for newtons 2nd law
+%Link BCEF
+eqn3=-fB+fC+wBCEF-F_friction_B+F_friction_C==massBCEF*A_bcfg_com*newton;
+eqn4=ForceSolverUtils.momentVec(B, BCEF_com, -fB)+ForceSolverUtils.momentVec(C, BCEF_com, fC)-T_fr_B+T_fr_C==massMoIBCEF * A_bcfg*newton; %only change the ==0 appropriately for newtons 2nd law
+%Link CDGI
+eqn5=-fC+fD+wCDGI-F_friction_C==massCDGI*A_cdgi_com*newton;
+eqn6=ForceSolverUtils.momentVec(C, CDGI_com, -fC)+ForceSolverUtils.momentVec(D, CDGI_com, fD)-T_fr_C==massMoICDGI * A_cdgi*newton; %only change the ==0 appropriately for newtons 2nd law
 
 solution = (solve([eqn1,eqn2,eqn3,eqn4,eqn5,eqn6],[Ax,Ay,Bx,By,Cx,Cy,Dx,Dy,T]));
 end

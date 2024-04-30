@@ -1,6 +1,6 @@
 classdef RMSEUtils
     methods(Static)
-        function Mechanism = RMSESolver(Mechanism, sensorDataTypes, sensorSourceMap)
+        function Mechanism = RMSESolver(Mechanism, sensorDataTypes, sensorSourceMap, processCoolTermData, processPythonGraphData, processWitMotionData)
             TheoreticalPath = 'CSVOutput';
 
             % Define the base paths for experimental data
@@ -20,11 +20,11 @@ classdef RMSEUtils
                 currentSensor = sensor{1};
                 dataTypes = sensorDataTypes(currentSensor);  % Retrieve data types for current sensor
                 % Compute RMSE for the current sensor across its specified data types
-                rmseResults.(currentSensor) = RMSEUtils.calculateRMSEForSensor(expData, theoData, currentSensor, sensorSourceMap, dataTypes, speeds);
+                rmseResults.(currentSensor) = RMSEUtils.calculateRMSEForSensor(expData, theoData, currentSensor, sensorSourceMap, dataTypes, speeds, processCoolTermData, processPythonGraphData, processWitMotionData);
             end
 
             % Save results to CSV
-            resultsFilename = 'RMSE_Results.csv';
+            resultsFilename = 'RMSE_Results';
             % Verify this logic later and make sure this function works
             RMSEUtils.saveResultsToCSV(rmseResults, resultsFilename);
         end
@@ -191,13 +191,13 @@ classdef RMSEUtils
         end
 
         % Function to calculate RMSE for a given sensor and its data types
-        function results = calculateRMSEForSensor(expData, theoData, sensor, sensorSourceMap, dataTypes, speeds)
+        function results = calculateRMSEForSensor(expData, theoData, sensor, sensorSourceMap, dataTypes, speeds, processCoolTermData, processPythonGraphData, processWitMotionData)
             results = struct();
             for dataType = dataTypes
                 % results.(dataType{1}) = struct();  % Initialize a struct for each data type
                 for speed = speeds
                     % Calculate RMSE using a hypothetical function, for a given dataType and speed
-                    rmseValue = RMSEUtils.calculateRMSE(expData, theoData, sensor, sensorSourceMap, dataType{1}, speed{1});
+                    rmseValue = RMSEUtils.calculateRMSE(expData, theoData, sensor, sensorSourceMap, dataType{1}, speed{1}, processCoolTermData, processPythonGraphData, processWitMotionData);
                     % Store RMSE value in the struct under its corresponding speed
                     results.(dataType{1}).(speed{1}) = rmseValue;
                 end
@@ -205,7 +205,7 @@ classdef RMSEUtils
         end
 
         % Retriev the desired experimental data
-        function expData = retrieveExpData(dataSet, sensor, sensorSourceMap, dataType, speed)
+        function expData = retrieveExpData(dataSet, sensor, sensorSourceMap, dataType, speed, processCoolTermData, processPythonGraphData, processWitMotionData)
             % Map sensors to their respective data sources (CoolTerm or WitMotion)
             source = sensorSourceMap(sensor);
             % Check if the required data is available
@@ -213,11 +213,11 @@ classdef RMSEUtils
                 rawData = dataSet.(source).(speed); % nxm table of data
                 % expData = processData(rawData, sensor, dataType);
                 if (strcmp(source, 'CoolTerm'))
-                    expData = RMSEUtils.processCoolTermData(rawData, sensor, dataType);
+                    expData = feval(processCoolTermData, rawData, sensor, dataType);
                 elseif (strcmp(source, 'WitMotion'))
-                    expData = RMSEUtils.processWitMotionData(rawData, sensor, dataType);
+                    expData = feval(processWitMotionData, rawData, sensor, dataType);
                 elseif (strcmp(source, 'PythonGraph'))
-                    expData = RMSEUtils.processPythonGraphData(rawData, sensor, dataType);
+                    expData = feval(processPythonGraphData, rawData, sensor, dataType);
                 else
                     warming('Application utilized to analyze data is unknown');
                     expData = [];
@@ -228,60 +228,60 @@ classdef RMSEUtils
         end
 
         % For CoolTerm Data Processing
-        function coolTermData = processCoolTermData(rawData, sensorID, dataType)
-            % Define sensor columns for angles and angular velocities
-            sensorColumnsMap = containers.Map(...
-                {'F', 'E', 'G'}, ...
-                {struct('Angle', 5:7, 'AngVel', 4), ...
-                struct('Angle', 8:10, 'AngVel', 11:13), ...
-                struct('Angle', 14:16, 'AngVel', 17:19)});
-            columns = sensorColumnsMap(sensorID).(dataType);
-
-            binarySignal = rawData.Var3;  % Adjust 'Var3' to the correct variable name if different
-
-            % Identify valid data segments based on binary signals
-            oneIndices = find(binarySignal == 1);
-            validSegments = find(diff(oneIndices) > 1);  % Find non-consecutive ones
-
-            if isempty(validSegments) || length(validSegments) < 2
-                error('Valid data segments not found.');
-            end
-
-            if isempty(validSegments) || length(validSegments) < 2
-                error('Valid data segments not found.');
-            end
-
-            % Define the range for valid data based on identified segments
-            validStartIndex = oneIndices(validSegments(1));
-            validEndIndex = oneIndices(validSegments(2));
-
-            % Extract the valid data range
-            validData = rawData(validStartIndex:validEndIndex, :);
-
-            % Compare extracted data with theoretical data for further refinement
-            % comparisonResults = compareData(validData(:, columns), theoData);
-            % refinedDataIndices = find(comparisonResults);  % Rows closely matching theoretical data
-            % TODO: Get the column that closely match the theoretical data
-            % refinedDataIndices = validData(:,columns(1));
-
-            % Define map for selecting the correct Y column index based on sensor and dataType
-            yColumnMap = containers.Map(...
-                {'FAngVel', 'FAngle', 'EAngVel', 'EAngle', 'GAngVel', 'GAngle'}, ...
-                {1, 2, 1, 3, 1, 3});
-
-            % Get the correct Y column index using the map
-            yColumnIndex = columns(yColumnMap([sensorID dataType]));
-
-            YData = validData(:, yColumnIndex);
-            XData = validData(:, 2);
-            % Refine data by ensuring continuity and removing spikes (maybe do later)
-            % refinedData = validData(refinedDataIndices, :);
-            % continuousData = removeSpikes(refinedData, columns);
-
-            % Store processed data for output
-            coolTermData.Time = XData;  % Time column
-            coolTermData.Values = YData;  % Extracted values based on dataType and sensor
-        end
+        % function coolTermData = processCoolTermData(rawData, sensorID, dataType)
+        %     % Define sensor columns for angles and angular velocities
+        %     sensorColumnsMap = containers.Map(...
+        %         {'F', 'E', 'G'}, ...
+        %         {struct('Angle', 5:7, 'AngVel', 4), ...
+        %         struct('Angle', 8:10, 'AngVel', 11:13), ...
+        %         struct('Angle', 14:16, 'AngVel', 17:19)});
+        %     columns = sensorColumnsMap(sensorID).(dataType);
+        %
+        %     binarySignal = rawData.Var3;  % Adjust 'Var3' to the correct variable name if different
+        %
+        %     % Identify valid data segments based on binary signals
+        %     oneIndices = find(binarySignal == 1);
+        %     validSegments = find(diff(oneIndices) > 1);  % Find non-consecutive ones
+        %
+        %     if isempty(validSegments) || length(validSegments) < 2
+        %         error('Valid data segments not found.');
+        %     end
+        %
+        %     if isempty(validSegments) || length(validSegments) < 2
+        %         error('Valid data segments not found.');
+        %     end
+        %
+        %     % Define the range for valid data based on identified segments
+        %     validStartIndex = oneIndices(validSegments(1));
+        %     validEndIndex = oneIndices(validSegments(2));
+        %
+        %     % Extract the valid data range
+        %     validData = rawData(validStartIndex:validEndIndex, :);
+        %
+        %     % Compare extracted data with theoretical data for further refinement
+        %     % comparisonResults = compareData(validData(:, columns), theoData);
+        %     % refinedDataIndices = find(comparisonResults);  % Rows closely matching theoretical data
+        %     % TODO: Get the column that closely match the theoretical data
+        %     % refinedDataIndices = validData(:,columns(1));
+        %
+        %     % Define map for selecting the correct Y column index based on sensor and dataType
+        %     yColumnMap = containers.Map(...
+        %         {'FAngVel', 'FAngle', 'EAngVel', 'EAngle', 'GAngVel', 'GAngle'}, ...
+        %         {1, 2, 1, 3, 1, 3});
+        %
+        %     % Get the correct Y column index using the map
+        %     yColumnIndex = columns(yColumnMap([sensorID dataType]));
+        %
+        %     YData = validData(:, yColumnIndex);
+        %     XData = validData(:, 2);
+        %     % Refine data by ensuring continuity and removing spikes (maybe do later)
+        %     % refinedData = validData(refinedDataIndices, :);
+        %     % continuousData = removeSpikes(refinedData, columns);
+        %
+        %     % Store processed data for output
+        %     coolTermData.Time = XData;  % Time column
+        %     coolTermData.Values = YData;  % Extracted values based on dataType and sensor
+        % end
 
         function isClose = compareData(experimental, theoretical)
             % Define a simple threshold-based comparison for data matching
@@ -300,130 +300,130 @@ classdef RMSEUtils
         end
 
 
-        function witMotionData = processWitMotionData(rawData, sensorType, dataType)
-            % Constants for column indices based on data type
-            TIME_COL = 1; % Time column index
-            SENSOR_ID_COL = 2; % Sensor ID column index
-            ANGLE_Y_COL = 11; % Column index for Angle Y
+        % function witMotionData = processWitMotionData(rawData, sensorType, dataType)
+        %     % Constants for column indices based on data type
+        %     TIME_COL = 1; % Time column index
+        %     SENSOR_ID_COL = 2; % Sensor ID column index
+        %     ANGLE_Y_COL = 11; % Column index for Angle Y
+        %
+        %     % Mapping sensor types to their corresponding sensor ID
+        %     sensorMap = containers.Map(...
+        %         {'H', 'I'}, ...
+        %         {'WT901BLE68(ef:e4:2c:bf:73:a9)', 'WT901BLE68(d2:5a:50:4a:21:12)'});
+        %     inputLinkID = sensorMap('H');  % Always use sensor 'H' for zero crossing reference
+        %
+        %     % Filter data for the input link to find zero crossings
+        %     inputLinkData = rawData(strcmp(rawData{:, SENSOR_ID_COL}, inputLinkID), :);
+        %     zeroCrossings = find(diff(sign(table2array(inputLinkData(:, ANGLE_Y_COL)))) > 0) + 1;
+        %     if length(zeroCrossings) < 2
+        %         error('Not enough zero crossings found for input link.');
+        %     end
+        %
+        %     % Determine start and end times for valid data using input link zero crossings
+        %     validStartTime = duration(table2array(inputLinkData(zeroCrossings(1), TIME_COL)));
+        %     validEndTime = duration(table2array(inputLinkData(zeroCrossings(2), TIME_COL)));
+        %
+        %     % Filter data for the current sensor type
+        %     sensorID = sensorMap(sensorType);
+        %     sensorData = rawData(strcmp(rawData{:, SENSOR_ID_COL}, sensorID), :);
+        %
+        %     % Find indices in sensorData that are within the valid time range determined by the input link
+        %     validIndices = sensorData{:, TIME_COL} >= validStartTime & sensorData{:, TIME_COL} <= validEndTime;
+        %     if sum(validIndices) == 0
+        %         error('No data found for the current sensor within the valid time range.');
+        %     end
+        %
+        %     % Extract data slice based on the valid time indices
+        %     validData = sensorData(validIndices, :);
+        %
+        %     % Further refinement based on dataType to extract only relevant data
+        %     dataColumns = RMSEUtils.getDataColumns(dataType);
+        %     refinedData = validData(:, dataColumns);
+        %
+        %     % Prepare output structure
+        %     witMotionData = struct();
+        %     witMotionData.Time = validData(:, TIME_COL);
+        %     % TODO: Update this accordingly
+        %     witMotionData.Values = refinedData(:,1);
+        %     % witMotionData.Values = refinedData;
+        %     witMotionData.SensorID = sensorID;  % Include sensor ID in the output for reference
+        % end
 
-            % Mapping sensor types to their corresponding sensor ID
-            sensorMap = containers.Map(...
-                {'H', 'I'}, ...
-                {'WT901BLE68(ef:e4:2c:bf:73:a9)', 'WT901BLE68(d2:5a:50:4a:21:12)'});
-            inputLinkID = sensorMap('H');  % Always use sensor 'H' for zero crossing reference
-
-            % Filter data for the input link to find zero crossings
-            inputLinkData = rawData(strcmp(rawData{:, SENSOR_ID_COL}, inputLinkID), :);
-            zeroCrossings = find(diff(sign(table2array(inputLinkData(:, ANGLE_Y_COL)))) > 0) + 1;
-            if length(zeroCrossings) < 2
-                error('Not enough zero crossings found for input link.');
-            end
-
-            % Determine start and end times for valid data using input link zero crossings
-            validStartTime = duration(table2array(inputLinkData(zeroCrossings(1), TIME_COL)));
-            validEndTime = duration(table2array(inputLinkData(zeroCrossings(2), TIME_COL)));
-
-            % Filter data for the current sensor type
-            sensorID = sensorMap(sensorType);
-            sensorData = rawData(strcmp(rawData{:, SENSOR_ID_COL}, sensorID), :);
-
-            % Find indices in sensorData that are within the valid time range determined by the input link
-            validIndices = sensorData{:, TIME_COL} >= validStartTime & sensorData{:, TIME_COL} <= validEndTime;
-            if sum(validIndices) == 0
-                error('No data found for the current sensor within the valid time range.');
-            end
-
-            % Extract data slice based on the valid time indices
-            validData = sensorData(validIndices, :);
-
-            % Further refinement based on dataType to extract only relevant data
-            dataColumns = RMSEUtils.getDataColumns(dataType);
-            refinedData = validData(:, dataColumns);
-
-            % Prepare output structure
-            witMotionData = struct();
-            witMotionData.Time = validData(:, TIME_COL);
-            % TODO: Update this accordingly
-            witMotionData.Values = refinedData(:,1);
-            % witMotionData.Values = refinedData;
-            witMotionData.SensorID = sensorID;  % Include sensor ID in the output for reference
-        end
-
-        function pythonGraphData = processPythonGraphData(rawData, sensor, dataType)
-            % Constants for column indices
-            HALL_SENSOR_COL = 1;
-            EST_RPM_COL = 2;
-            PISTON_DISP_COL = 3;
-            ADXL_PISTON_LIN_ACC_COL = 4;
-            BNO_ORIENTATION_START_COL = 5; % X, Y, Z orientation start from this column
-            BNO_ORIENTATION_END_COL = 7; % X, Y, Z orientation end at this column
-            BNO_ANG_VEL_COL = 8;
-
-            binarySignal = rawData.HallSensor;  % Adjust 'Var3' to the correct variable name if different
-
-            % Identify valid data segments based on binary signals
-            oneIndices = find(binarySignal == 1);
-            validSegments = find(diff(oneIndices) > 1);  % Find non-consecutive ones
-
-            if isempty(validSegments) || length(validSegments) < 2
-                error('Valid data segments not found.');
-            end
-
-            if isempty(validSegments) || length(validSegments) < 2
-                error('Valid data segments not found.');
-            end
-
-            % Define the range for valid data based on identified segments
-            validStartIndex = oneIndices(validSegments(1));
-            validEndIndex = oneIndices(validSegments(2));
-
-            % Extract data within the valid range
-            validData = rawData(validStartIndex:validEndIndex, :);
-
-            % Determine columns based on dataType
-            switch dataType
-                case 'Angle'
-                    columns = BNO_ORIENTATION_START_COL:BNO_ORIENTATION_END_COL;
-                case 'AngVel'
-                    columns = BNO_ANG_VEL_COL;
-                case 'LinAcc'
-                    columns = ADXL_PISTON_LIN_ACC_COL;
-                otherwise
-                    error('Unknown dataType specified');
-            end
-
-            % Insert a time step column based on estimated RPM (convert to radians per second first)
-            estRpm = rawData{validStartIndex, EST_RPM_COL};
-            omega = estRpm * (2 * pi / 60); % Convert RPM to radians per second
-            timesteps = (0 : height(validData) - 1)' / omega; % Create a timestep array
-            validData.Timestep = seconds(timesteps); % Insert as duration in seconds
-
-            % Select and store the desired data based on dataType and sensor
-            pythonGraphData = struct();
-            % pythonGraphData.Time = validData.Timestep; % Use the new Timestep column
-            % pythonGraphData.Values = validData(:, columns); % Data of interest
-            % pythonGraphData.SensorID = sensor; % Include sensor ID for reference
-
-            yColumnMap = containers.Map(...
-                {'EAngle', 'EAngVel', 'FLinAcc'}, ...
-                {2, 1, 1});
-
-            % Get the correct Y column index using the map
-            % sensorID = sensorMap(sensorType);
-            % sensorID = 
-
-            yColumnIndex = columns(yColumnMap([sensor dataType]));
-
-            YData = table2array(validData(:, yColumnIndex));
-            XData = timesteps;
-            % Refine data by ensuring continuity and removing spikes (maybe do later)
-            % refinedData = validData(refinedDataIndices, :);
-            % continuousData = removeSpikes(refinedData, columns);
-
-            % Store processed data for output
-            pythonGraphData.Time = XData;  % Time column
-            pythonGraphData.Values = YData;  % Extracted values based on dataType and sensor
-        end
+        % function pythonGraphData = processPythonGraphData(rawData, sensor, dataType)
+        %     % Constants for column indices
+        %     HALL_SENSOR_COL = 1;
+        %     EST_RPM_COL = 2;
+        %     PISTON_DISP_COL = 3;
+        %     ADXL_PISTON_LIN_ACC_COL = 4;
+        %     BNO_ORIENTATION_START_COL = 5; % X, Y, Z orientation start from this column
+        %     BNO_ORIENTATION_END_COL = 7; % X, Y, Z orientation end at this column
+        %     BNO_ANG_VEL_COL = 8;
+        %
+        %     binarySignal = rawData.HallSensor;  % Adjust 'Var3' to the correct variable name if different
+        %
+        %     % Identify valid data segments based on binary signals
+        %     oneIndices = find(binarySignal == 1);
+        %     validSegments = find(diff(oneIndices) > 1);  % Find non-consecutive ones
+        %
+        %     if isempty(validSegments) || length(validSegments) < 2
+        %         error('Valid data segments not found.');
+        %     end
+        %
+        %     if isempty(validSegments) || length(validSegments) < 2
+        %         error('Valid data segments not found.');
+        %     end
+        %
+        %     % Define the range for valid data based on identified segments
+        %     validStartIndex = oneIndices(validSegments(1));
+        %     validEndIndex = oneIndices(validSegments(2));
+        %
+        %     % Extract data within the valid range
+        %     validData = rawData(validStartIndex:validEndIndex, :);
+        %
+        %     % Determine columns based on dataType
+        %     switch dataType
+        %         case 'Angle'
+        %             columns = BNO_ORIENTATION_START_COL:BNO_ORIENTATION_END_COL;
+        %         case 'AngVel'
+        %             columns = BNO_ANG_VEL_COL;
+        %         case 'LinAcc'
+        %             columns = ADXL_PISTON_LIN_ACC_COL;
+        %         otherwise
+        %             error('Unknown dataType specified');
+        %     end
+        %
+        %     % Insert a time step column based on estimated RPM (convert to radians per second first)
+        %     estRpm = rawData{validStartIndex, EST_RPM_COL};
+        %     omega = estRpm * (2 * pi / 60); % Convert RPM to radians per second
+        %     timesteps = (0 : height(validData) - 1)' / omega; % Create a timestep array
+        %     validData.Timestep = seconds(timesteps); % Insert as duration in seconds
+        %
+        %     % Select and store the desired data based on dataType and sensor
+        %     pythonGraphData = struct();
+        %     % pythonGraphData.Time = validData.Timestep; % Use the new Timestep column
+        %     % pythonGraphData.Values = validData(:, columns); % Data of interest
+        %     % pythonGraphData.SensorID = sensor; % Include sensor ID for reference
+        %
+        %     yColumnMap = containers.Map(...
+        %         {'EAngle', 'EAngVel', 'FLinAcc'}, ...
+        %         {2, 1, 1});
+        %
+        %     % Get the correct Y column index using the map
+        %     % sensorID = sensorMap(sensorType);
+        %     % sensorID =
+        %
+        %     yColumnIndex = columns(yColumnMap([sensor dataType]));
+        %
+        %     YData = table2array(validData(:, yColumnIndex));
+        %     XData = timesteps;
+        %     % Refine data by ensuring continuity and removing spikes (maybe do later)
+        %     % refinedData = validData(refinedDataIndices, :);
+        %     % continuousData = removeSpikes(refinedData, columns);
+        %
+        %     % Store processed data for output
+        %     pythonGraphData.Time = XData;  % Time column
+        %     pythonGraphData.Values = YData;  % Extracted values based on dataType and sensor
+        % end
 
 
         function cols = getDataColumns(dataType)
@@ -484,8 +484,8 @@ classdef RMSEUtils
                         if contains(sensorFields{i}, sensor)
                             % Handle cases with and without speed specification
                             if ~isempty(speed) && isfield(dataField.(sensorFields{i}), speed)
-                                theoData = table2array(dataField.(sensorFields{i}).(speed)(:,1));
-                                % theoData = table2array(dataField.(sensorFields{i}).(speed)(:,3));
+                                % theoData = table2array(dataField.(sensorFields{i}).(speed)(:,1));
+                                theoData = table2array(dataField.(sensorFields{i}).(speed)(:,3));
                             else
                                 % Assuming expData and theoData are columns of
                                 % angles. TODO: There may be condition that this is
@@ -494,7 +494,7 @@ classdef RMSEUtils
                                 theoData = double(dataField.(sensorFields{i}){:, 3});
                                 % TODO: Make sure I have table2array in appropriate
                                 % places so I don't have to call it here
-                                adjustment = table2array(expData.Values(1,1)) - theoData(1,1);
+                                adjustment = expData.Values(1,1) - theoData(1,1);
                                 theoData = theoData + adjustment;
                                 % theoData = dataField.(sensorFields{i});  % Get the entire data if no speed is involved
                             end
@@ -510,11 +510,11 @@ classdef RMSEUtils
         end
 
 
-        function rmseResults = calculateRMSE(expDataSet, theoDataSet, sensor, sensorSourceMap, dataType, speed)
+        function rmseResults = calculateRMSE(expDataSet, theoDataSet, sensor, sensorSourceMap, dataType, speed, processCoolTermData, processPythonGraphData, processWitMotionData)
             % rmseResults = struct(); % Initialize results structure
 
             % Retrieve experimental and theoretical data for the given sensor, dataType, and speed
-            expData = RMSEUtils.retrieveExpData(expDataSet, sensor, sensorSourceMap, dataType, speed);
+            expData = RMSEUtils.retrieveExpData(expDataSet, sensor, sensorSourceMap, dataType, speed, processCoolTermData, processPythonGraphData, processWitMotionData);
             theoData = RMSEUtils.retrieveTheoData(theoDataSet, expData, sensor, dataType, speed);
 
             % Calculate RMSE if both experimental and theoretical data are available
@@ -526,15 +526,42 @@ classdef RMSEUtils
                 theoreticalTime = theoreticalTime.';
 
                 % Calculate RMSE if both experimental and theoretical data are available
-                timestampsRaw = expData.Time;
-                timestamps = timestampsRaw - timestampsRaw(1,1);
-                timestamps = timestamps / 1000;
+                timestamps = expData.Time;
+                % timestamps = timestampsRaw - timestampsRaw(1,1);
+                % timestamps = timestamps / 1000;
 
                 interpolatedTheoData = interp1(theoreticalTime, theoData, timestamps, 'linear', 'extrap');
                 rmse = sqrt(mean((expData.Values - interpolatedTheoData).^2));
 
                 % Store RMSE in the results structure
                 rmseResults = rmse;
+
+                % Generate plot for verification
+                fig = figure('Visible', 'off');
+                hold on;
+                plot(timestamps, expData.Values, 'b', 'DisplayName', 'Experimental Data');
+                plot(theoreticalTime, theoData, 'g', 'DisplayName', 'Theoretical Data');
+                plot(timestamps, interpolatedTheoData, 'r--', 'DisplayName', 'Interpolated Theoretical Data');
+                legend show;
+                xlabel('Time (s)');
+                ylabel('Data Value');
+                title(['RMSE Analysis for ' sensor ' - ' dataType ' - ' speed]);
+                hold off;
+
+                % Define directory path for saving
+                resultDir = fullfile('RMSE_Results', sensor, dataType, speed);
+
+                % Ensure the directory exists
+                if ~exist(resultDir, 'dir')
+                    mkdir(resultDir);
+                end
+
+                % Save plot
+                savefig(fig, fullfile(resultDir, 'graph.fig'));
+                saveas(fig, fullfile(resultDir, 'graph.png'));
+
+                % Close the figure
+                close(fig);
             else
                 warning('Missing data for sensor %s, data type %s, speed %s', sensor, dataType, speed);
                 rmseResults = NaN; % Assign NaN to indicate missing data calculation

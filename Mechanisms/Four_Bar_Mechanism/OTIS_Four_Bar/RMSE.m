@@ -1,122 +1,68 @@
-clear; close all; clc;
-
-% Define the base path for each type of data
-baseTheoreticalPosPath = 'CSVOutput/Pos/Joint/';
-baseTheoreticalVelPath = 'CSVOutput/Vel/AngVel/';
-baseTheoreticalAccPath = 'CSVOutput/Acc/AngAcc/';
-
-baseExperimentalPath = 'Experimental/';
-
-
-% Read the desired theoretical files to analyze
-theoreticalJointData = readTheoreticalJointData(baseTheoreticalPosPath);
-theoreticalAngleData = determineAngles(theoreticalJointData); % Determine the angles based on the passed in joint data
-theoreticalAngVelData = readTheoreticalLinkData(baseTheoreticalVelPath);
-theoreticalAngAccData = readTheoreticalLinkData(baseTheoreticalAccPath);
-
-% Read the desired experimental files to analyze
-% experimentalData = readExerimentalData(baseExperimentalPath);
-% experimentalAngleData = experimentalData.Angle;
-% experimentalAngVelData = experimentalData.AngVel;
-% experimentalAngAccData = experimentalData.AngAcc;
-
-% Interpolated Theroetical
-interpolatedAngle = interp1(theoreticalAngleData.x, theoreticalAngleData.y, experimentalData.x);
-interpolatedAngVel = interp1(theoreticalAngVelData.x, theoreticalAngVelData.y, experimentalData.x);
-interpolatedAngAcc = interp1(theoreticalAngAccData.x, theoreticalAngAccData.y, experimentalData.x);
-
-% Determine the rmse for link components
-rmse_angle = sqrt(mean((experimentalAngleData.y - interpolatedAngle).^2));
-rmse_angVel = sqrt(mean((experimentalAngVelData.y - interpolatedAngVel).^2));
-rmse_angAcc = sqrt(mean((experimentalAngAccData.y - interpolatedAngAcc).^2));
-
-function jointData = readTheoreticalJointData(basePath)
-files = dir(fullfile(basePath, '*.csv')); % List all CSV files in the directory
-jointData = struct('jointName', {}, 'data', {}); % Initialize empty struct array
-
-for i = 1:length(files)
-    jointName = files(i).name(1:end-4); % Remove '.csv' from filename to get joint name
-    filePath = fullfile(files(i).folder, files(i).name);
-    jointData(i).jointName = jointName;
-    jointData(i).data = readtable(filePath); % Read CSV file into table
-end
-end
-% function jointData = readExperimentalJointData(basePath)
-%     files = dir(fullfile(basePath, '*.csv')); % List all CSV files in the directory
-%     jointData = struct('jointName', {}, 'data', {}); % Initialize empty struct array
-%
-%     for i = 1:length(files)
-%         jointName = files(i).name(1:end-4); % Remove '.csv' from filename to get joint name
-%         filePath = fullfile(files(i).folder, files(i).name);
-%         jointData(i).jointName = jointName;
-%         jointData(i).data = readtable(filePath); % Read CSV file into table
-%     end
-% end
-
-function linkData = readTheoreticalLinkData(basePath)
-files = dir(fullfile(basePath, '*.csv')); % List all CSV files in the directory
-linkData = struct('linkName', {}, 'data', {}); % Initialize empty struct array
-
-for i = 1:length(files)
-    linkName = files(i).name(1:end-4); % Remove '.csv' from filename to get link name
-    filePath = fullfile(files(i).folder, files(i).name);
-    linkData(i).linkName = linkName;
-    linkData(i).data = readtable(filePath); % Read CSV file into table
-end
-end
-% function linkData = readExperimentalLinkData(basePath)
-%     files = dir(fullfile(basePath, '*.csv')); % List all CSV files in the directory
-%     linkData = struct('linkName', {}, 'data', {}); % Initialize empty struct array
-%
-%     for i = 1:length(files)
-%         linkName = files(i).name(1:end-4); % Remove '.csv' from filename to get link name
-%         filePath = fullfile(files(i).folder, files(i).name);
-%         linkData(i).linkName = linkName;
-%         linkData(i).data = readtable(filePath); % Read CSV file into table
-%     end
-% end
-
-function adjustedAngles = determineAngles(jointData)
-% Assuming jointData is a structure or table with fields 'jointID' and 'angle'
-% Initialize an array to store adjusted angles with the same size as the input
-if ~isempty(jointData) && isfield(jointData(1), 'data')
-    % Assuming all 'data' fields have the same number of rows (361 in your case)
-    % numberOfRows = size(jointData(1).data, 1);
-    % Adjusted initialization of adjustedAngles based on dynamic size
-    adjustedAngles = zeros(4, length(jointData)); % Flipped to match 361x6
-else
-    % Handle the case where jointData might be empty or not properly structured
-    adjustedAngles = []; % Or any other fallback initialization
+function Mechanism = RMSE(Mechanism, sensorDataTypes, sensorSourceMap)
+ % TODO: Make sure to insert the processFunctions in as an argument and
+ % utilize this within code
+    Mechanism = RMSEUtils.RMSESolver(Mechanism, sensorDataTypes, sensorSourceMap, @processCoolTermData, @processPythonGraphData, @processWitMotionData);
 end
 
-% Create a map from 'jointData'
-jointIndexMap = containers.Map('KeyType', 'char', 'ValueType', 'int32');
+% TODO: Put the logic here for pulling the respective column for
+% WitMotion/CoolTerm/PythonGraphs
 
-for i = 1:length(jointData)
-    jointIndexMap(jointData(i).jointName) = i;
+function coolTermData = processCoolTermData(rawData, sensorType, dataType)
+
 end
 
-for theta_iterator = 1:size(jointData(1))
-    for rowNum = 1:4
-        % Determine the offset based on jointID. Example adjustments:
-        if theta_iterator == 1 % For joint A with respect to another joint
-            % Pull the appropriate joint values 
-            A = table2array(jointData(jointIndexMap('A')).data(theta_iterator,:));
-            B = table2array(jointData(jointIndexMap('B')).data(theta_iterator,:));
-            angle = atan2(B(2) - A(2), B(1) - A(1));
-            % TODO: Do this process for all desired joint positions
-            adjustedAngles(theta_iterator, rowNum) = 180 - angle;
-        elseif theta_iterator == 2 % For joint B
-            % Adjust angle based on your criteria for joint B
-            adjustedAngles(theta_iterator, rowNum) = 1;
-        elseif theta_iterator == 3 % For joint C
-            % Adjust angle based on your criteria for joint B
-            adjustedAngles(theta_iterator, rowNum) = 1;
-        elseif theta_iterator == 4 % For joint D
-            % Adjust angle based on your criteria for joint B
-            adjustedAngles(theta_iterator, rowNum) = 1;
+function pythonGraphData = processPythonGraphData(rawData, sensorType, dataType)
+
+end
+
+function witMotionData = processWitMotionData(rawData, sensorType, dataType)
+            % Constants for column indices based on data type
+            TIME_COL = 1; % Time column index
+            SENSOR_ID_COL = 2; % Sensor ID column index
+            ANGLE_Y_COL = 11; % Column index for Angle Y
+
+            % Mapping sensor types to their corresponding sensor ID
+            sensorMap = containers.Map(...
+                {'E', 'F', 'G', 'H'}, ...
+                {'WTCrank(c3:a3:c5:ed:f8:8e)', ...
+                'WTCoupler_In(d2:d6:ae:79:8c:70)' ...
+                'WTCoupler_Out(f9:7a:4a:df:60:c4)' ...
+                'WTRocker(e2:c7:f5:e1:23:63)'});
+            inputLinkID = sensorMap('E');  % use sensor 'E' for zero crossing reference
+
+            % Filter data for the input link to find zero crossings
+            inputLinkData = rawData(strcmp(rawData{:, SENSOR_ID_COL}, inputLinkID), :);
+            zeroCrossings = find(diff(sign(table2array(inputLinkData(:, ANGLE_Y_COL)))) > 0) + 1;
+            if length(zeroCrossings) < 2
+                error('Not enough zero crossings found for input link.');
+            end
+
+            % Determine start and end times for valid data using input link zero crossings
+            validStartTime = duration(table2array(inputLinkData(zeroCrossings(1), TIME_COL)));
+            validEndTime = duration(table2array(inputLinkData(zeroCrossings(2), TIME_COL)));
+
+            % Filter data for the current sensor type
+            sensorID = sensorMap(sensorType);
+            sensorData = rawData(strcmp(rawData{:, SENSOR_ID_COL}, sensorID), :);
+
+            % Find indices in sensorData that are within the valid time range determined by the input link
+            validIndices = sensorData{:, TIME_COL} >= validStartTime & sensorData{:, TIME_COL} <= validEndTime;
+            if sum(validIndices) == 0
+                error('No data found for the current sensor within the valid time range.');
+            end
+
+            % Extract data slice based on the valid time indices
+            validData = sensorData(validIndices, :);
+
+            % Further refinement based on dataType to extract only relevant data
+            dataColumns = RMSEUtils.getDataColumns(dataType);
+            refinedData = validData(:, dataColumns);
+
+            % Prepare output structure
+            witMotionData = struct();
+            witMotionData.Time = validData(:, TIME_COL);
+            % TODO: Update this accordingly
+            witMotionData.Values = refinedData(:,1);
+            % witMotionData.Values = refinedData;
+            witMotionData.SensorID = sensorID;  % Include sensor ID in the output for reference
         end
-        % Add more conditions as needed for other joints
-    end
-end
-end

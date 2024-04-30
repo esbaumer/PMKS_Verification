@@ -48,38 +48,38 @@ addpath(utilsFolderPath);
 % Mechanism.TracerPoint.I = I; % WitMotion, 2
 % 
 % % Define link's center of mass positions
-% Mechanism.LinkCoM.ABEH = [-6.38, 2.39,0];
-% Mechanism.LinkCoM.BCFG = [185.73, 209.10, 0];
-% Mechanism.LinkCoM.CDI = [472.56, -20.80, 0];
+% Mechanism.LinkCoM.ABH = [-6.38, 2.39,0];
+% Mechanism.LinkCoM.BCEF = [185.73, 209.10, 0];
+% Mechanism.LinkCoM.CDGI = [472.56, -20.80, 0];
 % 
 % % Define angles for each link
-% Mechanism.Angle.ABEH = [0 0 rad2deg(atan2((Mechanism.LinkCoM.ABEH(2) - A(2)), Mechanism.LinkCoM.ABEH(1) - A(1)))];
-% Mechanism.Angle.BCFG = [0 0 rad2deg(atan2((Mechanism.LinkCoM.BCFG(2) - B(2)), Mechanism.LinkCoM.BCFG(1) - B(1)))];
-% Mechanism.Angle.CDI = [0 0 rad2deg(atan2((Mechanism.LinkCoM.CDI(2) - C(2)), Mechanism.LinkCoM.CDI(1) - C(1)))];
+% Mechanism.Angle.ABH = [0 0 rad2deg(atan2((Mechanism.LinkCoM.ABH(2) - A(2)), Mechanism.LinkCoM.ABH(1) - A(1)))];
+% Mechanism.Angle.BCEF = [0 0 rad2deg(atan2((Mechanism.LinkCoM.BCEF(2) - B(2)), Mechanism.LinkCoM.BCEF(1) - B(1)))];
+% Mechanism.Angle.CDGI = [0 0 rad2deg(atan2((Mechanism.LinkCoM.CDGI(2) - C(2)), Mechanism.LinkCoM.CDGI(1) - C(1)))];
 % 
 % % Define masses for each link (kg)
-% Mechanism.Mass.ABEH = 10.458382; 
-% Mechanism.Mass.BCFG = 0.626202;
-% Mechanism.Mass.CDI = 4.901229;
+% Mechanism.Mass.ABH = 10.458382; 
+% Mechanism.Mass.BCEF = 0.626202;
+% Mechanism.Mass.CDGI = 4.901229;
 % 
 % % Define mass moments of inertia for each link
-% Mechanism.MassMoI.ABEH = 52777966.276354; 
-% Mechanism.MassMoI.BCFG = 10871793.503827;
-% Mechanism.MassMoI.CDI = 63343618.03601;
+% Mechanism.MassMoI.ABH = 52777966.276354; 
+% Mechanism.MassMoI.BCEF = 10871793.503827;
+% Mechanism.MassMoI.CDGI = 63343618.03601;
 % 
 % % Desired for Stress Analysis. Maybe wanna include all the lengths to be
 % % utilized within PosSolver
-% Mechanism.ABEHLength = 10;
-% Mechanism.BCFGLength = 10;
-% Mechanism.CDILength = 10;
+% Mechanism.ABHLength = 10;
+% Mechanism.BCEFLength = 10;
+% Mechanism.CDGILength = 10;
 % 
 % % Desired for Stress Analysis. Another idea that is since we know the
 % % density, the mass, and the depth of the link, we could determine what the
 % % cross sectional area would be. But for now, I think hard coding these
 % % values are okay
-% Mechanism.crossSectionalAreaABEH = 10;
-% Mechanism.crossSectionalAreaBCFG = 10;
-% Mechanism.crossSectionalAreaCDI = 10;
+% Mechanism.crossSectionalAreaABH = 10;
+% Mechanism.crossSectionalAreaBCEF = 10;
+% Mechanism.crossSectionalAreaCDGI = 10;
 % 
 % % Define the modulus of elasticity for each link
 % Mechanism.modulusElasticity = 10e6;
@@ -112,7 +112,7 @@ addpath(utilsFolderPath);
 % 
 % % Mechanism = StressSolver(Mechanism, scenarios);
 % % save('Mechanism.mat', 'Mechanism');
-% 
+% % 
 % csvDir = 'CSVOutput';
 % 
 % baseDir = 'Kin';
@@ -120,7 +120,7 @@ addpath(utilsFolderPath);
 % 
 % baseDir = 'Force';
 % GeneralUtils.exportMatricesToCSV(baseDir, csvDir);
-
+% 
 % baseDir = 'Stress';
 % GeneralUtils.exportMatricesToCSV(baseDir, csvDir);
 
@@ -138,4 +138,7 @@ sensorDataTypes = containers.Map(...
     }...
     );
 
-Mechanism = RMSE(Mechanism, sensorDataTypes);
+sensorSourceMap = containers.Map({'E', 'F', 'G', 'H', 'I'}, ...
+    {'CoolTerm', 'CoolTerm', 'CoolTerm', 'WitMotion', 'WitMotion'});
+
+Mechanism = RMSE(Mechanism, sensorDataTypes, sensorSourceMap);
