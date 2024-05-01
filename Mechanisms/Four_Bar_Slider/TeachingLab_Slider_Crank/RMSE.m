@@ -57,10 +57,22 @@ validData = rawData(validStartIndex:validEndIndex, :);
 % end
 
 % Insert a time step column based on estimated RPM (convert to radians per second first)
-estRpm = rawData{validStartIndex, EST_RPM_COL};
-omega = estRpm * (2 * pi / 60); % Convert RPM to radians per second
-timesteps = (0 : height(validData) - 1)' / omega; % Create a timestep array
-validData.Timestep = seconds(timesteps); % Insert as duration in seconds
+% estRpm = rawData{validStartIndex, EST_RPM_COL};
+% omega = estRpm * (2 * pi / 60); % Convert RPM to radians per second
+% timesteps = (0 : height(validData) - 1)' / omega; % Create a timestep array
+% validData.Timestep = seconds(timesteps); % Insert as duration in seconds
+% validData.Timestep = seconds(validData)
+% Assuming 'validData' is your table with a 'Time' column that are durations
+firstTimestamp = validData.Timestamp(1); % Get the first timestamp
+
+% Subtract the first timestamp from all timestamps to get the relative times
+relativeTimes = validData.Timestamp - firstTimestamp;
+
+% Convert the relative times from durations to seconds
+
+
+% Now 'validData.Timestep' contains the time in seconds relative to the first timestamp
+
 
 % Select and store the desired data based on dataType and sensor
 pythonGraphData = struct();
@@ -81,13 +93,14 @@ pythonGraphData = struct();
 yColumnIndex = BNO_ANG_VEL_COL;
 
 YData = table2array(validData(:, yColumnIndex));
-XData = timesteps;
+XData = seconds(relativeTimes / 1000);
 % Refine data by ensuring continuity and removing spikes (maybe do later)
 % refinedData = validData(refinedDataIndices, :);
 % continuousData = removeSpikes(refinedData, columns);
 
 % Store processed data for output
-pythonGraphData.Time = XData;  % Time column
+% pythonGraphData.Time = XData;  % Time column
+pythonGraphData.Time = XData;
 pythonGraphData.Values = YData;  % Extracted values based on dataType and sensor
 
 % % Define the range for valid data based on identified segments
