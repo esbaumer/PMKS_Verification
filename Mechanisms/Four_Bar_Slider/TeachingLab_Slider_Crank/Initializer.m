@@ -69,13 +69,13 @@ addpath(utilsFolderPath);
 % 
 % % Define angular velocity of the link where a motor is attached
 % % input_speed = zeros(1, 3);
-% input_speed = zeros(1,1);
-% input_speed(1) = GeneralUtils.rpmToRadPerSec(12);
-% % input_speed(2) = GeneralUtils.rpmToRadPerSec(50);
+% input_speed = zeros(1,2);
+% input_speed(1) = GeneralUtils.rpmToRadPerSec(10);
+% input_speed(2) = GeneralUtils.rpmToRadPerSec(13);
 % % input_speed(3) = GeneralUtils.rpmToRadPerSec(70);
 % 
 % % input_speed_str = [35, 50, 70];
-% input_speed_str = [12];
+% input_speed_str = [10, 13];
 % 
 % Mechanism.input_speed_str = input_speed_str;
 % 

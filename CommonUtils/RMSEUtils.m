@@ -527,10 +527,8 @@ classdef RMSEUtils
 
                 % Calculate RMSE if both experimental and theoretical data are available
                 timestamps = expData.Time;
-                % timestamps = timestampsRaw - timestampsRaw(1,1);
-                % timestamps = timestamps / 1000;
 
-                interpolatedTheoData = interp1(theoreticalTime, theoData, timestamps, 'linear', 'extrap');
+                interpolatedTheoData = interp1(theoreticalTime, theoData, seconds(timestamps), 'linear', 'extrap');
                 rmse = sqrt(mean((expData.Values - interpolatedTheoData).^2));
 
                 % Store RMSE in the results structure
