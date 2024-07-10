@@ -2,7 +2,7 @@ function Mechanism = ForceSolver(Mechanism, scenarios)
     Mechanism = ForceSolverUtils.ForceSolver(Mechanism, scenarios, @performForceAnalysis);
 end
 
-function solution = performForceAnalysis(Mechanism, iter, JointPos, LinkCoMPos, newton, grav, friction)
+function solution = performForceAnalysis(Mechanism, iter, speedStr, JointPos, LinkCoMPos, newton, grav, friction)
 % Here, you'd implement your equations based on static conditions
 % For each joint and link, calculate forces and moments ensuring sum of forces = 0 and sum of moments = 0
 
@@ -10,25 +10,25 @@ massAB = Mechanism.Mass.AB;
 massBC = Mechanism.Mass.BC;
 massCDE = Mechanism.Mass.CDE;
 massEF = Mechanism.Mass.EF;
-massFG = Mechanism.Mass.FG;
+massFGH = Mechanism.Mass.FGH;
 
 massMoIAB = Mechanism.MassMoI.AB;
 massMoIBC = Mechanism.MassMoI.BC;
 massMoICDE = Mechanism.MassMoI.CDE;
 massMoIEF = Mechanism.MassMoI.EF;
-massMoIFG = Mechanism.MassMoI.FG;
+massMoIFGH = Mechanism.MassMoI.FGH;
 
-A_ab = Mechanism.AngAcc.AB(iter,:);
-A_bc = Mechanism.AngAcc.BC(iter,:);
-A_cde = Mechanism.AngAcc.CDE(iter,:);
-A_ef = Mechanism.AngAcc.EF(iter,:);
-A_fg = Mechanism.AngAcc.FG(iter,:);
+A_ab = Mechanism.AngAcc.AB.(speedStr)(iter,:);
+A_bc = Mechanism.AngAcc.BC.(speedStr)(iter,:);
+A_cde = Mechanism.AngAcc.CDE.(speedStr)(iter,:);
+A_ef = Mechanism.AngAcc.EF.(speedStr)(iter,:);
+A_fg = Mechanism.AngAcc.FGH.(speedStr)(iter,:);
 
-A_ab_com = Mechanism.LinAcc.LinkCoM.AB(iter,:);
-A_bc_com = Mechanism.LinAcc.LinkCoM.BC(iter,:);
-A_cde_com = Mechanism.LinAcc.LinkCoM.CDE(iter,:);
-A_ef_com = Mechanism.LinAcc.LinkCoM.EF(iter,:);
-A_fg_com = Mechanism.LinAcc.LinkCoM.FG(iter,:);
+A_ab_com = Mechanism.LinAcc.LinkCoM.AB.(speedStr)(iter,:);
+A_bc_com = Mechanism.LinAcc.LinkCoM.BC.(speedStr)(iter,:);
+A_cde_com = Mechanism.LinAcc.LinkCoM.CDE.(speedStr)(iter,:);
+A_ef_com = Mechanism.LinAcc.LinkCoM.EF.(speedStr)(iter,:);
+A_fg_com = Mechanism.LinAcc.LinkCoM.FGH.(speedStr)(iter,:);
 
 % This is a placeholder for the actual static analysis logic
 % You'll need to adapt this to your specific requirements
@@ -45,7 +45,7 @@ AB_com = LinkCoMPos.AB;
 BC_com = LinkCoMPos.BC;
 CDE_com = LinkCoMPos.CDE;
 EF_com = LinkCoMPos.EF;
-FG_com = LinkCoMPos.FG;
+FGH_com = LinkCoMPos.FGH;
 
 syms Ax Ay Bx By Cx Cy Dx Dy Ex Ey Fx Fy Gx Gy T
 
@@ -65,7 +65,7 @@ wAB=massAB *g * grav;
 wBC=massBC *g * grav;
 wCDE=massCDE *g * grav;
 wEF=massEF *g * grav;
-wFG=massFG *g * grav;
+wFGH=massFGH *g * grav;
 
 % Unknown torque of the system
 tT=[0 0 T];
@@ -87,9 +87,9 @@ eqn6=ForceSolverUtils.momentVec(C, CDE_com, -fC)+ForceSolverUtils.momentVec(D, C
 %Link EF
 eqn7=-fE+fF+wEF==massEF*A_ef_com * newton;
 eqn8=ForceSolverUtils.momentVec(E, EF_com, -fE)+ForceSolverUtils.momentVec(F, EF_com, fF)==massMoIEF * A_ef * newton; %only change the ==0 appropriately for newtons 2nd law
-%Link FG
-eqn9=-fF+fG+wFG+LoadForce==massFG*A_fg_com * newton;
-eqn10=ForceSolverUtils.momentVec(F, FG_com, -fF)+ForceSolverUtils.momentVec(G, FG_com, fG)+ForceSolverUtils.momentVec(LoadPos, FG_com, LoadForce)==massMoIFG * A_fg * newton; %only change the ==0 appropriately for newtons 2nd law
+%Link FGH
+eqn9=-fF+fG+wFGH+LoadForce==massFGH*A_fg_com * newton;
+eqn10=ForceSolverUtils.momentVec(F, FGH_com, -fF)+ForceSolverUtils.momentVec(G, FGH_com, fG)+ForceSolverUtils.momentVec(LoadPos, FGH_com, LoadForce)==massMoIFGH * A_fg * newton; %only change the ==0 appropriately for newtons 2nd law
 
 solution = (solve([eqn1,eqn2,eqn3,eqn4,eqn5,eqn6,eqn7,eqn8,eqn9,eqn10],[Ax,Ay,Bx,By,Cx,Cy,Dx,Dy,Ex,Ey,Fx,Fy,Gx,Gy,T]));
 end

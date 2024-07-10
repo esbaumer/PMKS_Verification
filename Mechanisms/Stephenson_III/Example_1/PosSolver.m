@@ -15,7 +15,7 @@ Mechanism.LinkLength.CE = norm(Mechanism.Joint.C - Mechanism.Joint.E);
 Mechanism.LinkLength.DE = norm(Mechanism.Joint.D - Mechanism.Joint.E);
 % Link EF
 Mechanism.LinkLength.EF = norm(Mechanism.Joint.F - Mechanism.Joint.E);
-% Link FG
+% Link FGH
 Mechanism.LinkLength.FG = norm(Mechanism.Joint.F - Mechanism.Joint.G);
 Mechanism.LinkLength.FH = norm(Mechanism.Joint.F - Mechanism.TracerPoint.H);
 Mechanism.LinkLength.GH = norm(Mechanism.Joint.G - Mechanism.TracerPoint.H);
@@ -63,7 +63,7 @@ Mechanism.LinkCoM.AB(iteration, :) = Utils.determineCoM([A; B]);
 Mechanism.LinkCoM.BC(iteration, :) = Utils.determineCoM([B; C]);
 Mechanism.LinkCoM.CDE(iteration, :) = Utils.determineCoM([D; E]);
 Mechanism.LinkCoM.EF(iteration, :) = Utils.determineCoM([E; F]);
-Mechanism.LinkCoM.FG(iteration, :) = Utils.determineCoM([G; H]);
+Mechanism.LinkCoM.FGH(iteration, :) = Utils.determineCoM([G; H]);
 
 if (forwardDir)
     Mechanism.inputSpeed(iteration) = Mechanism.inputSpeed(1);

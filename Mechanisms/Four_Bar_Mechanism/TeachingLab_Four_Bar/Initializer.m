@@ -85,12 +85,12 @@ addpath(utilsFolderPath);
 % Mechanism.modulusElasticity = 10e6;
 % 
 % % Define angular velocity of the link where a motor is attached
-% input_speed = zeros(1, 3);
+% input_speed = zeros(1, 2);
 % input_speed(1) = GeneralUtils.rpmToRadPerSec(10);
 % input_speed(2) = GeneralUtils.rpmToRadPerSec(20);
-% input_speed(3) = GeneralUtils.rpmToRadPerSec(30);
+% % input_speed(3) = GeneralUtils.rpmToRadPerSec(30);
 % 
-% input_speed_str = [10, 20, 30];
+% input_speed_str = [10, 20];
 % 
 % Mechanism.input_speed_str = input_speed_str;
 % save('Mechanism.mat', 'Mechanism');
@@ -120,25 +120,36 @@ addpath(utilsFolderPath);
 % 
 % baseDir = 'Force';
 % GeneralUtils.exportMatricesToCSV(baseDir, csvDir);
-% 
+
 % baseDir = 'Stress';
 % GeneralUtils.exportMatricesToCSV(baseDir, csvDir);
 
 load("Mechanism")
 
 % Define a map from sensors to their respective data types
+% sensorDataTypes = containers.Map(...
+%     {'E', 'F', 'G', 'H', 'I'}, ...
+%     {...
+%     {'Angle', 'AngVel'}, ...  % Data types for sensor E
+%     {'Angle', 'AngVel'}, ... % Data types for sensor F
+%     {'Angle', 'AngVel'}, ... % Data types for sensor G
+%     {'Angle', 'AngVel', 'LinAcc'}, ...  % Data types for sensor H
+%     {'Angle', 'AngVel', 'LinAcc'}  ... % Data types for sensor I
+%     }...
+%     );
+% 
+% sensorSourceMap = containers.Map({'E', 'F', 'G', 'H', 'I'}, ...
+%     {'CoolTerm', 'CoolTerm', 'CoolTerm', 'WitMotion', 'WitMotion'});
+
 sensorDataTypes = containers.Map(...
-    {'E', 'F', 'G', 'H', 'I'}, ...
+    {'H', 'I'}, ...
     {...
-    {'Angle', 'AngVel'}, ...  % Data types for sensor E
-    {'Angle', 'AngVel'}, ... % Data types for sensor F
-    {'Angle', 'AngVel'}, ... % Data types for sensor G
-    {'Angle', 'AngVel', 'LinAcc'}, ...  % Data types for sensor H
-    {'Angle', 'AngVel', 'LinAcc'}  ... % Data types for sensor I
+    {'AngVel'}, ...  % Data types for sensor H
+    {'AngVel'}  ... % Data types for sensor I
     }...
     );
 
-sensorSourceMap = containers.Map({'E', 'F', 'G', 'H', 'I'}, ...
-    {'CoolTerm', 'CoolTerm', 'CoolTerm', 'WitMotion', 'WitMotion'});
+sensorSourceMap = containers.Map({'H', 'I'}, ...
+    {'WitMotion', 'WitMotion'});
 
 Mechanism = RMSE(Mechanism, sensorDataTypes, sensorSourceMap);
