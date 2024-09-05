@@ -90,6 +90,13 @@ pythonGraphData = struct();
 
 % yColumnIndex = columns(yColumnMap([sensorType dataType]));
 % TODO: Adjust accordingly once other sensors are added
+% if (strcmp(dataType, 'Angle'))
+%     yColumnIndex = BNO_ANG_VEL_COL;
+% elseif (strcmp(dataType, 'AngVel'))
+%     yColumnIndex = BNO_ANG_VEL_COL;
+% else
+% error('INVALID DATATYPE. PLEASE USE "Angle" OR "AngVel"');
+% end
 yColumnIndex = BNO_ANG_VEL_COL;
 
 YData = table2array(validData(:, yColumnIndex));

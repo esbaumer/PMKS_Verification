@@ -6,10 +6,10 @@ classdef RMSEUtils
             % Define the base paths for experimental data
             ExperimentalPath = 'Experimental';
 
-            % Define speeds
+            % Define speeds (e.g. {'f10RPM', 'f20RPM', 'f30RPM'})
             speeds = formatSpeeds(Mechanism.input_speed_str);
-            % {'f10RPM', 'f20RPM', 'f30RPM'};
 
+            % Raw data
             expData = RMSEUtils.readExperimentalData(ExperimentalPath, sensorSourceMap, speeds);
             theoData = RMSEUtils.readTheoreticalData(TheoreticalPath);
 
@@ -170,9 +170,18 @@ classdef RMSEUtils
                         % Check and read CSV file, including headers
                         if isfile(csvPath)
                             opts = detectImportOptions(csvPath);
-                            opts.Delimiter = ','; % Set the delimiter
-                            % Retain all header lines, modify if there's a different number of header rows
+                            opts.Delimiter = ',';  % Set the delimiter
+                            
+                            % Ensure the variable names (headers) are preserved as they are in the file
                             opts.PreserveVariableNames = true;
+                            
+                            % Specify that the first row contains the headers
+                            opts.VariableNamesLine = 1;  % This tells MATLAB that the first line contains variable names (headers)
+                            
+                            % Ensure data starts reading from the line after the headers
+                            opts.DataLine = 2;  % Start reading data from the second line, assuming the first line is the header
+                            
+                            % Read the table using the specified options
                             expData.(subFolders{i}).(safeFieldName) = readtable(csvPath, opts);
                         end
                     elseif strcmp(subFolders{i}, 'PythonGraph') % For 'PythonGraph', read XLSX files
@@ -496,6 +505,10 @@ classdef RMSEUtils
                                 % places so I don't have to call it here
                                 adjustment = expData.Values(1,1) - theoData(1,1);
                                 theoData = theoData + adjustment;
+                                %% This is a band-aid... Make sure to accomodate for this accordingly (I believe adjusting the sensor in real life)
+                                if strcmp(sensor, 'F')
+                                    theoData = -1 * theoData + (2 * theoData(1,1));
+                                end
                                 % theoData = dataField.(sensorFields{i});  % Get the entire data if no speed is involved
                             end
                         end
@@ -528,7 +541,8 @@ classdef RMSEUtils
                 % Calculate RMSE if both experimental and theoretical data are available
                 timestamps = expData.Time;
 
-                interpolatedTheoData = interp1(theoreticalTime, theoData, seconds(timestamps), 'linear', 'extrap');
+                % interpolatedTheoData = interp1(theoreticalTime, theoData, seconds(timestamps), 'linear', 'extrap');
+                interpolatedTheoData = interp1(theoreticalTime, theoData, timestamps, 'linear', 'extrap');
                 rmse = sqrt(mean((expData.Values - interpolatedTheoData).^2));
 
                 % Store RMSE in the results structure

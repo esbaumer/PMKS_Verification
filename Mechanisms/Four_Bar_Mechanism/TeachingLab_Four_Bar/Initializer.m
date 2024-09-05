@@ -20,9 +20,9 @@ utilsFolderPath = fullfile(currentDir, '..', '..', '..', 'CommonUtils');
 addpath(utilsFolderPath);
 
 % % Initialize Mechanism structure with necessary fields
-% Mechanism = struct();
-% 
-% % Define Coordinates of Joints in 3D Space (x, y, z). Units are mm
+Mechanism = struct();
+
+% Define Coordinates of Joints in 3D Space (x, y, z). Units are mm
 % A = [0, 0, 0];
 % B = [151.97, 0, 0];
 % C = [304.58, 344.73, 0];
@@ -109,13 +109,15 @@ addpath(utilsFolderPath);
 % scenarios = [1 1 0];
 % Mechanism = ForceSolver(Mechanism, scenarios);
 % save('Mechanism.mat', 'Mechanism');
+
+% Mechanism = StressSolver(Mechanism, scenarios);
+% save('Mechanism.mat', 'Mechanism');
 % 
-% % Mechanism = StressSolver(Mechanism, scenarios);
-% % save('Mechanism.mat', 'Mechanism');
-% % 
-% csvDir = 'CSVOutput';
 % 
+
+
 % baseDir = 'Kin';
+% csvDir = 'CSVOutput';
 % GeneralUtils.exportMatricesToCSV(baseDir, csvDir);
 % 
 % baseDir = 'Force';
@@ -124,7 +126,7 @@ addpath(utilsFolderPath);
 % baseDir = 'Stress';
 % GeneralUtils.exportMatricesToCSV(baseDir, csvDir);
 
-load("Mechanism")
+% load("Mechanism")
 
 % Define a map from sensors to their respective data types
 % sensorDataTypes = containers.Map(...
@@ -144,12 +146,26 @@ load("Mechanism")
 sensorDataTypes = containers.Map(...
     {'H', 'I'}, ...
     {...
-    {'AngVel'}, ...  % Data types for sensor H
-    {'AngVel'}  ... % Data types for sensor I
+    {'Angle', 'AngVel'}, ...  % Data types for sensor H
+    {'Angle', 'AngVel'}  ... % Data types for sensor I
     }...
     );
 
 sensorSourceMap = containers.Map({'H', 'I'}, ...
     {'WitMotion', 'WitMotion'});
+
+% sensorDataTypes = containers.Map(...
+%     {'E', 'F', 'G'}, ...
+%     {...
+%     {'Angle', 'AngVel'}, ...  % Data types for sensor E
+%     {'Angle', 'AngVel'}  ... % Data types for sensor F
+%     {'Angle', 'AngVel'}  ... % Data types for sensor G
+%     }...
+%     );
+% 
+% sensorSourceMap = containers.Map({'E', 'F', 'G'}, ...
+    % {'CoolTerm', 'CoolTerm', 'CoolTerm'});
+
+load("Mechanism")
 
 Mechanism = RMSE(Mechanism, sensorDataTypes, sensorSourceMap);
