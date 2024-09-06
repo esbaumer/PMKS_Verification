@@ -83,9 +83,9 @@ ANGLE_Y_COL = find(contains(columnHeaders, 'Angle Y')); % Column index for Angle
 % Mapping sensor types to their corresponding sensor ID
 sensorMap = containers.Map(...
     {'H', 'I'}, ...
-    {'ef:e4:2c:bf:73:a9', 'd2:5a:50:4a:21:12'});
+    {'d2:5a:50:4a:21:12', 'ef:e4:2c:bf:73:a9'});
 letterMap = containers.Map(...
-    {'ef:e4:2c:bf:73:a9', 'd2:5a:50:4a:21:12'}, ...
+    {'d2:5a:50:4a:21:12', 'ef:e4:2c:bf:73:a9', }, ...
     {'H', 'I'});
 inputLinkID = sensorMap('H');  % Always use sensor 'H' for zero crossing reference
 
@@ -141,8 +141,8 @@ witMotionData.Time = table2array(validData(:, TIME_COL));
 witMotionData.Time = seconds(witMotionData.Time - witMotionData.Time(1));
 % TODO: Update this accordingly
 if (contains([letterMap(sensorID) dataType], 'HAngVel'))
-    witMotionData.Values = table2array(refinedData(:,2));
-    witMotionData.Values = witMotionData.Values * -1;
+    witMotionData.Values = table2array(refinedData(:,1));
+    % witMotionData.Values = witMotionData.Values * -1;
 elseif (contains([letterMap(sensorID) dataType], 'IAngVel'))
     witMotionData.Values = table2array(refinedData(:,1));
     witMotionData.Values = witMotionData.Values * -1;
