@@ -505,6 +505,32 @@ classdef RMSEUtils
                                 % places so I don't have to call it here
                                 adjustment = expData.Values(1,1) - theoData(1,1);
                                 theoData = theoData + adjustment;
+                                %% This is another band-aid solution and make sure to accomondate for this accordingly
+                                if strcmp(dataType, 'Angle')
+                                    if strcmp(sensor, 'H') || strcmp(sensor, 'I')
+                                    % Step 1: Convert negative values to their positive complements
+                                        data = mod(theoData, 360);  % This ensures all values are in the range [0, 360)
+                                        
+                                        % Step 2: Map values to the new range [-90, 90]
+                                        % adjustedData = zeros(size(data));  % Initialize the adjusted data array
+                                        
+                                        for i = 1:length(data)
+                                            if data(i) <= 90
+                                                % Values between 0 and 90 remain the same
+                                                theoData(i) = data(i);
+                                            elseif data(i) > 90 && data(i) <= 180
+                                                % Values between 90 and 180 are mapped from 90 to 0
+                                                theoData(i) = 180 - data(i);
+                                            elseif data(i) > 180 && data(i) <= 270
+                                                % Values between 180 and 270 are mapped from 0 to -90
+                                                theoData(i) = -(data(i) - 180);
+                                            else
+                                                % Values between 270 and 360 are mapped from -90 to 0
+                                                theoData(i) = -(360 - data(i));
+                                            end
+                                        end
+                                    end
+                                end
                                 %% This is a band-aid... Make sure to accomodate for this accordingly (I believe adjusting the sensor in real life)
                                 if strcmp(sensor, 'F')
                                     theoData = -1 * theoData + (2 * theoData(1,1));

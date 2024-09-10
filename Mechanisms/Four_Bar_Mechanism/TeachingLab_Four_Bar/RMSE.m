@@ -141,11 +141,16 @@ witMotionData.Time = table2array(validData(:, TIME_COL));
 witMotionData.Time = seconds(witMotionData.Time - witMotionData.Time(1));
 % TODO: Update this accordingly
 if (contains([letterMap(sensorID) dataType], 'HAngVel'))
-    witMotionData.Values = table2array(refinedData(:,1));
+    witMotionData.Values = table2array(refinedData(:,2));
+    witMotionData.Values = witMotionData.Values * pi / 180; % CONVERT FROM deg/s to rad/s
+    % witMotionData.Values = witMotionData.Values * (2 * pi) / 60; % CONVERSION FROM RPM TO RAD/S
     % witMotionData.Values = witMotionData.Values * -1;
 elseif (contains([letterMap(sensorID) dataType], 'IAngVel'))
-    witMotionData.Values = table2array(refinedData(:,1));
-    witMotionData.Values = witMotionData.Values * -1;
+    witMotionData.Values = table2array(refinedData(:,2));
+    witMotionData.Values = witMotionData.Values * pi / 180; % CONVERT FROM deg/s to rad/s
+    % witMotionData.Values = witMotionData.Values * -1;
+    % witMotionData.Values = witMotionData.Values * -1 * (2 * pi) / 60; % CONVERSION FROM RPM TO RAD/S
+
 elseif (contains([letterMap(sensorID) dataType], 'HAngle'))
     witMotionData.Values = table2array(refinedData(:,2));
     % witMotionData.Values = witMotionData.Values * -1;
