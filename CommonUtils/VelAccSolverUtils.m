@@ -48,7 +48,9 @@ classdef VelAccSolverUtils
                     input_speed = Mechanism.inputSpeed(iter, speedIndex); % Placeholder, adjust based on your Mechanism structure
 
                     % Define the speed field name
-                    speedStr = ['f' num2str(Mechanism.input_speed_str(speedIndex)) 'RPM'];
+                    % speedStr = ['f' num2str(Mechanism.input_speed_str(speedIndex)) 'RPM'];
+                    speedStrTemp = strrep(num2str(Mechanism.input_speed_str(speedIndex)), '.', '_');  % Replace '.' with '_'
+                    speedStr = ['f' speedStrTemp 'RPM'];  % Construct the new name
 
                     % Calculate kinematics for the current iteration and store within the Mechanism
                     Mechanism = VelAccSolverUtils.determineKinematics(Mechanism, iter, speedStr, JointPos, LinkCoMPos, input_speed, determineAngVelFunc, determineLinVelFunc, determineAngAccFunc, determineLinAccFunc);
@@ -124,7 +126,10 @@ classdef VelAccSolverUtils
             angVelNames = fieldnames(initialBlankLinkVector);
             for i = 1:length(angVelNames)
                 for j = 1:length(speeds)
-                    rpmName = ['f' num2str(speeds(j)) 'RPM'];
+                    % rpmName = ['f' num2str(speeds(j)) 'RPM'];
+                    % rpmName = strrep(num2str(speeds(j)), '.', '_');  % Replace '.' with '_'
+                    speedStr = strrep(num2str(speeds(j)), '.', '_');  % Replace '.' with '_'
+                    rpmName = ['f' speedStr 'RPM'];  % Construct the new name
                     Mechanism.AngVel.(angVelNames{i}).(rpmName) = zeros(numIterations, 3); % Removing the third dimension for speeds
                 end
             end
@@ -134,7 +139,9 @@ classdef VelAccSolverUtils
             linJointVelNames = fieldnames(initialBlankJointVector);
             for i = 1:length(linJointVelNames)
                 for j = 1:length(speeds)
-                    rpmName = ['f' num2str(speeds(j)) 'RPM'];
+                    % rpmName = ['f' num2str(speeds(j)) 'RPM'];
+                    speedStr = strrep(num2str(speeds(j)), '.', '_');  % Replace '.' with '_'
+                    rpmName = ['f' speedStr 'RPM'];  % Construct the new name
                     Mechanism.LinVel.Joint.(linJointVelNames{i}).(rpmName) = zeros(numIterations, 3);
                 end
             end
@@ -142,7 +149,9 @@ classdef VelAccSolverUtils
             linLinkCoMVelNames = fieldnames(initialBlankLinkVector);
             for i = 1:length(linLinkCoMVelNames)
                 for j = 1:length(speeds)
-                    rpmName = ['f' num2str(speeds(j)) 'RPM'];
+                    % rpmName = ['f' num2str(speeds(j)) 'RPM'];
+                    speedStr = strrep(num2str(speeds(j)), '.', '_');  % Replace '.' with '_'
+                    rpmName = ['f' speedStr 'RPM'];  % Construct the new name
                     Mechanism.LinVel.LinkCoM.(linLinkCoMVelNames{i}).(rpmName) = zeros(numIterations, 3);
                 end
             end
@@ -151,7 +160,9 @@ classdef VelAccSolverUtils
             angAccNames = fieldnames(initialBlankLinkVector);
             for i = 1:length(angAccNames)
                 for j = 1:length(speeds)
-                    rpmName = ['f' num2str(speeds(j)) 'RPM'];
+                    % rpmName = ['f' num2str(speeds(j)) 'RPM'];
+                    speedStr = strrep(num2str(speeds(j)), '.', '_');  % Replace '.' with '_'
+                    rpmName = ['f' speedStr 'RPM'];  % Construct the new name
                     Mechanism.AngAcc.(angAccNames{i}).(rpmName) = zeros(numIterations, 3);
                 end
             end
@@ -161,7 +172,9 @@ classdef VelAccSolverUtils
             linJointAccNames = fieldnames(initialBlankJointVector);
             for i = 1:length(linJointAccNames)
                 for j = 1:length(speeds)
-                    rpmName = ['f' num2str(speeds(j)) 'RPM'];
+                    % rpmName = ['f' num2str(speeds(j)) 'RPM'];
+                    speedStr = strrep(num2str(speeds(j)), '.', '_');  % Replace '.' with '_'
+                    rpmName = ['f' speedStr 'RPM'];  % Construct the new name
                     Mechanism.LinAcc.Joint.(linJointAccNames{i}).(rpmName) = zeros(numIterations, 3);
                 end
             end
@@ -169,7 +182,9 @@ classdef VelAccSolverUtils
             linLinkCoMAccNames = fieldnames(initialBlankLinkVector);
             for i = 1:length(linLinkCoMAccNames)
                 for j = 1:length(speeds)
-                    rpmName = ['f' num2str(speeds(j)) 'RPM'];
+                    % rpmName = ['f' num2str(speeds(j)) 'RPM'];
+                    speedStr = strrep(num2str(speeds(j)), '.', '_');  % Replace '.' with '_'
+                    rpmName = ['f' speedStr 'RPM'];  % Construct the new name
                     Mechanism.LinAcc.LinkCoM.(linLinkCoMAccNames{i}).(rpmName) = zeros(numIterations, 3);
                 end
             end

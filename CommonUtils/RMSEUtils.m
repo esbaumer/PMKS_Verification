@@ -558,7 +558,9 @@ classdef RMSEUtils
 
             % Calculate RMSE if both experimental and theoretical data are available
             if ~isempty(expData) && ~isempty(theoData)
-                rpmValue = str2double(regexp(speed, '\d+', 'match'));  % Extract numerical part from speed string like 'f10RPM'
+                % Extract the numerical part from speed string like 'f10_2RPM'
+                rpmValue = str2double(strrep(regexp(speed, '\d+_\d+|\d+', 'match'), '_', '.'));
+                % rpmValue = str2double(regexp(speed, '\d+', 'match'));  % Extract numerical part from speed string like 'f10RPM'
                 timePerRevolution = 60 / rpmValue;  % Calculate the time for one full revolution (in seconds)
                 numDataPoints = size(theoData, 1);  % Number of data points in the theoretical data
                 theoreticalTime = linspace(0, timePerRevolution, numDataPoints);  % Create a linearly spaced time array
@@ -657,7 +659,10 @@ speeds = cell(1, length(input_speed_str));
 % Loop through each speed and format it
 for i = 1:length(input_speed_str)
     % Format the string with 'f' at the start and 'RPM' at the end
-    speeds{i} = ['f' num2str(input_speed_str(i)) 'RPM'];
+    % speeds{i} = ['f' num2str(input_speed_str(i)) 'RPM'];
+    speedStrTemp = strrep(num2str(input_speed_str(i)), '.', '_');  % Replace '.' with '_'
+    speeds{i} = ['f' speedStrTemp 'RPM'];  % Construct the new name
+
 end
 end
 

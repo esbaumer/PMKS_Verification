@@ -18,8 +18,9 @@ classdef ForceSolverUtils
                     JointPos = ForceSolverUtils.extractJointPositions(Mechanism, iter);
                     LinkCoMPos = ForceSolverUtils.extractLinkCoMPositions(Mechanism, iter);
                     % input_speed = Mechanism.inputSpeed(iter, speedIndex); % Placeholder, adjust based on your Mechanism structure
-                    speedStr = ['f' num2str(Mechanism.input_speed_str(speedIndex)) 'RPM'];
-
+                    % speedStr = ['f' num2str(Mechanism.input_speed_str(speedIndex)) 'RPM'];
+                    speedStrTemp = strrep(num2str(Mechanism.input_speed_str(speedIndex)), '.', '_');  % Replace '.' with '_'
+                    speedStr = ['f' speedStrTemp 'RPM'];  % Construct the new name
 
                     % Scenarios: [newtonFlag, gravityFlag, frictionFlag]
                     % scenarios = [0 0 0; 0 0 1; 0 1 0; 0 1 1; 1 0 0; 1 0 1; 1 1 0; 1 1 1];
@@ -178,7 +179,9 @@ classdef ForceSolverUtils
                 for gt = gravTypes
                     for frt = frictionTypes
                         for speedIndex = 1:numSpeeds
-                            speedStr = ['f' num2str(Mechanism.input_speed_str(speedIndex)) 'RPM'];
+                            % speedStr = ['f' num2str(Mechanism.input_speed_str(speedIndex)) 'RPM'];
+                            speedStrTemp = strrep(num2str(Mechanism.input_speed_str(speedIndex)), '.', '_');  % Replace '.' with '_'
+                            speedStr = ['f' speedStrTemp 'RPM'];  % Construct the new name
                             % Prepare the structure for each configuration
                             for jointIndex = 1:length(jointNames)
                                 jointName = jointNames{jointIndex};
