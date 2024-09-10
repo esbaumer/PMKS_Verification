@@ -93,7 +93,6 @@ Mechanism.Angle.ABH(iteration, :) = [0,0,rad2deg(atan2(Mechanism.LinkCoM.ABH(ite
 Mechanism.Angle.BCEF(iteration, :) = [0,0,rad2deg(atan2(Mechanism.LinkCoM.BCEF(iteration,2) - B(2), Mechanism.LinkCoM.BCEF(iteration,1) - B(1)))];
 Mechanism.Angle.CDGI(iteration, :) = [0,0,rad2deg(atan2(Mechanism.LinkCoM.CDGI(iteration,2) - C(2), Mechanism.LinkCoM.CDGI(iteration,1) - C(1)))];
 
-
 for inputSpeedCol = 1:1:length(Mechanism.inputSpeed(1,:))
     if (forwardDir)
         Mechanism.inputSpeed(iteration, inputSpeedCol) = Mechanism.inputSpeed(1, inputSpeedCol);
