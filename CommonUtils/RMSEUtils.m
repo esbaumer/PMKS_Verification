@@ -171,16 +171,16 @@ classdef RMSEUtils
                         if isfile(csvPath)
                             opts = detectImportOptions(csvPath);
                             opts.Delimiter = ',';  % Set the delimiter
-                            
+
                             % Ensure the variable names (headers) are preserved as they are in the file
                             opts.PreserveVariableNames = true;
-                            
+
                             % Specify that the first row contains the headers
                             opts.VariableNamesLine = 1;  % This tells MATLAB that the first line contains variable names (headers)
-                            
+
                             % Ensure data starts reading from the line after the headers
                             opts.DataLine = 2;  % Start reading data from the second line, assuming the first line is the header
-                            
+
                             % Read the table using the specified options
                             expData.(subFolders{i}).(safeFieldName) = readtable(csvPath, opts);
                         end
@@ -450,6 +450,123 @@ classdef RMSEUtils
         end
 
         % Retriev the desired theoretical data
+        % function theoData = retrieveTheoData(dataSet, expData, sensor, dataType, speed)
+        %     % Determine the main category based on dataType
+        %     switch dataType
+        %         case {'LinVel', 'AngVel'}
+        %             mainCategory = 'Vel';
+        %         case {'LinAcc', 'AngAcc'}
+        %             mainCategory = 'Acc';
+        %         case {'Angle', 'Point'}
+        %             mainCategory = 'Pos';
+        %         otherwise
+        %             mainCategory = '?';
+        %     end
+        %
+        %     % Determine the sub-category (Joint or LinkCoM or directly under the category)
+        %     if any(strcmp(dataType, {'LinVel', 'LinAcc', 'Point'}))  % These involve Joint or LinkCoM
+        %         if length(sensor) == 1  % Assuming sensor names for Joints are single characters
+        %             subCategory = 'Joint';
+        %             % subCategory = 'TracerPoint';
+        %         else
+        %             subCategory = 'LinkCoM';
+        %         end
+        %     else  % For angular data types or position, the sensor directly maps to data
+        %         subCategory = '';
+        %     end
+        %
+        %     % Access the appropriate dataset
+        %     try
+        %         if isempty(subCategory)
+        %             % Directly under main category for angular data types
+        %             dataField = dataSet.(mainCategory).(dataType);
+        %         else
+        %             % Nested under Joint or LinkCoM
+        %             dataField = dataSet.(mainCategory).(dataType).(subCategory);
+        %         end
+        %
+        %         % Dynamically find the appropriate sensor field that contains the sensor ID
+        %         theoDataArray = [];
+        %         if ~isempty(dataField)
+        %             sensorFields = fieldnames(dataField);
+        %             for i = 1:length(sensorFields)
+        %                 if contains(sensorFields{i}, sensor)
+        %                     % Handle cases with and without speed specification
+        %                     if ~isempty(speed) && isfield(dataField.(sensorFields{i}), speed)
+        %                         % theoData = table2array(dataField.(sensorFields{i}).(speed)(:,1));
+        %                         theoDataArray = table2array(dataField.(sensorFields{i}).(speed)(:,3));
+        %                     else
+        %                         % Assuming expData and theoData are columns of
+        %                         theoDataArray = double(dataField.(sensorFields{i}){:, 3});
+        %                         % TODO: MAKE SURE expData.Values(1,1) AND theoData(1,1) have the same timestep. The adjustment is off because they do not have the same timestep
+        %                         % adjustedTheorData = theoDataArray(1,1);
+        %                         % adjustment = expData.Values(1,1) - adjustedTheorData;
+        %                         % theoDataArray = theoDataArray + adjustment;
+        %                         % Interpolate theoDataArray to find the value at the first timestep of expData.Values
+        %                         % Assuming theoDataArray has time in theoDataArray.Time and corresponding values in theoDataArray.Values
+        %                         interpolatedTheoData = interp1(theoDataArray.Time, theoDataArray.Values, expTimeStart, 'linear');
+        %
+        %                         % Calculate the adjustment using the interpolated value at the first timestep
+        %                         adjustment = expData.Values(1) - interpolatedTheoData;
+        %
+        %                         % Apply the adjustment to the entire theoretical data array
+        %                         adjustedTheoDataArray = theoDataArray.Values + adjustment;
+        %
+        %                         % Updating theoDataArray with the adjusted values
+        %                         theoDataArray.Values = adjustedTheoDataArray;
+        %                         %% This is another band-aid solution and make sure to accomondate for this accordingly
+        %                         if strcmp(dataType, 'Angle')
+        %                             if strcmp(sensor, 'H') || strcmp(sensor, 'I')
+        %                             % Step 1: Convert negative values to their positive complements
+        %                                 data = mod(theoData, 360);  % This ensures all values are in the range [0, 360)
+        %
+        %                                 % Step 2: Map values to the new range [-90, 90]
+        %                                 % adjustedData = zeros(size(data));  % Initialize the adjusted data array
+        %
+        %                                 for i = 1:length(data)
+        %                                     if data(i) <= 90
+        %                                         % Values between 0 and 90 remain the same
+        %                                         theoDataArray(i) = data(i);
+        %                                     elseif data(i) > 90 && data(i) <= 180
+        %                                         % Values between 90 and 180 are mapped from 90 to 0
+        %                                         theoDataArray(i) = 180 - data(i);
+        %                                     elseif data(i) > 180 && data(i) <= 270
+        %                                         % Values between 180 and 270 are mapped from 0 to -90
+        %                                         theoDataArray(i) = -(data(i) - 180);
+        %                                     else
+        %                                         % Values between 270 and 360 are mapped from -90 to 0
+        %                                         theoDataArray(i) = -(360 - data(i));
+        %                                     end
+        %                                 end
+        %                             end
+        %                         end
+        %                         %% This is a band-aid... Make sure to accomodate for this accordingly (I believe adjusting the sensor in real life)
+        %                         if strcmp(sensor, 'F')
+        %                             theoDataArray = -1 * theoDataArray + (2 * theoDataArray(1,1));
+        %                         end
+        %                         % theoData = dataField.(sensorFields{i});  % Get the entire data if no speed is involved
+        %                     end
+        %                 end
+        %             end
+        %         end
+        %         if isempty(theoDataArray)  % If no matching sensor field is found
+        %             theoDataArray = [];  % Return empty if not found
+        %         end
+        %     catch
+        %         theoDataArray = [];  % Return empty if any field is not found or any error occurs
+        %     end
+        %     theoData.Values = theoDataArray;
+        %
+        %     % Now, determine timestep
+        %     rpmValue = str2double(strrep(regexp(speed, '\d+_\d+|\d+', 'match'), '_', '.'));
+        %     % rpmValue = str2double(regexp(speed, '\d+', 'match'));  % Extract numerical part from speed string like 'f10RPM'
+        %     timePerRevolution = 60 / rpmValue;  % Calculate the time for one full revolution (in seconds)
+        %     numDataPoints = size(theoData.Values, 1);  % Number of data points in the theoretical data
+        %     theoreticalTime = linspace(0, timePerRevolution, numDataPoints);  % Create a linearly spaced time array
+        %     theoreticalTime = theoreticalTime.';
+        %     theoData.Time = theoreticalTime;
+        % end
+
         function theoData = retrieveTheoData(dataSet, expData, sensor, dataType, speed)
             % Determine the main category based on dataType
             switch dataType
@@ -464,15 +581,14 @@ classdef RMSEUtils
             end
 
             % Determine the sub-category (Joint or LinkCoM or directly under the category)
-            if any(strcmp(dataType, {'LinVel', 'LinAcc', 'Point'}))  % These involve Joint or LinkCoM
+            if any(strcmp(dataType, {'LinVel', 'LinAcc', 'Point'}))
                 if length(sensor) == 1  % Assuming sensor names for Joints are single characters
                     subCategory = 'Joint';
-                    % subCategory = 'TracerPoint';
                 else
                     subCategory = 'LinkCoM';
                 end
-            else  % For angular data types or position, the sensor directly maps to data
-                subCategory = '';
+            else
+                subCategory = '';  % For angular data types or position, the sensor directly maps to data
             end
 
             % Access the appropriate dataset
@@ -485,69 +601,64 @@ classdef RMSEUtils
                     dataField = dataSet.(mainCategory).(dataType).(subCategory);
                 end
 
+                % Initialize theoDataArray
+                theoDataArray = [];
+
                 % Dynamically find the appropriate sensor field that contains the sensor ID
-                theoData = [];
                 if ~isempty(dataField)
                     sensorFields = fieldnames(dataField);
                     for i = 1:length(sensorFields)
                         if contains(sensorFields{i}, sensor)
                             % Handle cases with and without speed specification
                             if ~isempty(speed) && isfield(dataField.(sensorFields{i}), speed)
-                                % theoData = table2array(dataField.(sensorFields{i}).(speed)(:,1));
-                                theoData = table2array(dataField.(sensorFields{i}).(speed)(:,3));
+                                theoDataArray = table2array(dataField.(sensorFields{i}).(speed)(:,3));
+                                % Calculate Time Before Adjustment
+                                rpmValue = str2double(strrep(regexp(speed, '\d+_\d+|\d+', 'match'), '_', '.'));
+                                timePerRevolution = 60 / rpmValue;  % Time for one full revolution (in seconds)
+                                numDataPoints = size(theoDataArray, 1);  % Number of data points in the theoretical data
+                                theoreticalTime = linspace(0, timePerRevolution, numDataPoints).';  % Linearly spaced time array
+                                theoData.Time = theoreticalTime;  % Set the time for theoData
                             else
-                                % Assuming expData and theoData are columns of
-                                % angles. TODO: There may be condition that this is
-                                % a joint position... Adjust accordingly if
-                                % desired...
-                                theoData = double(dataField.(sensorFields{i}){:, 3});
-                                % TODO: Make sure I have table2array in appropriate
-                                % places so I don't have to call it here
-                                adjustment = expData.Values(1,1) - theoData(1,1);
-                                theoData = theoData + adjustment;
-                                %% This is another band-aid solution and make sure to accomondate for this accordingly
+                                theoDataArray = double(dataField.(sensorFields{i}){:, 3});
+
+                                % Calculate Time Before Adjustment
+                                rpmValue = str2double(strrep(regexp(speed, '\d+_\d+|\d+', 'match'), '_', '.'));
+                                timePerRevolution = 60 / rpmValue;  % Time for one full revolution (in seconds)
+                                numDataPoints = size(theoDataArray, 1);  % Number of data points in the theoretical data
+                                theoreticalTime = linspace(0, timePerRevolution, numDataPoints).';  % Linearly spaced time array
+                                theoData.Time = theoreticalTime;  % Set the time for theoData
+
+                                % Perform Interpolation and Adjustments After Time Calculation
+                                expTimeStart = expData.Time(1);  % Get the first timestep from expData
+                                interpolatedTheoData = interp1(theoData.Time, theoDataArray, expTimeStart, 'linear');  % Interpolate to match first expData timestep
+                                adjustment = expData.Values(1) - interpolatedTheoData;  % Calculate adjustment
+                                theoDataArray = theoDataArray + adjustment;  % Apply adjustment
+
+                                % Additional Adjustments for Specific Data Types or Sensors
                                 if strcmp(dataType, 'Angle')
                                     if strcmp(sensor, 'H') || strcmp(sensor, 'I')
-                                    % Step 1: Convert negative values to their positive complements
-                                        data = mod(theoData, 360);  % This ensures all values are in the range [0, 360)
-                                        
-                                        % Step 2: Map values to the new range [-90, 90]
-                                        % adjustedData = zeros(size(data));  % Initialize the adjusted data array
-                                        
-                                        for i = 1:length(data)
-                                            if data(i) <= 90
-                                                % Values between 0 and 90 remain the same
-                                                theoData(i) = data(i);
-                                            elseif data(i) > 90 && data(i) <= 180
-                                                % Values between 90 and 180 are mapped from 90 to 0
-                                                theoData(i) = 180 - data(i);
-                                            elseif data(i) > 180 && data(i) <= 270
-                                                % Values between 180 and 270 are mapped from 0 to -90
-                                                theoData(i) = -(data(i) - 180);
-                                            else
-                                                % Values between 270 and 360 are mapped from -90 to 0
-                                                theoData(i) = -(360 - data(i));
-                                            end
-                                        end
+                                        theoDataArray = adjustAngleRange(theoDataArray);
                                     end
                                 end
-                                %% This is a band-aid... Make sure to accomodate for this accordingly (I believe adjusting the sensor in real life)
+
                                 if strcmp(sensor, 'F')
-                                    theoData = -1 * theoData + (2 * theoData(1,1));
+                                    theoDataArray = -1 * theoDataArray + (2 * theoDataArray(1,1));
                                 end
-                                % theoData = dataField.(sensorFields{i});  % Get the entire data if no speed is involved
                             end
                         end
                     end
                 end
-                if isempty(theoData)  % If no matching sensor field is found
-                    theoData = [];  % Return empty if not found
+
+                if isempty(theoDataArray)  % If no matching sensor field is found
+                    theoDataArray = [];  % Return empty if not found
                 end
             catch
-                theoData = [];  % Return empty if any field is not found or any error occurs
+                theoDataArray = [];  % Return empty if any field is not found or any error occurs
             end
-        end
 
+            % Set the adjusted values back to theoData
+            theoData.Values = theoDataArray;
+        end
 
         function rmseResults = calculateRMSE(expDataSet, theoDataSet, sensor, sensorSourceMap, dataType, speed, processCoolTermData, processPythonGraphData, processWitMotionData)
             % rmseResults = struct(); % Initialize results structure
@@ -559,18 +670,20 @@ classdef RMSEUtils
             % Calculate RMSE if both experimental and theoretical data are available
             if ~isempty(expData) && ~isempty(theoData)
                 % Extract the numerical part from speed string like 'f10_2RPM'
-                rpmValue = str2double(strrep(regexp(speed, '\d+_\d+|\d+', 'match'), '_', '.'));
-                % rpmValue = str2double(regexp(speed, '\d+', 'match'));  % Extract numerical part from speed string like 'f10RPM'
-                timePerRevolution = 60 / rpmValue;  % Calculate the time for one full revolution (in seconds)
-                numDataPoints = size(theoData, 1);  % Number of data points in the theoretical data
-                theoreticalTime = linspace(0, timePerRevolution, numDataPoints);  % Create a linearly spaced time array
-                theoreticalTime = theoreticalTime.';
+                % rpmValue = str2double(strrep(regexp(speed, '\d+_\d+|\d+', 'match'), '_', '.'));
+                % % rpmValue = str2double(regexp(speed, '\d+', 'match'));  % Extract numerical part from speed string like 'f10RPM'
+                % timePerRevolution = 60 / rpmValue;  % Calculate the time for one full revolution (in seconds)
+                % numDataPoints = size(theoData, 1);  % Number of data points in the theoretical data
+                % theoreticalTime = linspace(0, timePerRevolution, numDataPoints);  % Create a linearly spaced time array
+                % theoreticalTime = theoreticalTime.';
 
                 % Calculate RMSE if both experimental and theoretical data are available
                 timestamps = expData.Time;
 
                 % interpolatedTheoData = interp1(theoreticalTime, theoData, seconds(timestamps), 'linear', 'extrap');
-                interpolatedTheoData = interp1(theoreticalTime, theoData, timestamps, 'linear', 'extrap');
+                % interpolatedTheoData = interp1(theoreticalTime, theoData, timestamps, 'linear', 'extrap');
+                % rmse = sqrt(mean((expData.Values - interpolatedTheoData).^2));
+                interpolatedTheoData = interp1(theoData.Time, theoData.Values, timestamps, 'linear', 'extrap');
                 rmse = sqrt(mean((expData.Values - interpolatedTheoData).^2));
 
                 % Store RMSE in the results structure
@@ -580,7 +693,7 @@ classdef RMSEUtils
                 fig = figure('Visible', 'off');
                 hold on;
                 plot(timestamps, expData.Values, 'b', 'DisplayName', 'Experimental Data');
-                plot(theoreticalTime, theoData, 'g', 'DisplayName', 'Theoretical Data');
+                plot(theoData.Time, theoData.Values, 'g', 'DisplayName', 'Theoretical Data');
                 plot(timestamps, interpolatedTheoData, 'r--', 'DisplayName', 'Interpolated Theoretical Data');
                 legend show;
                 xlabel('Time (s)');
@@ -684,6 +797,25 @@ uniqueValues = unique(allValues, 'stable');  % 'stable' keeps the original order
 
 % Return the unique values as a cell array
 subFolders = uniqueValues;
+end
+
+% Helper function to adjust angle data
+function adjustedData = adjustAngleRange(data)
+% Convert negative values to their positive complements
+data = mod(data, 360);  % Ensure all values are in the range [0, 360)
+adjustedData = zeros(size(data));  % Initialize the adjusted data array
+
+for i = 1:length(data)
+    if data(i) <= 90
+        adjustedData(i) = data(i);
+    elseif data(i) > 90 && data(i) <= 180
+        adjustedData(i) = 180 - data(i);
+    elseif data(i) > 180 && data(i) <= 270
+        adjustedData(i) = -(data(i) - 180);
+    else
+        adjustedData(i) = -(360 - data(i));
+    end
+end
 end
 
 

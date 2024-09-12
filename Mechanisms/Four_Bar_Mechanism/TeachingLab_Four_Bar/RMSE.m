@@ -138,7 +138,20 @@ refinedData = validData(:, dataColumns);
 % Prepare output structure
 witMotionData = struct();
 witMotionData.Time = table2array(validData(:, TIME_COL));
-witMotionData.Time = seconds(witMotionData.Time - witMotionData.Time(1));
+% Determine the actual start time by utilizing interpolation to find
+% the starting theoretical where the input link is 0
+x = [inputLinkData{zeroCrossings(1,1), ANGLE_Y_COL}, inputLinkData{zeroCrossings(1,1)-1, ANGLE_Y_COL}];  % Example angles in degrees
+
+% Define the corresponding y values (times) as duration type
+y = [inputLinkData{zeroCrossings(1,1), TIME_COL}, inputLinkData{zeroCrossings(1,1)-1, TIME_COL}];  % Example times
+
+% Define the x value at which you want to interpolate
+xq = 0;  % Instance where input link starts at 0 degree angle 
+
+% Perform interpolation using interp1 function
+witMotionStartingTime = interp1(x, y, xq, 'linear'); 
+
+witMotionData.Time = seconds(witMotionData.Time - witMotionStartingTime);
 % TODO: Update this accordingly
 if (contains([letterMap(sensorID) dataType], 'HAngVel'))
     witMotionData.Values = table2array(refinedData(:,2));
