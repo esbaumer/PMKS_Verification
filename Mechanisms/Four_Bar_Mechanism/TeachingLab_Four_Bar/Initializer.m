@@ -19,21 +19,31 @@ utilsFolderPath = fullfile(currentDir, '..', '..', '..', 'CommonUtils');
 % Add this path to MATLAB's search paths
 addpath(utilsFolderPath);
 
-% % Initialize Mechanism structure with necessary fields
+% Initialize Mechanism structure with necessary fields
 % Mechanism = struct();
 % 
 % % Define Coordinates of Joints in 3D Space (x, y, z). Units are mm
+% % A = [0, 0, 0];
+% % B = [151.97, 0, 0];
+% % C = [304.58, 344.73, 0];
+% % D = [457.20, 0, 0];
 % A = [0, 0, 0];
-% B = [151.97, 0, 0];
-% C = [304.58, 344.73, 0];
-% D = [457.20, 0, 0];
+% B = [1.52, 0, 0];
+% C = [4.23, 3.029, 0];
+% D = [4.572, 0, 0];
 % 
 % % Tracer Points for where the sensors are located
-% E = [184.9, 207.46, 0]; % Coolterm, 1
-% F = [90.5, 333.5, 0]; % Coolterm, 2
-% G = [417.98, 193.55, 0]; % Coolterm, 3
-% H = [75.98, 102.78, 0]; % WitMotion, 1
-% I = [417.98, 195.20, 0]; % WitMotion, 2
+% % E = [184.9, 207.46, 0]; % Coolterm, 1
+% % F = [90.5, 333.5, 0]; % Coolterm, 2
+% % G = [417.98, 193.55, 0]; % Coolterm, 3
+% % H = [75.98, 102.78, 0]; % WitMotion, 1
+% % I = [417.98, 195.20, 0]; % WitMotion, 2
+% E = [4.79, 1.632, 0]; % Coolterm, 1
+% F = [2.548, 1.958, 0]; % Coolterm, 2
+% G = [2.053, 3.543, 0]; % Coolterm, 3
+% H = [0.7598, 1.0278, 0]; % WitMotion, 1
+% I = [4.1798, 1.9520, 0]; % WitMotion, 2
+% 
 % 
 % % Define initial joint positions (example values)
 % Mechanism.Joint.A = A;
@@ -53,9 +63,16 @@ addpath(utilsFolderPath);
 % Mechanism.LinkCoM.CDGI = [472.56, -20.80, 0];
 % 
 % % Define angles for each link
-% Mechanism.Angle.ABH = [0 0 rad2deg(atan2((Mechanism.LinkCoM.ABH(2) - A(2)), Mechanism.LinkCoM.ABH(1) - A(1)))];
-% Mechanism.Angle.BCEF = [0 0 rad2deg(atan2((Mechanism.LinkCoM.BCEF(2) - B(2)), Mechanism.LinkCoM.BCEF(1) - B(1)))];
-% Mechanism.Angle.CDGI = [0 0 rad2deg(atan2((Mechanism.LinkCoM.CDGI(2) - C(2)), Mechanism.LinkCoM.CDGI(1) - C(1)))];
+% Mechanism.Angle.Link.ABH = [0 0 rad2deg(atan2((Mechanism.LinkCoM.ABH(2) - A(2)), Mechanism.LinkCoM.ABH(1) - A(1)))];
+% Mechanism.Angle.Link.BCEF = [0 0 rad2deg(atan2((Mechanism.LinkCoM.BCEF(2) - B(2)), Mechanism.LinkCoM.BCEF(1) - B(1)))];
+% Mechanism.Angle.Link.CDGI = [0 0 rad2deg(atan2((Mechanism.LinkCoM.CDGI(2) - C(2)), Mechanism.LinkCoM.CDGI(1) - C(1)))];
+% 
+% % Define angles for each sensor
+% Mechanism.Angle.Joint.E = [0 0 rad2deg(atan2(E(2) - B(2), E(1) - B(1)))];
+% Mechanism.Angle.Joint.F = [0 0 rad2deg(atan2(F(2) - C(2), F(1) - C(1)))+180];
+% Mechanism.Angle.Joint.G = [0 0 rad2deg(atan2(G(2) - B(2), G(1) - B(1)))];
+% Mechanism.Angle.Joint.H = [0 0 rad2deg(atan2(H(2) - A(2), H(1) - A(1)))];
+% Mechanism.Angle.Joint.I = [0 0 rad2deg(atan2(I(2) - C(2), I(1) - C(1)))];
 % 
 % % Define masses for each link (kg)
 % Mechanism.Mass.ABH = 10.458382; 
@@ -109,12 +126,12 @@ addpath(utilsFolderPath);
 % scenarios = [1 1 0];
 % Mechanism = ForceSolver(Mechanism, scenarios);
 % save('Mechanism.mat', 'Mechanism');
-
-% Mechanism = StressSolver(Mechanism, scenarios);
-% save('Mechanism.mat', 'Mechanism');
-% 
-% 
-
+% % 
+% % % Mechanism = StressSolver(Mechanism, scenarios);
+% % % save('Mechanism.mat', 'Mechanism');
+% % % 
+% % % 
+% % 
 % load("Mechanism")
 % 
 % baseDir = 'Kin';

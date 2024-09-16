@@ -1,7 +1,7 @@
 function Mechanism = RMSE(Mechanism, sensorDataTypes, sensorSourceMap)
 % TODO: Make sure to insert the processFunctions in as an argument and
 % utilize this within code
-Mechanism = RMSEUtils.RMSESolver(Mechanism, sensorDataTypes, sensorSourceMap, @processCoolTermData, @processPythonGraphData, @processWitMotionData);
+Mechanism = RMSEUtils.RMSESolver(Mechanism, sensorDataTypes, sensorSourceMap, @processCoolTermData, @processPythonGraphData, @processWitMotionData, @determineAdjustment, @determineOffset);
 end
 
 % TODO: Put the logic here for pulling the respective column for
@@ -10,7 +10,7 @@ end
 function coolTermData = processCoolTermData(rawData, sensorType, dataType)
 % Define sensor columns for angles and angular velocities
 sensorColumnsMap = containers.Map(...
-    {'F', 'E', 'G'}, ...
+    {'G', 'F', 'E'}, ...
     {struct('AngVel', 4, 'Angle', 5:7), ...
     struct('Angle', 8:10, 'AngVel', 11:13), ...
     struct('Angle', 14:16, 'AngVel', 17:19)});
@@ -19,23 +19,21 @@ columns = sensorColumnsMap(sensorType).(dataType);
 binarySignal = rawData.Var3;  % Adjust 'Var3' to the correct variable name if different
 
 % Identify valid data segments based on binary signals
-oneIndices = find(binarySignal == 1);
-validSegments = find(diff(oneIndices) > 1);  % Find non-consecutive ones
+zeroIndices = find(binarySignal == 0);
+validSegments = find(diff(zeroIndices) > 1);  % Find non-consecutive ones
 
 if isempty(validSegments) || length(validSegments) < 2
     error('Valid data segments not found.');
 end
 
-if isempty(validSegments) || length(validSegments) < 2
-    error('Valid data segments not found.');
-end
+% TODO: Make sure to utilize the correct zeroIndex
 
 % Define the range for valid data based on identified segments
-validStartIndex = oneIndices(validSegments(1));
-validEndIndex = oneIndices(validSegments(2));
+validStartIndex = zeroIndices(validSegments(1));
+validEndIndex = zeroIndices(validSegments(2));
 
 % Extract the valid data range
-validData = rawData(validStartIndex:validEndIndex, :);
+validData = rawData(validStartIndex+1:validEndIndex, :);
 
 % Compare extracted data with theoretical data for further refinement
 % comparisonResults = compareData(validData(:, columns), theoData);
@@ -45,7 +43,7 @@ validData = rawData(validStartIndex:validEndIndex, :);
 
 % Define map for selecting the correct Y column index based on sensor and dataType
 yColumnMap = containers.Map(...
-    {'FAngVel', 'FAngle', 'EAngle', 'EAngVel', 'GAngle', 'GAngVel'}, ...
+    {'GAngVel', 'GAngle', 'FAngle', 'FAngVel', 'EAngle', 'EAngVel', }, ...
     {1, 2, 3, 1, 3, 1});
 % {1, 2, 1, 3, 1, 3});
 
@@ -58,13 +56,35 @@ XData = validData(:, 2);
 % refinedData = validData(refinedDataIndices, :);
 % continuousData = removeSpikes(refinedData, columns);
 
+% witMotionData = struct();
+witMotionData.Time = table2array(XData);
+% Determine the actual start time by utilizing interpolation to find
+% the starting theoretical where the input link is 0
+
+x = [rawData{validStartIndex,10}, rawData{validStartIndex+1,10}];  % Example angles in degrees
+
+% Define the corresponding y values (times) as duration type
+y = [rawData{validStartIndex,2}, rawData{validStartIndex+1,2}];  % Example times
+
+% Define the x value at which you want to interpolate
+xq = 0;  % Instance where input link starts at 0 degree angle 
+
+% Perform interpolation using interp1 function
+witMotionStartingTime = interp1(x, y, xq, 'linear'); 
+
+timestamps = witMotionData.Time - witMotionStartingTime;
+% %%
+
+
 % Store processed data for output
-coolTermData.Time = table2array(XData);  % Time column
-timestamps = coolTermData.Time - coolTermData.Time(1,1);
+% coolTermData.Time = table2array(XData);  % Time column
+% 
+% 
+% timestamps = coolTermData.Time - coolTermData.Time(1,1);
 timestamps = timestamps / 1000;
 coolTermData.Time = timestamps;
 coolTermData.Values = table2array(YData);  % Extracted values based on dataType and sensor
-if (contains([sensorType dataType], 'EAngVel') || contains([sensorType dataType], 'GAngVel'))
+if (contains([sensorType dataType], 'EAngVel') || contains([sensorType dataType], 'FAngVel'))
     coolTermData.Values = coolTermData.Values * -1;
 end
 end
@@ -175,4 +195,33 @@ else
 end
 % witMotionData.Values = refinedData;
 witMotionData.SensorID = sensorID;  % Include sensor ID in the output for reference
+end
+
+function adjustment = determineAdjustment(sensor, theoData, actualData)
+     switch sensor
+        case {'E', 'F', 'H', 'I'}
+            adjustment = theoData - 90 - actualData;
+        case 'G'
+            adjustment = 180 - theoData - actualData;
+        otherwise
+            error('Invalid sensor type.');
+    end
+end
+
+function offset = determineOffset(sensor, theoDataArray, adjustmentVal)
+   % Extract the Time field from the theoData struct
+    % timeData = theoData.Time; % 361x1 double array
+
+    % Initialize offset to be the same size as timeData
+    offset = zeros(size(theoDataArray));
+    
+    % Determine the offset based on the sensor type
+    switch sensor
+        case {'E', 'F', 'H', 'I'}
+            offset = theoDataArray - 90 - adjustmentVal; % Apply the formula to each element
+        case 'G'
+            offset = 180 - theoDataArray - adjustmentVal; % Apply the formula to each element
+        otherwise
+            error('Invalid sensor type.');
+    end
 end

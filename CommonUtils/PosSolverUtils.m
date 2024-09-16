@@ -50,15 +50,25 @@ classdef PosSolverUtils
             end
             linkNames = fieldnames(Mechanism.LinkCoM);
             for i = 1:length(linkNames)
-                initialLinkPosition = Mechanism.LinkCoM.(linkNames{i});
+                initialLinkLinearPosition = Mechanism.LinkCoM.(linkNames{i});
                 Mechanism.LinkCoM.(linkNames{i}) = zeros(max_iterations, 3); % Initialize with zeros
-                Mechanism.LinkCoM.(linkNames{i})(1, :) = initialLinkPosition; % Set initial position
+                Mechanism.LinkCoM.(linkNames{i})(1, :) = initialLinkLinearPosition; % Set initial position
             end
-            angleName = fieldnames(Mechanism.Angle);
-            for i = 1:length(angleName)
-                initialAnglePosition = Mechanism.Angle.(angleName{i});
-                Mechanism.Angle.(linkNames{i}) = zeros(max_iterations, 3); % Initialize with zeros
-                Mechanism.Angle.(linkNames{i})(1, :) = initialAnglePosition; % Set initial position
+            % angleName = fieldnames(Mechanism.Angle);
+            % for i = 1:length(angleName)
+            %     initialAnglePosition = Mechanism.Angle.(angleName{i});
+            %     Mechanism.Angle.(linkNames{i}) = zeros(max_iterations, 3); % Initialize with zeros
+            %     Mechanism.Angle.(linkNames{i})(1, :) = initialAnglePosition; % Set initial position
+            % end
+            for i = 1:length(linkNames)
+                initialLinkAnglePosition = Mechanism.Angle.Link.(linkNames{i});
+                Mechanism.Angle.Link.(linkNames{i}) = zeros(max_iterations, 3); % Initialize with zeros
+                Mechanism.Angle.Link.(linkNames{i})(1, :) = initialLinkAnglePosition; % Initialize with zeros
+            end
+            for i = 1:length(tracerPointNames)
+                initialTracerPointAnglePosition = Mechanism.Angle.Joint.(tracerPointNames{i});
+                Mechanism.Angle.Joint.(tracerPointNames{i}) = zeros(max_iterations, 3); % Initialize with zeros
+                Mechanism.Angle.Joint.(tracerPointNames{i})(1, :) = initialTracerPointAnglePosition; % Initialize with zeros
             end
         end
 
@@ -84,11 +94,18 @@ classdef PosSolverUtils
             for i = 1:length(linkNames)
                 Mechanism.LinkCoM.(linkNames{i}) = Mechanism.LinkCoM.(linkNames{i})(1:iteration-1,:);
             end
-            angleNames = fieldnames(Mechanism.Angle);
-            for i = 1:length(angleNames)
-                Mechanism.Angle.(angleNames{i}) = Mechanism.Angle.(angleNames{i})(1:iteration-1,:);
+
+            for i = 1:length(linkNames)
+                Mechanism.Angle.Link.(linkNames{i}) = Mechanism.Angle.Link.(linkNames{i})(1:iteration-1,:);
             end
-            Mechanism.inputSpeed= Mechanism.inputSpeed(1:iteration-1,:);
+            for i = 1:length(tracerPointNames)
+                Mechanism.Angle.Joint.(tracerPointNames{i}) = Mechanism.Angle.Joint.(tracerPointNames{i})(1:iteration-1, :);
+            end
+            % angleNames = fieldnames(Mechanism.Angle);
+            % for i = 1:length(angleNames)
+            %     Mechanism.Angle.(angleNames{i}) = Mechanism.Angle.(angleNames{i})(1:iteration-1,:);
+            % end
+            Mechanism.inputSpeed = Mechanism.inputSpeed(1:iteration-1,:);
         end
 
         % Function to update positions based on current state
@@ -442,21 +459,32 @@ classdef PosSolverUtils
                 mkdir(pointFolder);
             end
 
-            jointFolder = fullfile(pointFolder, 'Joint');
-            linkCoMFolder = fullfile(pointFolder, 'LinkCoM');
+            pointJointFolder = fullfile(pointFolder, 'Joint');
+            pointLinkCoMFolder = fullfile(pointFolder, 'LinkCoM');
+
+            % Create subdirectories if they don't exist
+            if ~exist(pointJointFolder, 'dir')
+                mkdir(pointJointFolder);
+            end
+            if ~exist(pointLinkCoMFolder, 'dir')
+                mkdir(pointLinkCoMFolder);
+            end
 
             % Angle data is saved directly under Pos
             angleFolder = fullfile(posDir, 'Angle');  % Changed location under Pos
-
-            % Create subdirectories if they don't exist
-            if ~exist(jointFolder, 'dir')
-                mkdir(jointFolder);
-            end
-            if ~exist(linkCoMFolder, 'dir')
-                mkdir(linkCoMFolder);
-            end
             if ~exist(angleFolder, 'dir')
                 mkdir(angleFolder);
+            end
+
+            angleJointFolder = fullfile(angleFolder, 'Joint'); 
+            angleLinkCoMFolder = fullfile(angleFolder, 'LinkCoM');
+
+            % Create subdirectories if they don't exist
+            if ~exist(angleJointFolder, 'dir')
+                mkdir(angleJointFolder);
+            end
+            if ~exist(angleLinkCoMFolder, 'dir')
+                mkdir(angleLinkCoMFolder);
             end
 
             % Save Joint data
@@ -464,7 +492,7 @@ classdef PosSolverUtils
             for i = 1:length(jointNames)
                 jointName = jointNames{i};
                 tempStruct = struct(jointName, Mechanism.Joint.(jointName));
-                save(fullfile(jointFolder, jointName), '-struct', 'tempStruct', jointName);
+                save(fullfile(pointJointFolder, jointName), '-struct', 'tempStruct', jointName);
             end
 
             % Save Tracer Point data
@@ -472,7 +500,7 @@ classdef PosSolverUtils
             for i = 1:length(tracerPointNames)
                 tracerPointName = tracerPointNames{i};
                 tempStruct = struct(tracerPointName, Mechanism.TracerPoint.(tracerPointName));
-                save(fullfile(jointFolder, tracerPointName), '-struct', 'tempStruct', tracerPointName);
+                save(fullfile(pointJointFolder, tracerPointName), '-struct', 'tempStruct', tracerPointName);
             end
 
             % Save Link CoM data
@@ -480,15 +508,20 @@ classdef PosSolverUtils
             for i = 1:length(linkNames)
                 linkName = linkNames{i};
                 tempStruct = struct(linkName, Mechanism.LinkCoM.(linkName));
-                save(fullfile(linkCoMFolder, linkName), '-struct', 'tempStruct', linkName);
+                save(fullfile(pointLinkCoMFolder, linkName), '-struct', 'tempStruct', linkName);
             end
 
-            % Save Angle data
-            angleNames = fieldnames(Mechanism.Angle);
-            for i = 1:length(angleNames)
-                angleName = angleNames{i};
-                tempStruct = struct(angleName, Mechanism.Angle.(angleName));
-                save(fullfile(angleFolder, angleName), '-struct', 'tempStruct', angleName);
+            % Save angle for each Link CoM
+            for i = 1:length(linkNames)
+                linkName = linkNames{i};
+                tempStruct = struct(linkName, Mechanism.Angle.Link.(linkName));
+                save(fullfile(angleLinkCoMFolder, linkName), '-struct', 'tempStruct', linkName);
+            end
+            % Save angle for each sensor 
+            for i = 1:length(tracerPointNames)
+                tracerPointName = tracerPointNames{i};
+                tempStruct = struct(tracerPointName, Mechanism.Angle.Joint.(tracerPointName));
+                save(fullfile(angleJointFolder, tracerPointName), '-struct', 'tempStruct', tracerPointName);
             end
         end
 

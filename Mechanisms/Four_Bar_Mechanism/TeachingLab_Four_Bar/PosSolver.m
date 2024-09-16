@@ -89,9 +89,17 @@ Mechanism.LinkCoM.ABH(iteration, :) = PosSolverUtils.circleCircleIntersection(A(
 Mechanism.LinkCoM.BCEF(iteration, :) = PosSolverUtils.circleCircleIntersection(B(1), B(2), Mechanism.LinkLength.BCEF_CoM_B, C(1), C(2), Mechanism.LinkLength.BCEF_CoM_C, Mechanism.LinkCoM.BCEF(iteration - 1, 1), Mechanism.LinkCoM.BCEF(iteration - 1, 2));
 Mechanism.LinkCoM.CDGI(iteration, :) = PosSolverUtils.circleCircleIntersection(C(1), C(2), Mechanism.LinkLength.CDGI_CoM_C, D(1), D(2), Mechanism.LinkLength.CDGI_CoM_D, Mechanism.LinkCoM.CDGI(iteration - 1, 1), Mechanism.LinkCoM.CDGI(iteration - 1, 2));
 
-Mechanism.Angle.ABH(iteration, :) = [0,0,rad2deg(atan2(Mechanism.LinkCoM.ABH(iteration,2) - A(2), Mechanism.LinkCoM.ABH(iteration,1) - A(1)))];
-Mechanism.Angle.BCEF(iteration, :) = [0,0,rad2deg(atan2(Mechanism.LinkCoM.BCEF(iteration,2) - B(2), Mechanism.LinkCoM.BCEF(iteration,1) - B(1)))];
-Mechanism.Angle.CDGI(iteration, :) = [0,0,rad2deg(atan2(Mechanism.LinkCoM.CDGI(iteration,2) - C(2), Mechanism.LinkCoM.CDGI(iteration,1) - C(1)))];
+Mechanism.Angle.Link.ABH(iteration, :) = [0,0,rad2deg(atan2(Mechanism.LinkCoM.ABH(iteration,2) - A(2), Mechanism.LinkCoM.ABH(iteration,1) - A(1)))];
+Mechanism.Angle.Link.BCEF(iteration, :) = [0,0,rad2deg(atan2(Mechanism.LinkCoM.BCEF(iteration,2) - B(2), Mechanism.LinkCoM.BCEF(iteration,1) - B(1)))];
+Mechanism.Angle.Link.CDGI(iteration, :) = [0,0,rad2deg(atan2(Mechanism.LinkCoM.CDGI(iteration,2) - C(2), Mechanism.LinkCoM.CDGI(iteration,1) - C(1)))];
+
+% Define angles for each sensor
+Mechanism.Angle.Joint.E(iteration, :) = [0 0 rad2deg(atan2(E(2) - B(2), E(1) - B(1)))];
+Mechanism.Angle.Joint.F(iteration, :) = [0 0 rad2deg(atan2(F(2) - C(2), F(1) - C(1)))+180];
+Mechanism.Angle.Joint.G(iteration, :) = [0 0 rad2deg(atan2(G(2) - B(2), G(1) - B(1)))];
+Mechanism.Angle.Joint.H(iteration, :) = [0 0 rad2deg(atan2(H(2) - A(2), H(1) - A(1)))];
+Mechanism.Angle.Joint.I(iteration, :) = [0 0 rad2deg(atan2(I(2) - C(2), I(1) - C(1)))];
+
 
 for inputSpeedCol = 1:1:length(Mechanism.inputSpeed(1,:))
     if (forwardDir)

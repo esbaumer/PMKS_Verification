@@ -1,6 +1,6 @@
 classdef RMSEUtils
     methods(Static)
-        function Mechanism = RMSESolver(Mechanism, sensorDataTypes, sensorSourceMap, processCoolTermData, processPythonGraphData, processWitMotionData)
+        function Mechanism = RMSESolver(Mechanism, sensorDataTypes, sensorSourceMap, processCoolTermData, processPythonGraphData, processWitMotionData, determineAdjustment, determineOffset)
             TheoreticalPath = 'CSVOutput';
 
             % Define the base paths for experimental data
@@ -20,7 +20,7 @@ classdef RMSEUtils
                 currentSensor = sensor{1};
                 dataTypes = sensorDataTypes(currentSensor);  % Retrieve data types for current sensor
                 % Compute RMSE for the current sensor across its specified data types
-                rmseResults.(currentSensor) = RMSEUtils.calculateRMSEForSensor(expData, theoData, currentSensor, sensorSourceMap, dataTypes, speeds, processCoolTermData, processPythonGraphData, processWitMotionData);
+                rmseResults.(currentSensor) = RMSEUtils.calculateRMSEForSensor(expData, theoData, currentSensor, sensorSourceMap, dataTypes, speeds, processCoolTermData, processPythonGraphData, processWitMotionData, determineAdjustment, determineOffset);
             end
 
             % Save results to CSV
@@ -46,7 +46,7 @@ classdef RMSEUtils
 
                 for subCategory = subCategories
                     subCategoryPath = fullfile(categoryPath, subCategory{1});
-                    if strcmp(subCategory{1}, 'LinAcc') || strcmp(subCategory{1}, 'LinVel') || strcmp(subCategory{1}, 'Point')
+                    if strcmp(subCategory{1}, 'LinAcc') || strcmp(subCategory{1}, 'LinVel') || strcmp(subCategory{1}, 'Point')  || strcmp(subCategory{1}, 'Angle')
                         dataStruct = RMSEUtils.processNestedDirectories(subCategoryPath, dataStruct, category, subCategory{1});
                     else
                         dataStruct = RMSEUtils.processSpeedDirectories(subCategoryPath, dataStruct, category, subCategory{1}, '');
@@ -200,13 +200,13 @@ classdef RMSEUtils
         end
 
         % Function to calculate RMSE for a given sensor and its data types
-        function results = calculateRMSEForSensor(expData, theoData, sensor, sensorSourceMap, dataTypes, speeds, processCoolTermData, processPythonGraphData, processWitMotionData)
+        function results = calculateRMSEForSensor(expData, theoData, sensor, sensorSourceMap, dataTypes, speeds, processCoolTermData, processPythonGraphData, processWitMotionData, determineAdjustment, determineOffset)
             results = struct();
             for dataType = dataTypes
                 % results.(dataType{1}) = struct();  % Initialize a struct for each data type
                 for speed = speeds
                     % Calculate RMSE using a hypothetical function, for a given dataType and speed
-                    rmseValue = RMSEUtils.calculateRMSE(expData, theoData, sensor, sensorSourceMap, dataType{1}, speed{1}, processCoolTermData, processPythonGraphData, processWitMotionData);
+                    rmseValue = RMSEUtils.calculateRMSE(expData, theoData, sensor, sensorSourceMap, dataType{1}, speed{1}, processCoolTermData, processPythonGraphData, processWitMotionData, determineAdjustment, determineOffset);
                     % Store RMSE value in the struct under its corresponding speed
                     results.(dataType{1}).(speed{1}) = rmseValue;
                 end
@@ -567,7 +567,7 @@ classdef RMSEUtils
         %     theoData.Time = theoreticalTime;
         % end
 
-        function theoData = retrieveTheoData(dataSet, expData, sensor, dataType, speed)
+        function theoData = retrieveTheoData(dataSet, expData, sensor, dataType, speed, determineAdjustment, determineOffset)
             % Determine the main category based on dataType
             switch dataType
                 case {'LinVel', 'AngVel'}
@@ -581,7 +581,7 @@ classdef RMSEUtils
             end
 
             % Determine the sub-category (Joint or LinkCoM or directly under the category)
-            if any(strcmp(dataType, {'LinVel', 'LinAcc', 'Point'}))
+            if any(strcmp(dataType, {'LinVel', 'LinAcc', 'Point', 'Angle'}))
                 if length(sensor) == 1  % Assuming sensor names for Joints are single characters
                     subCategory = 'Joint';
                 else
@@ -609,6 +609,7 @@ classdef RMSEUtils
                     sensorFields = fieldnames(dataField);
                     for i = 1:length(sensorFields)
                         if contains(sensorFields{i}, sensor)
+                        % if strcmp(sensorFields{i}, sensor)
                             % Handle cases with and without speed specification
                             if ~isempty(speed) && isfield(dataField.(sensorFields{i}), speed)
                                 theoDataArray = table2array(dataField.(sensorFields{i}).(speed)(:,3));
@@ -631,8 +632,15 @@ classdef RMSEUtils
                                 % Perform Interpolation and Adjustments After Time Calculation
                                 expTimeStart = expData.Time(1);  % Get the first timestep from expData
                                 interpolatedTheoData = interp1(theoData.Time, theoDataArray, expTimeStart, 'linear');  % Interpolate to match first expData timestep
-                                adjustment = expData.Values(1) - interpolatedTheoData;  % Calculate adjustment
-                                theoDataArray = theoDataArray + adjustment;  % Apply adjustment
+                                
+                                % Utilize the passed in adjustment function and make the adjustment accordingly
+                                adjustment = feval(determineAdjustment, sensor, interpolatedTheoData, expData.Values(1));
+                           
+                                % Pass the adjusted value into offset function 
+                                theoDataArray = feval(determineOffset, sensor, theoDataArray, adjustment);
+
+                                % adjustment = expData.Values(1) - interpolatedTheoData;  % Calculate adjustment
+                                % theoDataArray = theoDataArray + adjustment;  % Apply adjustment
 
                                 % Additional Adjustments for Specific Data Types or Sensors
                                 if strcmp(dataType, 'Angle')
@@ -640,10 +648,10 @@ classdef RMSEUtils
                                         theoDataArray = adjustAngleRange(theoDataArray);
                                     end
                                 end
-
-                                if strcmp(sensor, 'F')
-                                    theoDataArray = -1 * theoDataArray + (2 * theoDataArray(1,1));
-                                end
+                                % 
+                                % if strcmp(sensor, 'F')
+                                %     theoDataArray = -1 * theoDataArray + (2 * theoDataArray(1,1));
+                                % end
                             end
                         end
                     end
@@ -660,12 +668,12 @@ classdef RMSEUtils
             theoData.Values = theoDataArray;
         end
 
-        function rmseResults = calculateRMSE(expDataSet, theoDataSet, sensor, sensorSourceMap, dataType, speed, processCoolTermData, processPythonGraphData, processWitMotionData)
+        function rmseResults = calculateRMSE(expDataSet, theoDataSet, sensor, sensorSourceMap, dataType, speed, processCoolTermData, processPythonGraphData, processWitMotionData, determineAdjustment, determineOffset)
             % rmseResults = struct(); % Initialize results structure
 
             % Retrieve experimental and theoretical data for the given sensor, dataType, and speed
             expData = RMSEUtils.retrieveExpData(expDataSet, sensor, sensorSourceMap, dataType, speed, processCoolTermData, processPythonGraphData, processWitMotionData);
-            theoData = RMSEUtils.retrieveTheoData(theoDataSet, expData, sensor, dataType, speed);
+            theoData = RMSEUtils.retrieveTheoData(theoDataSet, expData, sensor, dataType, speed, determineAdjustment, determineOffset);
 
             % Calculate RMSE if both experimental and theoretical data are available
             if ~isempty(expData) && ~isempty(theoData)
