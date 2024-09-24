@@ -255,6 +255,245 @@ classdef PosSolverUtils
             result = [newX, newY, 0];
         end
 
+        % function [x_calc, y_calc] = determineTracerJoint(lastJoint, joint_with_neighboring_ground, unknown_joint)
+        %     % Extract coordinates from the input structs or arrays
+        %     x1 = lastJoint(1); y1 = lastJoint(2); % Coordinates of the last joint
+        %     x2 = joint_with_neighboring_ground(1); y2 = joint_with_neighboring_ground(2); % Coordinates of neighboring joint
+        %     prevJoint_x = unknown_joint(1); prevJoint_y = unknown_joint(2); % Coordinates of previous position of the unknown joint
+        % 
+        %     % Step 1: Compute distances r1, r2, and r3
+        %     r1 = euclideanDistance(x1, y1, prevJoint_x, prevJoint_y); % Distance between lastJoint and unknown_joint
+        %     r2 = euclideanDistance(x2, y2, prevJoint_x, prevJoint_y); % Distance between neighboring joint and unknown_joint
+        %     r3 = euclideanDistance(x1, y1, x2, y2); % Distance between lastJoint and neighboring joint
+        % 
+        %     % Step 2: Compute the internal angle using the cosine law
+        %     internal_angle = acos((r1^2 + r3^2 - r2^2) / (2 * r1 * r3));
+        % 
+        %     % Step 3: Compute the angle between the two known joints using atan2
+        %     angle = atan2(y2 - y1, x2 - x1);
+        % 
+        %     % Step 4: Compute the two potential solutions for the unknown joint
+        %     [x_calc1, y_calc1, x_calc2, y_calc2] = determineUnknownJointUsingTriangulation( ...
+        %         x1, y1, x2, y2, r1, prevJoint_x, prevJoint_y, angle, internal_angle);
+        % 
+        %     % Step 5: Choose the solution closer to the previous joint position
+        %     dist1 = euclideanDistance(x_calc1, y_calc1, prevJoint_x, prevJoint_y);
+        %     dist2 = euclideanDistance(x_calc2, y_calc2, prevJoint_x, prevJoint_y);
+        % 
+        %     if dist1 < dist2
+        %         x_calc = x_calc1;
+        %         y_calc = y_calc1;
+        %     else
+        %         x_calc = x_calc2;
+        %         y_calc = y_calc2;
+        %     end
+        % end
+        % 
+        % function [x_calc1, y_calc1, x_calc2, y_calc2] = determineUnknownJointUsingTriangulation( ...
+        %     x1, y1, x2, y2, r1, prevJoint_x, prevJoint_y, angle, internal_angle)
+        % 
+        %     % Compute the two possible solutions for the unknown joint position
+        % 
+        %     if x1 > x2
+        %         if y1 > y2
+        %             % A to the right and above B
+        %             x_calc1 = x1 + r1 * cos(pi + (internal_angle + (pi + angle)));
+        %             y_calc1 = y1 + r1 * sin(pi + (internal_angle + (pi + angle)));
+        %             x_calc2 = x1 + r1 * cos(pi - (internal_angle - (pi + angle)));
+        %             y_calc2 = y1 + r1 * sin(pi - (internal_angle - (pi + angle)));
+        %         else
+        %             % A to the right and below B
+        %             x_calc1 = x1 + r1 * cos(pi + (internal_angle - (pi - angle)));
+        %             y_calc1 = y1 + r1 * sin(pi + (internal_angle - (pi - angle)));
+        %             x_calc2 = x1 + r1 * cos(pi - (internal_angle + (pi - angle)));
+        %             y_calc2 = y1 + r1 * sin(pi - (internal_angle + (pi - angle)));
+        %         end
+        %     else
+        %         if y1 > y2
+        %             % A to the left and above B
+        %             x_calc1 = x1 + r1 * cos(2 * pi - (abs(angle) + internal_angle));
+        %             y_calc1 = y1 + r1 * sin(2 * pi - (abs(angle) + internal_angle));
+        %             x_calc2 = x1 + r1 * cos(internal_angle - abs(angle));
+        %             y_calc2 = y1 + r1 * sin(internal_angle - abs(angle));
+        %         else
+        %             % A to the left and below B
+        %             x_calc1 = x1 + r1 * cos(2 * pi - (angle - internal_angle));
+        %             y_calc1 = y1 + r1 * sin(angle - internal_angle);
+        %             x_calc2 = x1 + r1 * cos(internal_angle + angle);
+        %             y_calc2 = y1 + r1 * sin(internal_angle + angle);
+        %         end
+        %     end
+        % end
+        % 
+        % function dist = euclideanDistance(x1, y1, x2, y2)
+        %     % Compute the Euclidean distance between two points
+        %     dist = sqrt((x2 - x1)^2 + (y2 - y1)^2);
+        % end
+
+        % function p3 = determineTracerJoint(x0, y0, r0, x1, y1, r1, )
+        %     % Calculate the intersection points of two circles
+        %     % Input: 
+        %     %   (x0, y0) - center of the first circle
+        %     %   r0       - radius of the first circle
+        %     %   (x1, y1) - center of the second circle
+        %     %   r1       - radius of the second circle
+        %     % Output:
+        %     %   p1, p2   - coordinates of the intersection points (if they exist)
+        %     %   valid    - boolean indicating if a valid intersection exists
+        % 
+        %     % Step 1: Calculate the distance between the centers of the two circles
+        %     dx = x1 - x0;
+        %     dy = y1 - y0;
+        %     d = sqrt(dx^2 + dy^2);
+        % 
+        %     % Step 2: Check for conditions where no intersection occurs
+        %     if d > r0 + r1
+        %         % Circles are too far apart, no intersection
+        %         valid = false;
+        %         p1 = [];
+        %         p2 = [];
+        %         return;
+        %     elseif d < abs(r0 - r1)
+        %         % One circle is completely inside the other, no intersection
+        %         valid = false;
+        %         p1 = [];
+        %         p2 = [];
+        %         return;
+        %     elseif d <= 0.001
+        %         % The circles are practically coincident
+        %         valid = false;
+        %         p1 = [];
+        %         p2 = [];
+        %         return;
+        %     end
+        % 
+        %     % Step 3: Normalize the vector between the two centers
+        %     dx = dx / d;
+        %     dy = dy / d;
+        % 
+        %     % Step 4: Calculate 'a', the distance from the center of the first circle
+        %     % to the point where the line through the intersection points crosses the line between the circle centers
+        %     a = (r0^2 - r1^2 + d^2) / (2 * d);
+        % 
+        %     % Step 5: Calculate the point (px, py) where the line through the two intersection points
+        %     % intersects the line between the centers of the circles
+        %     px = x0 + a * dx;
+        %     py = y0 + a * dy;
+        % 
+        %     % Step 6: Calculate the distance from (px, py) to the intersection points
+        %     h = sqrt(r0^2 - a^2);
+        % 
+        %     % Step 7: Calculate the actual intersection points
+        %     p1x = px + h * dy;
+        %     p1y = py - h * dx;
+        %     p2x = px - h * dy;
+        %     p2y = py + h * dx;
+        % 
+        %     % Store the intersection points
+        %     p1 = [p1x, p1y];
+        %     p2 = [p2x, p2y];
+        % 
+        % end
+
+        function selectedIndex = circleCircleIntersectionSelect(x0, y0, r0, x1, y1, r1, prevJoint_x, prevJoint_y)
+            % This function computes the intersection points and returns the index (1 or 2)
+            % corresponding to the point that is closest to the previous joint position.
+            
+            % Calculate the intersection points
+            [p1x, p1y, p2x, p2y, valid] = PosSolverUtils.calculateIntersectionPoints(x0, y0, r0, x1, y1, r1);
+            
+            % If the intersection is not valid, return an empty result
+            if ~valid
+                selectedIndex = NaN;
+                return;
+            end
+            
+            % Compute distances from previous joint to both intersection points
+            dist1 = PosSolverUtils.euclideanDistance(p1x, p1y, prevJoint_x, prevJoint_y);
+            dist2 = PosSolverUtils.euclideanDistance(p2x, p2y, prevJoint_x, prevJoint_y);
+            
+            % Return 1 if the first point is closer, otherwise return 2
+            if dist1 < dist2
+                selectedIndex = 1;
+            else
+                selectedIndex = 2;
+            end
+        end
+        
+        function [p_final, valid] = circleCircleIntersectionWithPrevious(x0, y0, r0, x1, y1, r1, index)
+            % This function computes the intersection points and selects the point
+            % based on the provided index (1 or 2).
+            
+            % Calculate the intersection points
+            [p1x, p1y, p2x, p2y, valid] = PosSolverUtils.calculateIntersectionPoints(x0, y0, r0, x1, y1, r1);
+            
+            % If the intersection is not valid, return an empty result
+            if ~valid
+                p_final = [];
+                return;
+            end
+            
+            % Select the intersection point based on the index (1 or 2)
+            if index == 1
+                p_final = [p1x, p1y, 0];
+            elseif index == 2
+                p_final = [p2x, p2y, 0];
+            else
+                % Invalid index
+                p_final = [];
+                valid = false;
+                return;
+            end
+        end
+        
+        function [p1x, p1y, p2x, p2y, valid] = calculateIntersectionPoints(x0, y0, r0, x1, y1, r1)
+            % Helper function to calculate the two intersection points between two circles
+            % Returns both intersection points and a validity flag
+            
+            % Calculate the distance between the centers
+            dx = x1 - x0;
+            dy = y1 - y0;
+            d = sqrt(dx^2 + dy^2);
+            
+            % Check if there are valid intersection points
+            if d > r0 + r1 || d < abs(r0 - r1) || d <= 0.001
+                % No valid intersection points
+                p1x = []; p1y = [];
+                p2x = []; p2y = [];
+                valid = false;
+                return;
+            end
+            
+            % Normalize the direction vector between the two centers
+            dx = dx / d;
+            dy = dy / d;
+            
+            % Calculate 'a' (distance from the center of the first circle to the point
+            % where the line through the intersection points intersects the line between the centers)
+            a = (r0^2 - r1^2 + d^2) / (2 * d);
+            
+            % Calculate the midpoint (px, py) on the line between the centers
+            px = x0 + a * dx;
+            py = y0 + a * dy;
+            
+            % Calculate the distance from (px, py) to the intersection points
+            h = sqrt(r0^2 - a^2);
+            
+            % Calculate the intersection points
+            p1x = px + h * dy;
+            p1y = py - h * dx;
+            p2x = px - h * dy;
+            p2y = py + h * dx;
+            
+            % Mark the intersection as valid
+            valid = true;
+        end
+        
+        function dist = euclideanDistance(x1, y1, x2, y2)
+            % Compute the Euclidean distance between two points
+            dist = sqrt((x2 - x1)^2 + (y2 - y1)^2);
+        end
+
         % Utility function to check if two arrays are approximately equal
         function result = determineEqual(arr1, arr2)
             tolerance = 0.001;

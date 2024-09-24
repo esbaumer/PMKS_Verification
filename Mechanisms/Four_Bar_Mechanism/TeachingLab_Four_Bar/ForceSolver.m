@@ -7,20 +7,20 @@ function solution = performForceAnalysis(Mechanism, iter, speedStr, JointPos, Li
 % For each joint and link, calculate forces and moments ensuring sum of forces = 0 and sum of moments = 0
 
 massABH = Mechanism.Mass.ABH;
-massBCEF = Mechanism.Mass.BCEF;
-massCDGI = Mechanism.Mass.CDGI;
+massBCFG = Mechanism.Mass.BCFG;
+massCDEI = Mechanism.Mass.CDEI;
 
 massMoIABH = Mechanism.MassMoI.ABH;
-massMoIBCEF = Mechanism.MassMoI.BCEF;
-massMoICDGI = Mechanism.MassMoI.CDGI;
+massMoIBCFG = Mechanism.MassMoI.BCFG;
+massMoICDEI = Mechanism.MassMoI.CDEI;
 
 A_abeh = Mechanism.AngAcc.ABH.(speedStr)(iter,:);
-A_bcfg = Mechanism.AngAcc.BCEF.(speedStr)(iter,:);
-A_cdgi = Mechanism.AngAcc.CDGI.(speedStr)(iter,:);
+A_bcfg = Mechanism.AngAcc.BCFG.(speedStr)(iter,:);
+A_cdei = Mechanism.AngAcc.CDEI.(speedStr)(iter,:);
 
 A_abeh_com = Mechanism.LinAcc.LinkCoM.ABH.(speedStr)(iter,:);
-A_bcfg_com = Mechanism.LinAcc.LinkCoM.BCEF.(speedStr)(iter,:);
-A_cdgi_com = Mechanism.LinAcc.LinkCoM.CDGI.(speedStr)(iter,:);
+A_bcfg_com = Mechanism.LinAcc.LinkCoM.BCFG.(speedStr)(iter,:);
+A_cdei_com = Mechanism.LinAcc.LinkCoM.CDEI.(speedStr)(iter,:);
 
 % This is a placeholder for the actual static analysis logic
 % You'll need to adapt this to your specific requirements
@@ -30,8 +30,8 @@ C = JointPos.C;
 D = JointPos.D;
 
 ABH_com = LinkCoMPos.ABH;
-BCEF_com = LinkCoMPos.BCEF;
-CDGI_com = LinkCoMPos.CDGI;
+BCFG_com = LinkCoMPos.BCFG;
+CDEI_com = LinkCoMPos.CDEI;
 
 mu = 0.20;
 
@@ -49,16 +49,16 @@ fD=[Dx Dy 0];
 
 % Weight of each link
 wABH=massABH*g*grav;
-wBCEF=massBCEF*g*grav;
-wCDGI=massCDGI*g*grav;
+wBCFG=massBCFG*g*grav;
+wCDEI=massCDEI*g*grav;
 
 % Unknown torque of the system
 tT=[0 0 T];
 
 % Torque provided by friction on Joint A
 r_abeh_com_a = norm(ABH_com - A);
-r_bcfg_com_b = norm(BCEF_com - B);
-r_cdgi_com_c = norm(CDGI_com - C);
+r_bcfg_com_b = norm(BCFG_com - B);
+r_cdei_com_c = norm(CDEI_com - C);
 
 A_noFriction_x = Mechanism.ForceAnalysis.Newton.Grav.NoFriction.(speedStr).Joint.A(iter,1);
 A_noFriction_y = Mechanism.ForceAnalysis.Newton.Grav.NoFriction.(speedStr).Joint.A(iter,2);
@@ -89,18 +89,18 @@ F_friction_C = mu * norm(F_normal_C) * [-sin(C_theta), cos(C_theta), 0] * fricti
 % Assuming r_abeh_com_a and r_bcfg_com_b are correctly calculated lever arms
 T_fr_A = [0,0, mu * norm(F_normal_A) * r_abeh_com_a * friction]; % Torque due to friction at A
 T_fr_B = [0,0, mu * norm(F_normal_B) * r_bcfg_com_b * friction]; % Torque due to friction at B
-T_fr_C = [0,0, mu * norm(F_normal_B) * r_cdgi_com_c * friction]; % Torque due to friction at B
+T_fr_C = [0,0, mu * norm(F_normal_B) * r_cdei_com_c * friction]; % Torque due to friction at B
 
 %% FBD Equations
 %Link ABH
 eqn1=fA+fB+wABH+F_friction_A+F_friction_B==massABH*A_abeh_com*newton;
 eqn2=ForceSolverUtils.momentVec(A, ABH_com, fA) + ForceSolverUtils.momentVec(B,  ABH_com,fB)+tT+T_fr_A+T_fr_B==massMoIABH * A_abeh*newton; %only change the ==0 appropriately for newtons 2nd law
-%Link BCEF
-eqn3=-fB+fC+wBCEF-F_friction_B+F_friction_C==massBCEF*A_bcfg_com*newton;
-eqn4=ForceSolverUtils.momentVec(B, BCEF_com, -fB)+ForceSolverUtils.momentVec(C, BCEF_com, fC)-T_fr_B+T_fr_C==massMoIBCEF * A_bcfg*newton; %only change the ==0 appropriately for newtons 2nd law
-%Link CDGI
-eqn5=-fC+fD+wCDGI-F_friction_C==massCDGI*A_cdgi_com*newton;
-eqn6=ForceSolverUtils.momentVec(C, CDGI_com, -fC)+ForceSolverUtils.momentVec(D, CDGI_com, fD)-T_fr_C==massMoICDGI * A_cdgi*newton; %only change the ==0 appropriately for newtons 2nd law
+%Link BCFG
+eqn3=-fB+fC+wBCFG-F_friction_B+F_friction_C==massBCFG*A_bcfg_com*newton;
+eqn4=ForceSolverUtils.momentVec(B, BCFG_com, -fB)+ForceSolverUtils.momentVec(C, BCFG_com, fC)-T_fr_B+T_fr_C==massMoIBCFG * A_bcfg*newton; %only change the ==0 appropriately for newtons 2nd law
+%Link CDEI
+eqn5=-fC+fD+wCDEI-F_friction_C==massCDEI*A_cdei_com*newton;
+eqn6=ForceSolverUtils.momentVec(C, CDEI_com, -fC)+ForceSolverUtils.momentVec(D, CDEI_com, fD)-T_fr_C==massMoICDEI * A_cdei*newton; %only change the ==0 appropriately for newtons 2nd law
 
 solution = (solve([eqn1,eqn2,eqn3,eqn4,eqn5,eqn6],[Ax,Ay,Bx,By,Cx,Cy,Dx,Dy,T]));
 end
