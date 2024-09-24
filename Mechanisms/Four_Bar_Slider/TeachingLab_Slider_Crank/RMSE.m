@@ -1,7 +1,7 @@
 function Mechanism = RMSE(Mechanism, sensorDataTypes, sensorSourceMap)
 % TODO: Make sure to insert the processFunctions in as an argument and
 % utilize this within code
-Mechanism = RMSEUtils.RMSESolver(Mechanism, sensorDataTypes, sensorSourceMap, @processCoolTermData, @processPythonGraphData, @processWitMotionData);
+Mechanism = RMSEUtils.RMSESolver(Mechanism, sensorDataTypes, sensorSourceMap, @processCoolTermData, @processPythonGraphData, @processWitMotionData, @determineAdjustment, @determineOffset);
 end
 
 function coolTermData = processCoolTermData(rawData, sensorType, dataType)
@@ -100,7 +100,8 @@ pythonGraphData = struct();
 yColumnIndex = BNO_ANG_VEL_COL;
 
 YData = table2array(validData(:, yColumnIndex));
-XData = seconds(relativeTimes / 1000);
+% XData = seconds(relativeTimes / 1000);
+XData = relativeTimes / 1000;
 % Refine data by ensuring continuity and removing spikes (maybe do later)
 % refinedData = validData(refinedDataIndices, :);
 % continuousData = removeSpikes(refinedData, columns);
@@ -162,3 +163,8 @@ pythonGraphData.Values = YData;  % Extracted values based on dataType and sensor
 % pythonGraphData.Values = YData;  % Extracted values based on dataType and sensor
 end
 
+function adjustment = determineAdjustment(sensor, theoData, actualData)
+end
+
+function offset = determineOffset(sensor, theoDataArray, adjustmentVal)
+end
