@@ -80,10 +80,25 @@ Mechanism.LinkCoM.ABE(iteration, :) = PosSolverUtils.circleCircleIntersection(A(
 Mechanism.LinkCoM.BCFG(iteration, :) = PosSolverUtils.circleCircleIntersection(B(1), B(2), Mechanism.LinkLength.BCFG_CoM_B, C(1), C(2), Mechanism.LinkLength.BCFG_CoM_C, Mechanism.LinkCoM.BCFG(iteration - 1, 1), Mechanism.LinkCoM.BCFG(iteration - 1, 2));
 Mechanism.LinkCoM.CDH(iteration, :) = PosSolverUtils.circleCircleIntersection(C(1), C(2), Mechanism.LinkLength.CDH_CoM_C, D(1), D(2), Mechanism.LinkLength.CDH_CoM_D, Mechanism.LinkCoM.CDH(iteration - 1, 1), Mechanism.LinkCoM.CDH(iteration - 1, 2));
 
-if (forwardDir)
-    Mechanism.inputSpeed(iteration) = Mechanism.inputSpeed(1);
-else
-    Mechanism.inputSpeed(iteration) = Mechanism.inputSpeed(1) * -1;
+% Define angles for each sensor
+Mechanism.Angle.Joint.E(iteration, :) = [0 0 rad2deg(atan2(E(2) - D(2), E(1) - D(1)))];
+Mechanism.Angle.Joint.F(iteration, :) = [0 0 rad2deg(atan2(F(2) - C(2), F(1) - C(1)))+180];
+Mechanism.Angle.Joint.G(iteration, :) = [0 0 rad2deg(atan2(G(2) - B(2), G(1) - B(1)))];
+Mechanism.Angle.Joint.H(iteration, :) = [0 0 rad2deg(atan2(H(2) - A(2), H(1) - A(1)))];
+% Mechanism.Angle.Joint.I(iteration, :) = [0 0 rad2deg(atan2(I(2) - D(2), I(1) - D(1)))];
+
+for inputSpeedCol = 1:1:length(Mechanism.inputSpeed(1,:))
+    if (forwardDir)
+        Mechanism.inputSpeed(iteration, inputSpeedCol) = Mechanism.inputSpeed(1, inputSpeedCol);
+    else
+        Mechanism.inputSpeed(iteration, inputSpeedCol) = Mechanism.inputSpeed(1, inputSpeedCol) * -1;
+    end
 end
+
+% if (forwardDir)
+%     Mechanism.inputSpeed(iteration) = Mechanism.inputSpeed(1);
+% else
+%     Mechanism.inputSpeed(iteration) = Mechanism.inputSpeed(1) * -1;
+% end
 iteration = iteration + 1;
 end
