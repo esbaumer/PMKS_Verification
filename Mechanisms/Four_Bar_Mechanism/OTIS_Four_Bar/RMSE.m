@@ -94,7 +94,7 @@ witMotionStartingTime = interp1(x, y, xq, 'linear');
 
 witMotionData.Time = seconds(witMotionData.Time - witMotionStartingTime);
 % Extract the values once to avoid repetition
-values = table2array(refinedData(:, 2));
+values = table2array(refinedData(:, 3));
 
 % Define the mapping for conversion based on conditions
 if contains([letterMap(sensorID) dataType], 'EAngVel') || contains([letterMap(sensorID) dataType], 'FAngVel') || contains([letterMap(sensorID) dataType], 'GAngVel') || contains([letterMap(sensorID) dataType], 'HAngVel')
@@ -113,10 +113,8 @@ end
 
 function adjustment = determineAdjustment(sensor, theoData, actualData)
      switch sensor
-        case {'E', 'F', 'H'}
+        case {'E', 'F', 'G', 'H'}
             adjustment = theoData - 90 - actualData;
-        case 'G'
-            adjustment = 180 - theoData - actualData;
         otherwise
             error('Invalid sensor type.');
     end
@@ -131,10 +129,8 @@ function offset = determineOffset(sensor, theoDataArray, adjustmentVal)
     
     % Determine the offset based on the sensor type
     switch sensor
-        case {'E', 'F', 'H', 'I'}
+        case {'E', 'F', 'G', 'H'}
             offset = theoDataArray - 90 - adjustmentVal; % Apply the formula to each element
-        case 'G'
-            offset = 180 - theoDataArray - adjustmentVal; % Apply the formula to each element
         otherwise
             error('Invalid sensor type.');
     end

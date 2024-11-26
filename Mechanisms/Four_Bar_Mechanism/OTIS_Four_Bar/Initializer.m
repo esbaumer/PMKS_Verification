@@ -18,7 +18,7 @@ utilsFolderPath = fullfile(currentDir, '..', '..', '..', 'CommonUtils');
 % Add this path to MATLAB's search paths
 addpath(utilsFolderPath);
 
-% % Initialize Mechanism structure with necessary fields
+% Initialize Mechanism structure with necessary fields
 % Mechanism = struct();
 % 
 % % Define Coordinates of Joints in 3D Space (x, y, z)
@@ -67,10 +67,10 @@ addpath(utilsFolderPath);
 % Mechanism.Angle.Link.CDH = [0 0 rad2deg(atan2((Mechanism.LinkCoM.CDH(2) - C(2)), Mechanism.LinkCoM.CDH(1) - C(1)))];
 % 
 % % Define angles for each sensor
-% Mechanism.Angle.Joint.E = [0 0 rad2deg(atan2(E(2) - D(2), E(1) - D(1)))];
-% Mechanism.Angle.Joint.F = [0 0 rad2deg(atan2(F(2) - C(2), F(1) - C(1)))+180];
+% Mechanism.Angle.Joint.E = [0 0 rad2deg(atan2(E(2) - A(2), E(1) - A(1)))];
+% Mechanism.Angle.Joint.F = [0 0 rad2deg(atan2(F(2) - B(2), F(1) - B(1)))];
 % Mechanism.Angle.Joint.G = [0 0 rad2deg(atan2(G(2) - B(2), G(1) - B(1)))];
-% Mechanism.Angle.Joint.H = [0 0 rad2deg(atan2(H(2) - A(2), H(1) - A(1)))];
+% Mechanism.Angle.Joint.H = [0 0 rad2deg(atan2(H(2) - D(2), H(1) - D(1)))];
 % 
 % % Mass for each link
 % Mechanism.Mass.ABE = 470.19;
