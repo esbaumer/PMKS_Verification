@@ -100,12 +100,13 @@ addpath(utilsFolderPath);
 % Mechanism.modulusElasticity = 10e6;
 % 
 % % Define angular velocity of the link where a motor is attached
-% input_speed = zeros(1, 2);
+% input_speed = zeros(1, 3);
 % input_speed(1) = GeneralUtils.rpmToRadPerSec(8.28);
-% input_speed(2) = GeneralUtils.rpmToRadPerSec(19.59);
-% % input_speed(3) = GeneralUtils.rpmToRadPerSec(30);
+% input_speed(2) = GeneralUtils.rpmToRadPerSec(11.92);
+% input_speed(3) = GeneralUtils.rpmToRadPerSec(19.59);
 % 
-% input_speed_str = [8.28, 19.59];
+% 
+% input_speed_str = [8.28, 11.92, 19.59];
 % 
 % Mechanism.input_speed_str = input_speed_str;
 % save('Mechanism.mat', 'Mechanism');
@@ -144,12 +145,12 @@ load("Mechanism")
 
 % Define a map from sensors to their respective data types
 sensorDataTypes = containers.Map(...
-    {'E', 'F', 'G', 'H'}, ...
+    {'E', 'F', 'G'}, ...
     {...
     {'Angle', 'AngVel'}, ...  % Data types for sensor E
     {'Angle', 'AngVel'}, ... % Data types for sensor F
     {'Angle', 'AngVel'}, ... % Data types for sensor G
-    {'Angle', 'AngVel'}, ...  % Data types for sensor H
+%     {'Angle', 'AngVel'}, ...  % Data types for sensor H
     }...
     );
 % sensorDataTypes = containers.Map(...
@@ -162,7 +163,7 @@ sensorDataTypes = containers.Map(...
 %     }...
 %     );
 
-sensorSourceMap = containers.Map({'E', 'F', 'G', 'H'}, ...
-    {'WitMotion', 'WitMotion', 'WitMotion', 'WitMotion'});
+sensorSourceMap = containers.Map({'E', 'F', 'G'}, ...
+    {'WitMotion', 'WitMotion', 'WitMotion'});
 
 Mechanism = RMSE(Mechanism, sensorDataTypes, sensorSourceMap);

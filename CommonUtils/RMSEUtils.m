@@ -29,6 +29,111 @@ classdef RMSEUtils
             RMSEUtils.saveResultsToCSV(rmseResults, resultsFilename);
         end
 
+        % Function to calculate RMSE for a given sensor and its data types
+        function results = calculateRMSEForSensor(expData, theoData, sensor, sensorSourceMap, dataTypes, speeds, processCoolTermData, processPythonGraphData, processWitMotionData, determineAdjustment, determineOffset)
+            results = struct();
+            for dataType = dataTypes
+                for speed = speeds
+                    % Calculate RMSE using a hypothetical function, for a given dataType and speed
+                    rmseValue = RMSEUtils.calculateRMSE(expData, theoData, sensor, sensorSourceMap, dataType{1}, speed{1}, processCoolTermData, processPythonGraphData, processWitMotionData, determineAdjustment, determineOffset);
+                    % Store RMSE value in the struct under its corresponding speed
+                    results.(dataType{1}).(speed{1}) = rmseValue;
+                end
+            end
+        end
+
+        function rmseResults = calculateRMSE(expDataSet, theoDataSet, sensor, sensorSourceMap, dataType, speed, processCoolTermData, processPythonGraphData, processWitMotionData, determineAdjustment, determineOffset)
+            % rmseResults = struct(); % Initialize results structure
+
+            % Retrieve experimental and theoretical data for the given sensor, dataType, and speed
+            expData = RMSEUtils.retrieveExpData(expDataSet, sensor, sensorSourceMap, dataType, speed, processCoolTermData, processPythonGraphData, processWitMotionData);
+            theoData = RMSEUtils.retrieveTheoData(theoDataSet, expData, sensor, dataType, speed, determineAdjustment, determineOffset);
+
+            % Calculate RMSE if both experimental and theoretical data are available
+            if ~isempty(expData) && ~isempty(theoData)
+
+                % Calculate RMSE if both experimental and theoretical data are available
+                timestamps = expData.Time;
+
+                interpolatedTheoData = interp1(theoData.Time, theoData.Values, timestamps, 'linear', 'extrap');
+                rmse = sqrt(mean((expData.Values - interpolatedTheoData).^2));
+
+                % Store RMSE in the results structure
+                rmseResults = rmse;
+
+                % Generate plot for verification
+                % Plot the data with thicker lines
+                fig = figure('Visible', 'off');
+                
+                % Plot data with thicker lines
+                plot(timestamps, expData.Values, 'b', 'LineWidth', 2, 'DisplayName', 'Experimental Data');
+                hold on;
+                plot(theoData.Time, theoData.Values, 'g', 'LineWidth', 2, 'DisplayName', 'Theoretical Data');
+                plot(timestamps, interpolatedTheoData, 'r--', 'LineWidth', 2, 'DisplayName', 'Interpolated Theoretical Data');
+                
+                % Add legend and labels
+                legend('FontSize', 8, 'Location', 'northeast'); % Top-right legend placement
+                xlabel('Time (s)', 'FontSize', 16, 'FontWeight', 'bold'); % Bold x-axis label
+                if strcmp(dataType, 'Angle')
+                    ylabel('Degrees', 'FontSize', 16, 'FontWeight', 'bold'); % Bold y-axis label
+                elseif strcmp(dataType, 'AngVel')
+                    ylabel('Rad/s', 'FontSize', 16, 'FontWeight', 'bold'); % Bold y-axis label
+                else
+                    ylabel('??', 'FontSize', 16, 'FontWeight', 'bold'); % Bold y-axis label
+                end
+                
+                % Add title with larger font size
+                titleSpeed = parseSpeed(speed);
+                title(['RMSE Analysis for ' sensor ' - ' dataType ' - ' titleSpeed], 'FontSize', 16, 'FontWeight', 'bold'); % Bold title
+                
+                % Adjust axis tick labels for bold font
+                set(gca, 'FontSize', 12, 'FontWeight', 'bold'); % Bold axis and tick labels
+                
+                hold off;
+
+
+%                 fig = figure('Visible', 'off');
+%                 hold on;
+%                 plot(timestamps, expData.Values, 'b', 'DisplayName', 'Experimental Data');
+%                 plot(theoData.Time, theoData.Values, 'g', 'DisplayName', 'Theoretical Data');
+%                 plot(timestamps, interpolatedTheoData, 'r--', 'DisplayName', 'Interpolated Theoretical Data');
+%                 legend show;
+%                 xlabel('Time (s)');
+%                 if strcmp(dataType, 'Angle')
+%                     ylabel('Degrees');
+%                 elseif strcmp(dataType, 'AngVel')
+%                     ylabel('Rad/s');
+%                 else
+%                     ylabel('??');
+%                 end
+% 
+%                 titleSpeed = parseSpeed(speed);
+%                 title(['RMSE Analysis for ' sensor ' - ' dataType ' - ' titleSpeed]);
+%                 hold off;
+
+                % Define directory path for saving
+                resultDir = fullfile('RMSE_Results', sensor, dataType, speed);
+
+                % Ensure the directory exists
+                if ~exist(resultDir, 'dir')
+                    mkdir(resultDir);
+                end
+
+                % Save plot
+                savefig(fig, fullfile(resultDir, 'graph.fig'));
+                saveas(fig, fullfile(resultDir, 'graph.png'));
+
+                % Close the figure
+                close(fig);
+            else
+                warning('Missing data for sensor %s, data type %s, speed %s', sensor, dataType, speed);
+                rmseResults = NaN; % Assign NaN to indicate missing data calculation
+            end
+
+            return;
+        end
+
+
         function dataStruct = readTheoreticalData(basePath)
             % Define mappings of categories to their relevant subcategories
             categoryMap = containers.Map({'Acc', 'Vel', 'Pos'}, ...
@@ -141,13 +246,10 @@ classdef RMSEUtils
             end
         end
 
-
         function expData = readExperimentalData(baseExperimentalPath, sensorSourceMap, speeds)
             expData = struct(); % Initialize
-            % subFolders = {'CoolTerm', 'WitMotion'}; % Subdirectories to iterate through
-            % filenames = {'10RPM', '20RPM', '30RPM'}; % RPM filenames
-            subFolders = mapValuesToUniqueArray(sensorSourceMap);
-            filenames = speeds;
+            subFolders = mapValuesToUniqueArray(sensorSourceMap);  % Subdirectories to iterate through
+            filenames = speeds; % RPM filenames
 
             for i = 1:length(subFolders)
                 % Initialize sub-structures for each subfolder
@@ -199,20 +301,6 @@ classdef RMSEUtils
             end
         end
 
-        % Function to calculate RMSE for a given sensor and its data types
-        function results = calculateRMSEForSensor(expData, theoData, sensor, sensorSourceMap, dataTypes, speeds, processCoolTermData, processPythonGraphData, processWitMotionData, determineAdjustment, determineOffset)
-            results = struct();
-            for dataType = dataTypes
-                % results.(dataType{1}) = struct();  % Initialize a struct for each data type
-                for speed = speeds
-                    % Calculate RMSE using a hypothetical function, for a given dataType and speed
-                    rmseValue = RMSEUtils.calculateRMSE(expData, theoData, sensor, sensorSourceMap, dataType{1}, speed{1}, processCoolTermData, processPythonGraphData, processWitMotionData, determineAdjustment, determineOffset);
-                    % Store RMSE value in the struct under its corresponding speed
-                    results.(dataType{1}).(speed{1}) = rmseValue;
-                end
-            end
-        end
-
         % Retriev the desired experimental data
         function expData = retrieveExpData(dataSet, sensor, sensorSourceMap, dataType, speed, processCoolTermData, processPythonGraphData, processWitMotionData)
             % Map sensors to their respective data sources (CoolTerm or WitMotion)
@@ -236,62 +324,6 @@ classdef RMSEUtils
             end
         end
 
-        % For CoolTerm Data Processing
-        % function coolTermData = processCoolTermData(rawData, sensorID, dataType)
-        %     % Define sensor columns for angles and angular velocities
-        %     sensorColumnsMap = containers.Map(...
-        %         {'F', 'E', 'G'}, ...
-        %         {struct('Angle', 5:7, 'AngVel', 4), ...
-        %         struct('Angle', 8:10, 'AngVel', 11:13), ...
-        %         struct('Angle', 14:16, 'AngVel', 17:19)});
-        %     columns = sensorColumnsMap(sensorID).(dataType);
-        %
-        %     binarySignal = rawData.Var3;  % Adjust 'Var3' to the correct variable name if different
-        %
-        %     % Identify valid data segments based on binary signals
-        %     oneIndices = find(binarySignal == 1);
-        %     validSegments = find(diff(oneIndices) > 1);  % Find non-consecutive ones
-        %
-        %     if isempty(validSegments) || length(validSegments) < 2
-        %         error('Valid data segments not found.');
-        %     end
-        %
-        %     if isempty(validSegments) || length(validSegments) < 2
-        %         error('Valid data segments not found.');
-        %     end
-        %
-        %     % Define the range for valid data based on identified segments
-        %     validStartIndex = oneIndices(validSegments(1));
-        %     validEndIndex = oneIndices(validSegments(2));
-        %
-        %     % Extract the valid data range
-        %     validData = rawData(validStartIndex:validEndIndex, :);
-        %
-        %     % Compare extracted data with theoretical data for further refinement
-        %     % comparisonResults = compareData(validData(:, columns), theoData);
-        %     % refinedDataIndices = find(comparisonResults);  % Rows closely matching theoretical data
-        %     % TODO: Get the column that closely match the theoretical data
-        %     % refinedDataIndices = validData(:,columns(1));
-        %
-        %     % Define map for selecting the correct Y column index based on sensor and dataType
-        %     yColumnMap = containers.Map(...
-        %         {'FAngVel', 'FAngle', 'EAngVel', 'EAngle', 'GAngVel', 'GAngle'}, ...
-        %         {1, 2, 1, 3, 1, 3});
-        %
-        %     % Get the correct Y column index using the map
-        %     yColumnIndex = columns(yColumnMap([sensorID dataType]));
-        %
-        %     YData = validData(:, yColumnIndex);
-        %     XData = validData(:, 2);
-        %     % Refine data by ensuring continuity and removing spikes (maybe do later)
-        %     % refinedData = validData(refinedDataIndices, :);
-        %     % continuousData = removeSpikes(refinedData, columns);
-        %
-        %     % Store processed data for output
-        %     coolTermData.Time = XData;  % Time column
-        %     coolTermData.Values = YData;  % Extracted values based on dataType and sensor
-        % end
-
         function isClose = compareData(experimental, theoretical)
             % Define a simple threshold-based comparison for data matching
             isClose = sum(abs(experimental - theoretical), 2) < someThreshold;  % Adjust threshold as needed
@@ -308,133 +340,6 @@ classdef RMSEUtils
             cleanData = data(all(~isnan(data), 2), :);  % Discard any rows with NaNs
         end
 
-
-        % function witMotionData = processWitMotionData(rawData, sensorType, dataType)
-        %     % Constants for column indices based on data type
-        %     TIME_COL = 1; % Time column index
-        %     SENSOR_ID_COL = 2; % Sensor ID column index
-        %     ANGLE_Y_COL = 11; % Column index for Angle Y
-        %
-        %     % Mapping sensor types to their corresponding sensor ID
-        %     sensorMap = containers.Map(...
-        %         {'H', 'I'}, ...
-        %         {'WT901BLE68(ef:e4:2c:bf:73:a9)', 'WT901BLE68(d2:5a:50:4a:21:12)'});
-        %     inputLinkID = sensorMap('H');  % Always use sensor 'H' for zero crossing reference
-        %
-        %     % Filter data for the input link to find zero crossings
-        %     inputLinkData = rawData(strcmp(rawData{:, SENSOR_ID_COL}, inputLinkID), :);
-        %     zeroCrossings = find(diff(sign(table2array(inputLinkData(:, ANGLE_Y_COL)))) > 0) + 1;
-        %     if length(zeroCrossings) < 2
-        %         error('Not enough zero crossings found for input link.');
-        %     end
-        %
-        %     % Determine start and end times for valid data using input link zero crossings
-        %     validStartTime = duration(table2array(inputLinkData(zeroCrossings(1), TIME_COL)));
-        %     validEndTime = duration(table2array(inputLinkData(zeroCrossings(2), TIME_COL)));
-        %
-        %     % Filter data for the current sensor type
-        %     sensorID = sensorMap(sensorType);
-        %     sensorData = rawData(strcmp(rawData{:, SENSOR_ID_COL}, sensorID), :);
-        %
-        %     % Find indices in sensorData that are within the valid time range determined by the input link
-        %     validIndices = sensorData{:, TIME_COL} >= validStartTime & sensorData{:, TIME_COL} <= validEndTime;
-        %     if sum(validIndices) == 0
-        %         error('No data found for the current sensor within the valid time range.');
-        %     end
-        %
-        %     % Extract data slice based on the valid time indices
-        %     validData = sensorData(validIndices, :);
-        %
-        %     % Further refinement based on dataType to extract only relevant data
-        %     dataColumns = RMSEUtils.getDataColumns(dataType);
-        %     refinedData = validData(:, dataColumns);
-        %
-        %     % Prepare output structure
-        %     witMotionData = struct();
-        %     witMotionData.Time = validData(:, TIME_COL);
-        %     % TODO: Update this accordingly
-        %     witMotionData.Values = refinedData(:,1);
-        %     % witMotionData.Values = refinedData;
-        %     witMotionData.SensorID = sensorID;  % Include sensor ID in the output for reference
-        % end
-
-        % function pythonGraphData = processPythonGraphData(rawData, sensor, dataType)
-        %     % Constants for column indices
-        %     HALL_SENSOR_COL = 1;
-        %     EST_RPM_COL = 2;
-        %     PISTON_DISP_COL = 3;
-        %     ADXL_PISTON_LIN_ACC_COL = 4;
-        %     BNO_ORIENTATION_START_COL = 5; % X, Y, Z orientation start from this column
-        %     BNO_ORIENTATION_END_COL = 7; % X, Y, Z orientation end at this column
-        %     BNO_ANG_VEL_COL = 8;
-        %
-        %     binarySignal = rawData.HallSensor;  % Adjust 'Var3' to the correct variable name if different
-        %
-        %     % Identify valid data segments based on binary signals
-        %     oneIndices = find(binarySignal == 1);
-        %     validSegments = find(diff(oneIndices) > 1);  % Find non-consecutive ones
-        %
-        %     if isempty(validSegments) || length(validSegments) < 2
-        %         error('Valid data segments not found.');
-        %     end
-        %
-        %     if isempty(validSegments) || length(validSegments) < 2
-        %         error('Valid data segments not found.');
-        %     end
-        %
-        %     % Define the range for valid data based on identified segments
-        %     validStartIndex = oneIndices(validSegments(1));
-        %     validEndIndex = oneIndices(validSegments(2));
-        %
-        %     % Extract data within the valid range
-        %     validData = rawData(validStartIndex:validEndIndex, :);
-        %
-        %     % Determine columns based on dataType
-        %     switch dataType
-        %         case 'Angle'
-        %             columns = BNO_ORIENTATION_START_COL:BNO_ORIENTATION_END_COL;
-        %         case 'AngVel'
-        %             columns = BNO_ANG_VEL_COL;
-        %         case 'LinAcc'
-        %             columns = ADXL_PISTON_LIN_ACC_COL;
-        %         otherwise
-        %             error('Unknown dataType specified');
-        %     end
-        %
-        %     % Insert a time step column based on estimated RPM (convert to radians per second first)
-        %     estRpm = rawData{validStartIndex, EST_RPM_COL};
-        %     omega = estRpm * (2 * pi / 60); % Convert RPM to radians per second
-        %     timesteps = (0 : height(validData) - 1)' / omega; % Create a timestep array
-        %     validData.Timestep = seconds(timesteps); % Insert as duration in seconds
-        %
-        %     % Select and store the desired data based on dataType and sensor
-        %     pythonGraphData = struct();
-        %     % pythonGraphData.Time = validData.Timestep; % Use the new Timestep column
-        %     % pythonGraphData.Values = validData(:, columns); % Data of interest
-        %     % pythonGraphData.SensorID = sensor; % Include sensor ID for reference
-        %
-        %     yColumnMap = containers.Map(...
-        %         {'EAngle', 'EAngVel', 'FLinAcc'}, ...
-        %         {2, 1, 1});
-        %
-        %     % Get the correct Y column index using the map
-        %     % sensorID = sensorMap(sensorType);
-        %     % sensorID =
-        %
-        %     yColumnIndex = columns(yColumnMap([sensor dataType]));
-        %
-        %     YData = table2array(validData(:, yColumnIndex));
-        %     XData = timesteps;
-        %     % Refine data by ensuring continuity and removing spikes (maybe do later)
-        %     % refinedData = validData(refinedDataIndices, :);
-        %     % continuousData = removeSpikes(refinedData, columns);
-        %
-        %     % Store processed data for output
-        %     pythonGraphData.Time = XData;  % Time column
-        %     pythonGraphData.Values = YData;  % Extracted values based on dataType and sensor
-        % end
-
-
         function cols = getDataColumns(dataType)
             % Define data columns for different data types
             switch dataType
@@ -448,124 +353,6 @@ classdef RMSEUtils
                     cols = [];
             end
         end
-
-        % Retriev the desired theoretical data
-        % function theoData = retrieveTheoData(dataSet, expData, sensor, dataType, speed)
-        %     % Determine the main category based on dataType
-        %     switch dataType
-        %         case {'LinVel', 'AngVel'}
-        %             mainCategory = 'Vel';
-        %         case {'LinAcc', 'AngAcc'}
-        %             mainCategory = 'Acc';
-        %         case {'Angle', 'Point'}
-        %             mainCategory = 'Pos';
-        %         otherwise
-        %             mainCategory = '?';
-        %     end
-        %
-        %     % Determine the sub-category (Joint or LinkCoM or directly under the category)
-        %     if any(strcmp(dataType, {'LinVel', 'LinAcc', 'Point'}))  % These involve Joint or LinkCoM
-        %         if length(sensor) == 1  % Assuming sensor names for Joints are single characters
-        %             subCategory = 'Joint';
-        %             % subCategory = 'TracerPoint';
-        %         else
-        %             subCategory = 'LinkCoM';
-        %         end
-        %     else  % For angular data types or position, the sensor directly maps to data
-        %         subCategory = '';
-        %     end
-        %
-        %     % Access the appropriate dataset
-        %     try
-        %         if isempty(subCategory)
-        %             % Directly under main category for angular data types
-        %             dataField = dataSet.(mainCategory).(dataType);
-        %         else
-        %             % Nested under Joint or LinkCoM
-        %             dataField = dataSet.(mainCategory).(dataType).(subCategory);
-        %         end
-        %
-        %         % Dynamically find the appropriate sensor field that contains the sensor ID
-        %         theoDataArray = [];
-        %         if ~isempty(dataField)
-        %             sensorFields = fieldnames(dataField);
-        %             for i = 1:length(sensorFields)
-        %                 if contains(sensorFields{i}, sensor)
-        %                     % Handle cases with and without speed specification
-        %                     if ~isempty(speed) && isfield(dataField.(sensorFields{i}), speed)
-        %                         % theoData = table2array(dataField.(sensorFields{i}).(speed)(:,1));
-        %                         theoDataArray = table2array(dataField.(sensorFields{i}).(speed)(:,3));
-        %                     else
-        %                         % Assuming expData and theoData are columns of
-        %                         theoDataArray = double(dataField.(sensorFields{i}){:, 3});
-        %                         % TODO: MAKE SURE expData.Values(1,1) AND theoData(1,1) have the same timestep. The adjustment is off because they do not have the same timestep
-        %                         % adjustedTheorData = theoDataArray(1,1);
-        %                         % adjustment = expData.Values(1,1) - adjustedTheorData;
-        %                         % theoDataArray = theoDataArray + adjustment;
-        %                         % Interpolate theoDataArray to find the value at the first timestep of expData.Values
-        %                         % Assuming theoDataArray has time in theoDataArray.Time and corresponding values in theoDataArray.Values
-        %                         interpolatedTheoData = interp1(theoDataArray.Time, theoDataArray.Values, expTimeStart, 'linear');
-        %
-        %                         % Calculate the adjustment using the interpolated value at the first timestep
-        %                         adjustment = expData.Values(1) - interpolatedTheoData;
-        %
-        %                         % Apply the adjustment to the entire theoretical data array
-        %                         adjustedTheoDataArray = theoDataArray.Values + adjustment;
-        %
-        %                         % Updating theoDataArray with the adjusted values
-        %                         theoDataArray.Values = adjustedTheoDataArray;
-        %                         %% This is another band-aid solution and make sure to accomondate for this accordingly
-        %                         if strcmp(dataType, 'Angle')
-        %                             if strcmp(sensor, 'H') || strcmp(sensor, 'I')
-        %                             % Step 1: Convert negative values to their positive complements
-        %                                 data = mod(theoData, 360);  % This ensures all values are in the range [0, 360)
-        %
-        %                                 % Step 2: Map values to the new range [-90, 90]
-        %                                 % adjustedData = zeros(size(data));  % Initialize the adjusted data array
-        %
-        %                                 for i = 1:length(data)
-        %                                     if data(i) <= 90
-        %                                         % Values between 0 and 90 remain the same
-        %                                         theoDataArray(i) = data(i);
-        %                                     elseif data(i) > 90 && data(i) <= 180
-        %                                         % Values between 90 and 180 are mapped from 90 to 0
-        %                                         theoDataArray(i) = 180 - data(i);
-        %                                     elseif data(i) > 180 && data(i) <= 270
-        %                                         % Values between 180 and 270 are mapped from 0 to -90
-        %                                         theoDataArray(i) = -(data(i) - 180);
-        %                                     else
-        %                                         % Values between 270 and 360 are mapped from -90 to 0
-        %                                         theoDataArray(i) = -(360 - data(i));
-        %                                     end
-        %                                 end
-        %                             end
-        %                         end
-        %                         %% This is a band-aid... Make sure to accomodate for this accordingly (I believe adjusting the sensor in real life)
-        %                         if strcmp(sensor, 'F')
-        %                             theoDataArray = -1 * theoDataArray + (2 * theoDataArray(1,1));
-        %                         end
-        %                         % theoData = dataField.(sensorFields{i});  % Get the entire data if no speed is involved
-        %                     end
-        %                 end
-        %             end
-        %         end
-        %         if isempty(theoDataArray)  % If no matching sensor field is found
-        %             theoDataArray = [];  % Return empty if not found
-        %         end
-        %     catch
-        %         theoDataArray = [];  % Return empty if any field is not found or any error occurs
-        %     end
-        %     theoData.Values = theoDataArray;
-        %
-        %     % Now, determine timestep
-        %     rpmValue = str2double(strrep(regexp(speed, '\d+_\d+|\d+', 'match'), '_', '.'));
-        %     % rpmValue = str2double(regexp(speed, '\d+', 'match'));  % Extract numerical part from speed string like 'f10RPM'
-        %     timePerRevolution = 60 / rpmValue;  % Calculate the time for one full revolution (in seconds)
-        %     numDataPoints = size(theoData.Values, 1);  % Number of data points in the theoretical data
-        %     theoreticalTime = linspace(0, timePerRevolution, numDataPoints);  % Create a linearly spaced time array
-        %     theoreticalTime = theoreticalTime.';
-        %     theoData.Time = theoreticalTime;
-        % end
 
         function theoData = retrieveTheoData(dataSet, expData, sensor, dataType, speed, determineAdjustment, determineOffset)
             % Determine the main category based on dataType
@@ -609,7 +396,7 @@ classdef RMSEUtils
                     sensorFields = fieldnames(dataField);
                     for i = 1:length(sensorFields)
                         if contains(sensorFields{i}, sensor)
-                        % if strcmp(sensorFields{i}, sensor)
+                            % if strcmp(sensorFields{i}, sensor)
                             % Handle cases with and without speed specification
                             if ~isempty(speed) && isfield(dataField.(sensorFields{i}), speed)
                                 theoDataArray = table2array(dataField.(sensorFields{i}).(speed)(:,3));
@@ -632,11 +419,11 @@ classdef RMSEUtils
                                 % Perform Interpolation and Adjustments After Time Calculation
                                 expTimeStart = expData.Time(1);  % Get the first timestep from expData
                                 interpolatedTheoData = interp1(theoData.Time, theoDataArray, expTimeStart, 'linear');  % Interpolate to match first expData timestep
-                                
+
                                 % Utilize the passed in adjustment function and make the adjustment accordingly
                                 adjustment = feval(determineAdjustment, sensor, interpolatedTheoData, expData.Values(1));
-                           
-                                % Pass the adjusted value into offset function 
+
+                                % Pass the adjusted value into offset function
                                 theoDataArray = feval(determineOffset, sensor, theoDataArray, adjustment);
 
                                 % adjustment = expData.Values(1) - interpolatedTheoData;  % Calculate adjustment
@@ -648,10 +435,6 @@ classdef RMSEUtils
                                         theoDataArray = adjustAngleRange(theoDataArray);
                                     end
                                 end
-                                % 
-                                % if strcmp(sensor, 'F')
-                                %     theoDataArray = -1 * theoDataArray + (2 * theoDataArray(1,1));
-                                % end
                             end
                         end
                     end
@@ -668,68 +451,7 @@ classdef RMSEUtils
             theoData.Values = theoDataArray;
         end
 
-        function rmseResults = calculateRMSE(expDataSet, theoDataSet, sensor, sensorSourceMap, dataType, speed, processCoolTermData, processPythonGraphData, processWitMotionData, determineAdjustment, determineOffset)
-            % rmseResults = struct(); % Initialize results structure
 
-            % Retrieve experimental and theoretical data for the given sensor, dataType, and speed
-            expData = RMSEUtils.retrieveExpData(expDataSet, sensor, sensorSourceMap, dataType, speed, processCoolTermData, processPythonGraphData, processWitMotionData);
-            theoData = RMSEUtils.retrieveTheoData(theoDataSet, expData, sensor, dataType, speed, determineAdjustment, determineOffset);
-
-            % Calculate RMSE if both experimental and theoretical data are available
-            if ~isempty(expData) && ~isempty(theoData)
-                % Extract the numerical part from speed string like 'f10_2RPM'
-                % rpmValue = str2double(strrep(regexp(speed, '\d+_\d+|\d+', 'match'), '_', '.'));
-                % % rpmValue = str2double(regexp(speed, '\d+', 'match'));  % Extract numerical part from speed string like 'f10RPM'
-                % timePerRevolution = 60 / rpmValue;  % Calculate the time for one full revolution (in seconds)
-                % numDataPoints = size(theoData, 1);  % Number of data points in the theoretical data
-                % theoreticalTime = linspace(0, timePerRevolution, numDataPoints);  % Create a linearly spaced time array
-                % theoreticalTime = theoreticalTime.';
-
-                % Calculate RMSE if both experimental and theoretical data are available
-                timestamps = expData.Time;
-
-                % interpolatedTheoData = interp1(theoreticalTime, theoData, seconds(timestamps), 'linear', 'extrap');
-                % interpolatedTheoData = interp1(theoreticalTime, theoData, timestamps, 'linear', 'extrap');
-                % rmse = sqrt(mean((expData.Values - interpolatedTheoData).^2));
-                interpolatedTheoData = interp1(theoData.Time, theoData.Values, timestamps, 'linear', 'extrap');
-                rmse = sqrt(mean((expData.Values - interpolatedTheoData).^2));
-
-                % Store RMSE in the results structure
-                rmseResults = rmse;
-
-                % Generate plot for verification
-                fig = figure('Visible', 'off');
-                hold on;
-                plot(timestamps, expData.Values, 'b', 'DisplayName', 'Experimental Data');
-                plot(theoData.Time, theoData.Values, 'g', 'DisplayName', 'Theoretical Data');
-                plot(timestamps, interpolatedTheoData, 'r--', 'DisplayName', 'Interpolated Theoretical Data');
-                legend show;
-                xlabel('Time (s)');
-                ylabel('Data Value');
-                title(['RMSE Analysis for ' sensor ' - ' dataType ' - ' speed]);
-                hold off;
-
-                % Define directory path for saving
-                resultDir = fullfile('RMSE_Results', sensor, dataType, speed);
-
-                % Ensure the directory exists
-                if ~exist(resultDir, 'dir')
-                    mkdir(resultDir);
-                end
-
-                % Save plot
-                savefig(fig, fullfile(resultDir, 'graph.fig'));
-                saveas(fig, fullfile(resultDir, 'graph.png'));
-
-                % Close the figure
-                close(fig);
-            else
-                warning('Missing data for sensor %s, data type %s, speed %s', sensor, dataType, speed);
-                rmseResults = NaN; % Assign NaN to indicate missing data calculation
-            end
-
-            return;
-        end
         % Function to save RMSE results to CSV
         function saveResultsToCSV(rmseResults, baseFolder)
             % Ensure the base RMSE folder exists
@@ -825,6 +547,18 @@ for i = 1:length(data)
     end
 end
 end
+
+function speed = parseSpeed(formatted_speed_str)
+% Remove the 'f' at the start and 'RPM' at the end
+tempStr = erase(formatted_speed_str, {'f', 'RPM'});
+
+% Replace underscores with dots
+tempStr = strrep(tempStr, '_', '.');
+
+% Add " RPM" to the numeric part
+speed = [tempStr ' RPM'];
+end
+
 
 
 
