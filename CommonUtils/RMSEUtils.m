@@ -1,6 +1,6 @@
 classdef RMSEUtils
     methods(Static)
-        function Mechanism = RMSESolver(Mechanism, sensorDataTypes, sensorSourceMap, sensorDataFlipMap, processCoolTermData, processPythonGraphData, processWitMotionData, determineAdjustment, determineOffset)
+        function Mechanism = RMSESolver(Mechanism, sensorDataTypes, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, processCoolTermData, processPythonGraphData, processWitMotionData, determineAdjustment, determineOffset)
             TheoreticalPath = 'CSVOutput';
 
             % Define the base paths for experimental data
@@ -20,7 +20,7 @@ classdef RMSEUtils
                 currentSensor = sensor{1};
                 dataTypes = sensorDataTypes(currentSensor);  % Retrieve data types for current sensor
                 % Compute RMSE for the current sensor across its specified data types
-                rmseResults.(currentSensor) = RMSEUtils.calculateRMSEForSensor(expData, theoData, currentSensor, sensorSourceMap, sensorDataFlipMap, dataTypes, speeds, processCoolTermData, processPythonGraphData, processWitMotionData, determineAdjustment, determineOffset);
+                rmseResults.(currentSensor) = RMSEUtils.calculateRMSEForSensor(expData, theoData, currentSensor, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, dataTypes, speeds, processCoolTermData, processPythonGraphData, processWitMotionData, determineAdjustment, determineOffset);
             end
 
             % Save results to CSV
@@ -30,23 +30,23 @@ classdef RMSEUtils
         end
 
         % Function to calculate RMSE for a given sensor and its data types
-        function results = calculateRMSEForSensor(expData, theoData, sensor, sensorSourceMap, sensorDataFlipMap, dataTypes, speeds, processCoolTermData, processPythonGraphData, processWitMotionData, determineAdjustment, determineOffset)
+        function results = calculateRMSEForSensor(expData, theoData, sensor, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, dataTypes, speeds, processCoolTermData, processPythonGraphData, processWitMotionData, determineAdjustment, determineOffset)
             results = struct();
             for dataType = dataTypes
                 for speed = speeds
                     % Calculate RMSE using a hypothetical function, for a given dataType and speed
-                    rmseValue = RMSEUtils.calculateRMSE(expData, theoData, sensor, sensorSourceMap, sensorDataFlipMap, dataType{1}, speed{1}, processCoolTermData, processPythonGraphData, processWitMotionData, determineAdjustment, determineOffset);
+                    rmseValue = RMSEUtils.calculateRMSE(expData, theoData, sensor, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, dataType{1}, speed{1}, processCoolTermData, processPythonGraphData, processWitMotionData, determineAdjustment, determineOffset);
                     % Store RMSE value in the struct under its corresponding speed
                     results.(dataType{1}).(speed{1}) = rmseValue;
                 end
             end
         end
 
-        function rmseResults = calculateRMSE(expDataSet, theoDataSet, sensor, sensorSourceMap, sensorDataFlipMap, dataType, speed, processCoolTermData, processPythonGraphData, processWitMotionData, determineAdjustment, determineOffset)
+        function rmseResults = calculateRMSE(expDataSet, theoDataSet, sensor, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, dataType, speed, processCoolTermData, processPythonGraphData, processWitMotionData, determineAdjustment, determineOffset)
             % rmseResults = struct(); % Initialize results structure
 
             % Retrieve experimental and theoretical data for the given sensor, dataType, and speed
-            expData = RMSEUtils.retrieveExpData(expDataSet, sensor, sensorSourceMap, sensorDataFlipMap, dataType, speed, processCoolTermData, processPythonGraphData, processWitMotionData);
+            expData = RMSEUtils.retrieveExpData(expDataSet, sensor, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, dataType, speed, processCoolTermData, processPythonGraphData, processWitMotionData);
             theoData = RMSEUtils.retrieveTheoData(theoDataSet, expData, sensor, dataType, speed, determineAdjustment, determineOffset);
 
             % Calculate RMSE if both experimental and theoretical data are available
@@ -56,7 +56,37 @@ classdef RMSEUtils
                 timestamps = expData.Time;
 
                 interpolatedTheoData = interp1(theoData.Time, theoData.Values, timestamps, 'linear', 'extrap');
-                rmse = sqrt(mean((expData.Values - interpolatedTheoData).^2));
+
+                %% DETERMINE RMSE 
+             % Calculate differences
+                differences = expData.Values - interpolatedTheoData;
+            
+                % Identify outliers (using IQR method as an example)
+                Q1 = quantile(differences, 0.25);
+                Q3 = quantile(differences, 0.75);
+                IQR = Q3 - Q1;
+                lowerBound = Q1 - 1.5 * IQR;
+                upperBound = Q3 + 1.5 * IQR;
+            
+                % Mask for non-outliers
+                nonOutlierMask = (differences >= lowerBound) & (differences <= upperBound);
+            
+                % Filter experimental and interpolated theoretical data to remove outliers
+                filteredExpData = expData.Values(nonOutlierMask);
+                filteredTheoData = interpolatedTheoData(nonOutlierMask);
+            
+                % Ensure there are still valid points to compute RMSE
+                if ~isempty(filteredExpData) && ~isempty(filteredTheoData)
+                    % Calculate RMSE without outliers
+                    rmse = sqrt(mean((filteredExpData - filteredTheoData).^2));
+                else
+                    % Handle case where all points are outliers
+                    rmse = NaN;
+                    warning('All data points were considered outliers. RMSE cannot be computed.');
+                end
+                %% END of determine RMSE
+% 
+% rmse = sqrt(mean((expData.Values - interpolatedTheoData).^2));
 
                 % Store RMSE in the results structure
                 rmseResults = rmse;
@@ -281,7 +311,7 @@ classdef RMSEUtils
         end
 
         % Retriev the desired experimental data
-        function expData = retrieveExpData(dataSet, sensor, sensorSourceMap, sensorDataFlipMap, dataType, speed, processCoolTermData, processPythonGraphData, processWitMotionData)
+        function expData = retrieveExpData(dataSet, sensor, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, dataType, speed, processCoolTermData, processPythonGraphData, processWitMotionData)
             % Map sensors to their respective data sources (CoolTerm or WitMotion)
             source = sensorSourceMap(sensor);
             % Check if the required data is available
@@ -291,7 +321,7 @@ classdef RMSEUtils
                 if (strcmp(source, 'CoolTerm'))
                     expData = feval(processCoolTermData, rawData, sensor, dataType);
                 elseif (strcmp(source, 'WitMotion'))
-                    expData = feval(processWitMotionData, rawData, sensor, sensorDataFlipMap, dataType);
+                    expData = feval(processWitMotionData, rawData, sensor, sensorDataFlipMap, pullColumnDataMap, dataType);
                 elseif (strcmp(source, 'PythonGraph'))
                     expData = feval(processPythonGraphData, rawData, sensor, dataType);
                 else

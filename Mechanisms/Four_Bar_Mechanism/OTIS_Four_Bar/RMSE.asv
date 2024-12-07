@@ -1,4 +1,4 @@
-function Mechanism = RMSE(Mechanism, sensorDataTypes, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap)
+function Mechanism = RMSE(Mechanism, sensorDataTypes, sensorSourceMap, sensorDataFlipMap, PullColumnDataMap)
 % TODO: Make sure to insert the processFunctions in as an argument and
 % utilize this within code
 Mechanism = RMSEUtils.RMSESolver(Mechanism, sensorDataTypes, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, @processCoolTermData, @processPythonGraphData, @processWitMotionData, @determineAdjustment, @determineOffset);
