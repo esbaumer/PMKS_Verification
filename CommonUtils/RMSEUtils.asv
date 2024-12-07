@@ -62,18 +62,34 @@ classdef RMSEUtils
                 rmseResults = rmse;
 
                 % Generate plot for verification
+                % Plot the data with thicker lines
                 fig = figure('Visible', 'off');
+                
+                % Plot data with thicker lines
+                plot(timestamps, expData.Values, 'b', 'LineWidth', 2, 'DisplayName', 'Experimental Data');
                 hold on;
-                plot(timestamps, expData.Values, 'b', 'DisplayName', 'Experimental Data');
-                plot(theoData.Time, theoData.Values, 'g', 'DisplayName', 'Theoretical Data');
-                plot(timestamps, interpolatedTheoData, 'r--', 'DisplayName', 'Interpolated Theoretical Data');
-                legend show;
-                xlabel('Time (s)');
-                ylabel('Data Value');
-                titleSpeed = 
-                title(['RMSE Analysis for ' sensor ' - ' dataType ' - ' speed]);
+                plot(theoData.Time, theoData.Values, 'g', 'LineWidth', 2, 'DisplayName', 'Theoretical Data');
+                plot(timestamps, interpolatedTheoData, 'r--', 'LineWidth', 2, 'DisplayName', 'Interpolated Theoretical Data');
+                
+                % Add legend and labels
+                legend('FontSize', 8, 'Location', 'northeast'); % Top-right legend placement
+                xlabel('Time (s)', 'FontSize', 16, 'FontWeight', 'bold'); % Bold x-axis label
+                if strcmp(dataType, 'Angle')
+                    ylabel('Degrees', 'FontSize', 16, 'FontWeight', 'bold'); % Bold y-axis label
+                elseif strcmp(dataType, 'AngVel')
+                    ylabel('Rad/s', 'FontSize', 16, 'FontWeight', 'bold'); % Bold y-axis label
+                else
+                    ylabel('??', 'FontSize', 16, 'FontWeight', 'bold'); % Bold y-axis label
+                end
+                
+                % Add title with larger font size
+                titleSpeed = parseSpeed(speed);
+                title(['RMSE Analysis for ' sensor ' - ' dataType ' - ' titleSpeed], 'FontSize', 16, 'FontWeight', 'bold'); % Bold title
+                
+                % Adjust axis tick labels for bold font
+                set(gca, 'FontSize', 12, 'FontWeight', 'bold'); % Bold axis and tick labels
+                
                 hold off;
-
                 % Define directory path for saving
                 resultDir = fullfile('RMSE_Results', sensor, dataType, speed);
 
@@ -510,6 +526,18 @@ for i = 1:length(data)
     end
 end
 end
+
+function speed = parseSpeed(formatted_speed_str)
+% Remove the 'f' at the start and 'RPM' at the end
+tempStr = erase(formatted_speed_str, {'f', 'RPM'});
+
+% Replace underscores with dots
+tempStr = strrep(tempStr, '_', '.');
+
+% Add " RPM" to the numeric part
+speed = [tempStr ' RPM'];
+end
+
 
 
 

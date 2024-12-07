@@ -90,27 +90,6 @@ classdef RMSEUtils
                 set(gca, 'FontSize', 12, 'FontWeight', 'bold'); % Bold axis and tick labels
                 
                 hold off;
-
-
-%                 fig = figure('Visible', 'off');
-%                 hold on;
-%                 plot(timestamps, expData.Values, 'b', 'DisplayName', 'Experimental Data');
-%                 plot(theoData.Time, theoData.Values, 'g', 'DisplayName', 'Theoretical Data');
-%                 plot(timestamps, interpolatedTheoData, 'r--', 'DisplayName', 'Interpolated Theoretical Data');
-%                 legend show;
-%                 xlabel('Time (s)');
-%                 if strcmp(dataType, 'Angle')
-%                     ylabel('Degrees');
-%                 elseif strcmp(dataType, 'AngVel')
-%                     ylabel('Rad/s');
-%                 else
-%                     ylabel('??');
-%                 end
-% 
-%                 titleSpeed = parseSpeed(speed);
-%                 title(['RMSE Analysis for ' sensor ' - ' dataType ' - ' titleSpeed]);
-%                 hold off;
-
                 % Define directory path for saving
                 resultDir = fullfile('RMSE_Results', sensor, dataType, speed);
 

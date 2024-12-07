@@ -151,7 +151,8 @@ function [selectedMap, letterMap] = determineMap(rawData, SENSOR_ID_COL)
         {'ef:e4:2c:bf:73:a9', 'd2:5a:50:4a:21:12', 'c3:a3:c5:ed:f8:8e', 'd2:d6:ae:79:8c:70'});
     sensorMap2 = containers.Map(...
         {'E', 'F', 'G'}, ...
-        {'COM10', 'COM9', 'COM7'});
+        {'COM16', 'COM14', 'COM13'});
+%         {'COM10', 'COM9', 'COM7'});
     
     % Get unique device names from rawData
     uniqueDeviceNames = unique(rawData{:, SENSOR_ID_COL});
