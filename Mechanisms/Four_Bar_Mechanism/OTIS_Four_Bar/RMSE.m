@@ -1,7 +1,7 @@
-function Mechanism = RMSE(Mechanism, sensorDataTypes, sensorSourceMap)
+function Mechanism = RMSE(Mechanism, sensorDataTypes, sensorSourceMap, sensorDataFlipMap)
 % TODO: Make sure to insert the processFunctions in as an argument and
 % utilize this within code
-Mechanism = RMSEUtils.RMSESolver(Mechanism, sensorDataTypes, sensorSourceMap, @processCoolTermData, @processPythonGraphData, @processWitMotionData, @determineAdjustment, @determineOffset);
+Mechanism = RMSEUtils.RMSESolver(Mechanism, sensorDataTypes, sensorSourceMap, sensorDataFlipMap, @processCoolTermData, @processPythonGraphData, @processWitMotionData, @determineAdjustment, @determineOffset);
 end
 
 % TODO: Put the logic here for pulling the respective column for
@@ -14,7 +14,7 @@ function pythonGraphData = processPythonGraphData(rawData, sensorType, dataType)
 
 end
 
-function witMotionData = processWitMotionData(rawData, sensorType, dataType)
+function witMotionData = processWitMotionData(rawData, sensorType, sensorDataFlipMap, dataType)
 columnHeaders = rawData.Properties.VariableNames;
 % Constants for column indices based on data type
 TIME_COL = 1; % Time column index
@@ -103,6 +103,13 @@ witMotionStartingTime = interp1(x, y, xq, 'linear');
 witMotionData.Time = seconds(witMotionData.Time - witMotionStartingTime);
 % Extract the values once to avoid repetition
 values = table2array(refinedData(:, 3));
+% values = values * sensorDataFlipMap(strcat(sensorType, dataType));
+if (sensorDataFlipMap(strcat(sensorType, dataType)) == 2) 
+    values = flip(values);
+elseif (sensorDataFlipMap(strcat(sensorType, dataType)) == 3)
+        values = values * -1;
+        values = flip(values);
+end
 
 % Define the mapping for conversion based on conditions
 if contains([letterMap(sensorID) dataType], 'EAngVel') || contains([letterMap(sensorID) dataType], 'FAngVel') || contains([letterMap(sensorID) dataType], 'GAngVel') || contains([letterMap(sensorID) dataType], 'HAngVel')
@@ -114,6 +121,7 @@ elseif contains([letterMap(sensorID) dataType], 'EAngle') || contains([letterMap
 else
     witMotionData.Values = table2array(refinedData(:, 1)); % Default case
 end
+
 
 % witMotionData.Values = refinedData;
 witMotionData.SensorID = sensorID;  % Include sensor ID in the output for reference
