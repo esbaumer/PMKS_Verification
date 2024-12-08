@@ -4,6 +4,8 @@ function Mechanism = RMSE(Mechanism, sensorDataTypes, sensorSourceMap, sensorDat
 Mechanism = RMSEUtils.RMSESolver(Mechanism, sensorDataTypes, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, @determineAdjustment, @determineOffset, @determineMap);
 end
 
+
+
 function adjustment = determineAdjustment(sensor, theoData, actualData)
 switch sensor
     case {'E', 'F', 'G', 'H'}

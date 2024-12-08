@@ -30,7 +30,7 @@ classdef RMSEUtils
                 for dataType = dataTypes
                     for speed = speeds
                         try
-                            rmseValue = RMSEUtils.calculateRMSE(expData, theoData, currentSensor, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, determineMap, dataType{1}, speed{1}, determineAdjustment, determineOffset);
+                            rmseValue = RMSEUtils.calculateRMSE(expData, theoData, currentSensor, sensorDataFlipMap, pullColumnDataMap, determineMap, dataType{1}, speed{1}, determineAdjustment, determineOffset);
                             rmseResults.(currentSensor).(dataType{1}).(speed{1}) = rmseValue;
                         catch ME
                             warning('Failed to compute RMSE for %s - %s - %s: %s', currentSensor, dataType{1}, speed{1}, ME.message);
