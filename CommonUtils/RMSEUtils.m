@@ -1,6 +1,6 @@
 classdef RMSEUtils
     methods(Static)
-        function Mechanism = RMSESolver(Mechanism, sensorDataTypes, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, calculateRMSE, determineAdjustment, determineOffset, determineMap)
+        function Mechanism = RMSESolver(Mechanism, fileToSpeedMap, sensorDataTypes, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, calculateRMSE, determineAdjustment, determineOffset, determineMap)
             % Main solver function to compute RMSE for all sensors and data types
             % Args:
             % - Mechanism: Struct to store the results
@@ -12,14 +12,41 @@ classdef RMSEUtils
             ExperimentalPath = 'Experimental';
             
             % Define speeds
-            speeds = formatSpeeds(Mechanism.input_speed_str);
+%             speeds = formatSpeeds(Mechanism.input_speed_str);
+           % Get the list of speeds from Mechanism
+            speeds = Mechanism.input_speed_str;
+            
+            % Initialize an array to store file names
+%             fileNames = cell(size(speeds));
+%             
+%             % Extract file names corresponding to each speed
+%             for i = 1:length(speeds)
+%                 speedKey = speeds(i); % Current speed as a key
+%                 if isKey(fileToSpeedMap, speedKey)
+%                     fileNames{i} = fileToSpeedMap(speedKey); % Retrieve the corresponding file name
+%                 else
+%                     error('Speed %s not found in fileToSpeedMap.', speedKey);
+%                 end
+%             end
 
             % Read experimental and theoretical data
-            expData = RMSEUtils.readExperimentalData(ExperimentalPath, sensorSourceMap, speeds);
+            expData = RMSEUtils.readExperimentalData(ExperimentalPath, sensorSourceMap);
             theoData = RMSEUtils.readTheoreticalData(TheoreticalPath);
 
             % Initialize results
             rmseResults = struct();
+
+            % Define the path to the WitMotion directory
+            witMotionPath = fullfile(ExperimentalPath, 'WitMotion');
+            
+            % Get all files in the WitMotion directory
+            fileInfo = dir(fullfile(witMotionPath, '*')); % Get all files and folders
+            
+            % Filter out directories and store file names
+            files = {fileInfo(~[fileInfo.isdir]).name}; % Only include files, not subdirectories
+
+            % Replace .csv with _csv in each file name
+            files = cellfun(@(x) strrep(x, '.csv', '_csv'), files, 'UniformOutput', false);
 
             % Iterate over sensors and calculate RMSE
             for sensorKey = keys(sensorDataTypes)
@@ -28,13 +55,14 @@ classdef RMSEUtils
 
                 % Compute RMSE for each sensor and its data types
                 for dataType = dataTypes
-                    for speed = speeds
+%                     for speed = speeds
+                    for file = files
                         try
-                            rmseValue = feval(calculateRMSE, expData, theoData, currentSensor, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, determineMap, dataType{1}, speed{1}, determineAdjustment, determineOffset);
-                            rmseResults.(currentSensor).(dataType{1}).(speed{1}) = rmseValue;
+                            rmseValue = feval(calculateRMSE, expData, theoData, currentSensor, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, determineMap, fileToSpeedMap, dataType{1}, file{1}, determineAdjustment, determineOffset);
+                            rmseResults.(currentSensor).(dataType{1}).(file{1}) = rmseValue;
                         catch ME
-                            warning('Failed to compute RMSE for %s - %s - %s: %s', currentSensor, dataType{1}, speed{1}, ME.message);
-                            rmseResults.(currentSensor).(dataType{1}).(speed{1}) = NaN;
+                            warning('Failed to compute RMSE for %s - %s - %s: %s', currentSensor, dataType{1}, file{1}, ME.message);
+                            rmseResults.(currentSensor).(dataType{1}).(file{1}) = NaN;
                         end
                     end
                 end
@@ -230,60 +258,212 @@ classdef RMSEUtils
             end
         end
 
-        function expData = readExperimentalData(baseExperimentalPath, sensorSourceMap, speeds)
+        function expData = readExperimentalData(baseExperimentalPath, sensorSourceMap)
             expData = struct(); % Initialize
             subFolders = mapValuesToUniqueArray(sensorSourceMap);  % Subdirectories to iterate through
-            filenames = speeds; % RPM filenames
-
+        
             for i = 1:length(subFolders)
                 % Initialize sub-structures for each subfolder
                 expData.(subFolders{i}) = struct();
                 currentPath = fullfile(baseExperimentalPath, subFolders{i}); % Path to current subdirectory
-
-                for j = 1:length(filenames)
-                    safeFieldName = filenames{j};
-
-                    % Construct file path
-                    if strcmp(subFolders{i}, 'CoolTerm') % For 'CoolTerm', read XLSX files
-                        xlsxPath = fullfile(currentPath, filenames{j} + ".xlsx");
-                        % Check and read XLSX file
-                        if isfile(xlsxPath)
-                            expData.(subFolders{i}).(safeFieldName) = readtable(xlsxPath);
-                            % expData.(subFolders{i}).(safeFieldName) = readtable(xlsxPath, 'Range', 'A1'); % Adjust 'Range' if necessary
-                        end
-                    elseif strcmp(subFolders{i}, 'WitMotion') % For 'WitMotion', read CSV files
-                        csvPath = fullfile(currentPath, filenames{j} + ".csv");
+        
+                if strcmp(subFolders{i}, 'WitMotion') % Handling 'WitMotion' directory
+                    % Get all CSV files in the directory
+                    csvFiles = dir(fullfile(currentPath, '*.csv')); % Adjust pattern if needed
+        
+                    % Iterate through each CSV file in the directory
+                    for j = 1:length(csvFiles)
+                        % Get file name and construct full path
+                        csvFileName = csvFiles(j).name;
+                        csvPath = fullfile(currentPath, csvFileName);
+        
                         % Check and read CSV file, including headers
                         if isfile(csvPath)
                             opts = detectImportOptions(csvPath);
                             opts.Delimiter = ',';  % Set the delimiter
-
-                            % Ensure the variable names (headers) are preserved as they are in the file
-                            opts.PreserveVariableNames = true;
-
-                            % Specify that the first row contains the headers
-                            opts.VariableNamesLine = 1;  % This tells MATLAB that the first line contains variable names (headers)
-
-                            % Ensure data starts reading from the line after the headers
-                            opts.DataLine = 2;  % Start reading data from the second line, assuming the first line is the header
-
+                            opts.PreserveVariableNames = true; % Preserve variable names
+                            opts.VariableNamesLine = 1; % First row contains variable names
+                            opts.DataLine = 2; % Data starts on the second line
+        
+                            % Safe field name
+                            safeFieldName = matlab.lang.makeValidName(csvFileName);
+        
                             % Read the table using the specified options
                             expData.(subFolders{i}).(safeFieldName) = readtable(csvPath, opts);
                         end
-                    elseif strcmp(subFolders{i}, 'PythonGraph') % For 'PythonGraph', read XLSX files
-                        xlsxPath = fullfile(currentPath, filenames{j} + ".xlsx");
+                    end
+        
+                elseif strcmp(subFolders{i}, 'CoolTerm') % Handling 'CoolTerm' directory
+                    % Get all XLSX files in the directory
+                    xlsxFiles = dir(fullfile(currentPath, '*.xlsx')); % Adjust pattern if needed
+        
+                    % Iterate through each XLSX file in the directory
+                    for j = 1:length(xlsxFiles)
+                        % Get file name and construct full path
+                        xlsxFileName = xlsxFiles(j).name;
+                        xlsxPath = fullfile(currentPath, xlsxFileName);
+        
                         % Check and read XLSX file
                         if isfile(xlsxPath)
+                            % Safe field name
+                            safeFieldName = matlab.lang.makeValidName(xlsxFileName);
+        
+                            % Read the table
                             expData.(subFolders{i}).(safeFieldName) = readtable(xlsxPath);
-                            % If needed, you can specify 'Range' and other options in 'readtable'
                         end
-                    else
-                        % Handle other cases or give a warning/error
-                        warning('Unknown subfolder type: %s', subFolders{i});
                     end
+        
+                elseif strcmp(subFolders{i}, 'PythonGraph') % Handling 'PythonGraph' directory
+                    % Get all XLSX files in the directory
+                    xlsxFiles = dir(fullfile(currentPath, '*.xlsx')); % Adjust pattern if needed
+        
+                    % Iterate through each XLSX file in the directory
+                    for j = 1:length(xlsxFiles)
+                        % Get file name and construct full path
+                        xlsxFileName = xlsxFiles(j).name;
+                        xlsxPath = fullfile(currentPath, xlsxFileName);
+        
+                        % Check and read XLSX file
+                        if isfile(xlsxPath)
+                            % Safe field name
+                            safeFieldName = matlab.lang.makeValidName(xlsxFileName);
+        
+                            % Read the table
+                            expData.(subFolders{i}).(safeFieldName) = readtable(xlsxPath);
+                        end
+                    end
+        
+                else
+                    % Skip unrecognized directories
+                    warning('Skipping unrecognized directory: %s', subFolders{i});
                 end
             end
         end
+
+
+%         function expData = readExperimentalData(baseExperimentalPath, sensorSourceMap)
+%             expData = struct(); % Initialize
+%             subFolders = mapValuesToUniqueArray(sensorSourceMap);  % Subdirectories to iterate through
+%         
+%             for i = 1:length(subFolders)
+%                 % Initialize sub-structures for each subfolder
+%                 expData.(subFolders{i}) = struct();
+%                 currentPath = fullfile(baseExperimentalPath, subFolders{i}); % Path to current subdirectory
+%         
+%                 if strcmp(subFolders{i}, 'WitMotion') % Special handling for 'WitMotion' subdirectory
+%                     % Get all CSV files in the directory
+%                     csvFiles = dir(fullfile(currentPath, '*.csv')); % Adjust pattern if needed
+%         
+%                     % Iterate through each CSV file in the directory
+%                     for j = 1:length(csvFiles)
+%                         % Get file name and construct full path
+%                         csvFileName = csvFiles(j).name;
+%                         csvPath = fullfile(currentPath, csvFileName);
+%         
+%                         % Check and read CSV file, including headers
+%                         if isfile(csvPath)
+%                             opts = detectImportOptions(csvPath);
+%                             opts.Delimiter = ',';  % Set the delimiter
+%         
+%                             % Ensure the variable names (headers) are preserved as they are in the file
+%                             opts.PreserveVariableNames = true;
+%         
+%                             % Specify that the first row contains the headers
+%                             opts.VariableNamesLine = 1;  % This tells MATLAB that the first line contains variable names (headers)
+%         
+%                             % Ensure data starts reading from the line after the headers
+%                             opts.DataLine = 2;  % Start reading data from the second line, assuming the first line is the header
+%         
+%                             % Safe field name (replace non-alphanumeric characters if needed)
+%                             safeFieldName = matlab.lang.makeValidName(csvFileName);
+%         
+%                             % Read the table using the specified options
+%                             expData.(subFolders{i}).(safeFieldName) = readtable(csvPath, opts);
+%                         end
+%                     end
+%                 elseif strcmp(subFolders{i}, 'CoolTerm') % For 'CoolTerm', read XLSX files
+%                     % Iterate through expected filenames (predetermined)
+%                     for j = 1:length(filenames)
+%                         safeFieldName = filenames{j};
+%                         xlsxPath = fullfile(currentPath, filenames{j} + ".xlsx");
+%         
+%                         % Check and read XLSX file
+%                         if isfile(xlsxPath)
+%                             expData.(subFolders{i}).(safeFieldName) = readtable(xlsxPath);
+%                         end
+%                     end
+%                 elseif strcmp(subFolders{i}, 'PythonGraph') % For 'PythonGraph', read XLSX files
+%                     % Iterate through expected filenames (predetermined)
+%                     for j = 1:length(filenames)
+%                         safeFieldName = filenames{j};
+%                         xlsxPath = fullfile(currentPath, filenames{j} + ".xlsx");
+%         
+%                         % Check and read XLSX file
+%                         if isfile(xlsxPath)
+%                             expData.(subFolders{i}).(safeFieldName) = readtable(xlsxPath);
+%                         end
+%                     end
+%                 else
+%                     % Handle other cases or give a warning/error
+%                     warning('Unknown subfolder type: %s', subFolders{i});
+%                 end
+%             end
+%         end
+
+%         function expData = readExperimentalData(baseExperimentalPath, sensorSourceMap)
+%             expData = struct(); % Initialize
+%             subFolders = mapValuesToUniqueArray(sensorSourceMap);  % Subdirectories to iterate through
+% %             filenames = speeds; % RPM filenames
+% 
+%             for i = 1:length(subFolders)
+%                 % Initialize sub-structures for each subfolder
+%                 expData.(subFolders{i}) = struct();
+%                 currentPath = fullfile(baseExperimentalPath, subFolders{i}); % Path to current subdirectory
+% 
+%                 for j = 1:length(filenames)
+%                     safeFieldName = filenames{j};
+% 
+%                     % Construct file path
+%                     if strcmp(subFolders{i}, 'CoolTerm') % For 'CoolTerm', read XLSX files
+%                         xlsxPath = fullfile(currentPath, filenames{j} + ".xlsx");
+%                         % Check and read XLSX file
+%                         if isfile(xlsxPath)
+%                             expData.(subFolders{i}).(safeFieldName) = readtable(xlsxPath);
+%                             % expData.(subFolders{i}).(safeFieldName) = readtable(xlsxPath, 'Range', 'A1'); % Adjust 'Range' if necessary
+%                         end
+%                     elseif strcmp(subFolders{i}, 'WitMotion') % For 'WitMotion', read CSV files
+%                         csvPath = fullfile(currentPath, filenames{j} + ".csv");
+%                         % Check and read CSV file, including headers
+%                         if isfile(csvPath)
+%                             opts = detectImportOptions(csvPath);
+%                             opts.Delimiter = ',';  % Set the delimiter
+% 
+%                             % Ensure the variable names (headers) are preserved as they are in the file
+%                             opts.PreserveVariableNames = true;
+% 
+%                             % Specify that the first row contains the headers
+%                             opts.VariableNamesLine = 1;  % This tells MATLAB that the first line contains variable names (headers)
+% 
+%                             % Ensure data starts reading from the line after the headers
+%                             opts.DataLine = 2;  % Start reading data from the second line, assuming the first line is the header
+% 
+%                             % Read the table using the specified options
+%                             expData.(subFolders{i}).(safeFieldName) = readtable(csvPath, opts);
+%                         end
+%                     elseif strcmp(subFolders{i}, 'PythonGraph') % For 'PythonGraph', read XLSX files
+%                         xlsxPath = fullfile(currentPath, filenames{j} + ".xlsx");
+%                         % Check and read XLSX file
+%                         if isfile(xlsxPath)
+%                             expData.(subFolders{i}).(safeFieldName) = readtable(xlsxPath);
+%                             % If needed, you can specify 'Range' and other options in 'readtable'
+%                         end
+%                     else
+%                         % Handle other cases or give a warning/error
+%                         warning('Unknown subfolder type: %s', subFolders{i});
+%                     end
+%                 end
+%             end
+%         end
 
         % Retriev the desired experimental data
         function expData = retrieveExpData(dataSet, sensor, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, determineMap, dataType, speed)
@@ -308,8 +488,26 @@ classdef RMSEUtils
             end
         end
 
-        function theoData = retrieveTheoData(dataSet, expData, sensor, dataType, speed, determineAdjustment, determineOffset)
+        function theoData = retrieveTheoData(dataSet, expData, sensor, dataType, file, determineAdjustment, determineOffset, fileToSpeedMap)
             % Determine the main category based on dataType
+            speedDouble = fileToSpeedMap(strrep(file, '_csv', '.csv'));
+
+            % Extract integer and fractional parts
+            integerPart = floor(speedDouble);
+            fractionalPart = round(mod(speedDouble, 1) * 100); % Extract fractional part and scale to 2 digits
+            
+            % Construct the formatted string
+            if fractionalPart == 0
+                % No fractional part, just use the integer part
+                speed = sprintf('f%dRPM', integerPart);
+            elseif mod(fractionalPart, 10) == 0
+                % Fractional part has a trailing zero, use only the first digit
+                speed = sprintf('f%d_%dRPM', integerPart, fractionalPart / 10);
+            else
+                % Use both digits of the fractional part
+                speed = sprintf('f%d_%02dRPM', integerPart, fractionalPart);
+            end
+            
             switch dataType
                 case {'LinVel', 'AngVel'}
                     mainCategory = 'Vel';
@@ -364,7 +562,7 @@ classdef RMSEUtils
                                 theoDataArray = double(dataField.(sensorFields{i}){:, 3});
 
                                 % Calculate Time Before Adjustment
-                                rpmValue = str2double(strrep(regexp(speed, '\d+_\d+|\d+', 'match'), '_', '.'));
+                                rpmValue = str2double(strrep(regexp(file, '\d+_\d+|\d+', 'match'), '_', '.'));
                                 timePerRevolution = 60 / rpmValue;  % Time for one full revolution (in seconds)
                                 numDataPoints = size(theoDataArray, 1);  % Number of data points in the theoretical data
                                 theoreticalTime = linspace(0, timePerRevolution, numDataPoints).';  % Linearly spaced time array
@@ -379,16 +577,6 @@ classdef RMSEUtils
 
                                 % Pass the adjusted value into offset function
                                 theoDataArray = feval(determineOffset, sensor, theoDataArray, adjustment);
-
-                                % adjustment = expData.Values(1) - interpolatedTheoData;  % Calculate adjustment
-                                % theoDataArray = theoDataArray + adjustment;  % Apply adjustment
-
-                                % Additional Adjustments for Specific Data Types or Sensors
-                                if strcmp(dataType, 'Angle')
-                                    if strcmp(sensor, 'H') || strcmp(sensor, 'I')
-                                        theoDataArray = adjustAngleRange(theoDataArray);
-                                    end
-                                end
                             end
                         end
                     end

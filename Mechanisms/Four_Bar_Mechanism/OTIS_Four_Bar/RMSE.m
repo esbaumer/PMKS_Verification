@@ -1,18 +1,18 @@
-function Mechanism = RMSE(Mechanism, sensorDataTypes, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap)
+function Mechanism = RMSE(Mechanism, fileToSpeedMap, sensorDataTypes, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap)
 % TODO: Make sure to insert the processFunctions in as an argument and
 % utilize this within code
-Mechanism = RMSEUtils.RMSESolver(Mechanism, sensorDataTypes, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, @calculateRMSE, @determineAdjustment, @determineOffset, @determineMap);
+Mechanism = RMSEUtils.RMSESolver(Mechanism, fileToSpeedMap, sensorDataTypes, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, @calculateRMSE, @determineAdjustment, @determineOffset, @determineMap);
 end
 
-function rmse = calculateRMSE(expDataSet, theoDataSet, sensor, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, determineMap, dataType, speed, determineAdjustment, determineOffset)
-    % Calculate RMSE for a specific sensor, data type, and speed
+function rmse = calculateRMSE(expDataSet, theoDataSet, sensor, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, determineMap, fileToSpeedMap, dataType, file, determineAdjustment, determineOffset)
+% Calculate RMSE for a specific sensor, data type, and speed
     % Args:
     % - expDataSet, theoDataSet: Experimental and theoretical data sets
     % - sensor, dataType, speed: Sensor name, data type, and speed
 
     % Retrieve data
-    expData = RMSEUtils.retrieveExpData(expDataSet, sensor, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, determineMap, dataType, speed);
-    theoData = RMSEUtils.retrieveTheoData(theoDataSet, expData, sensor, dataType, speed, determineAdjustment, determineOffset);
+    expData = RMSEUtils.retrieveExpData(expDataSet, sensor, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, determineMap, dataType, file);
+    theoData = RMSEUtils.retrieveTheoData(theoDataSet, expData, sensor, dataType, file, determineAdjustment, determineOffset, fileToSpeedMap);
 
     % Validate data
     if isempty(expData) || isempty(theoData)
@@ -33,7 +33,7 @@ function rmse = calculateRMSE(expDataSet, theoDataSet, sensor, sensorSourceMap, 
     rmse = sqrt(mean((filteredExpData - filteredTheoData).^2));
 
     % Generate and save the figure
-    RMSEUtils.generateAndSaveFigure(timestamps, expData.Values, theoData.Time, theoData.Values, interpolatedTheoData, sensor, dataType, speed);
+    RMSEUtils.generateAndSaveFigure(timestamps, expData.Values, theoData.Time, theoData.Values, interpolatedTheoData, sensor, dataType, file);
 end
 
 function adjustment = determineAdjustment(sensor, theoData, actualData)
