@@ -1,10 +1,40 @@
 function Mechanism = RMSE(Mechanism, sensorDataTypes, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap)
 % TODO: Make sure to insert the processFunctions in as an argument and
 % utilize this within code
-Mechanism = RMSEUtils.RMSESolver(Mechanism, sensorDataTypes, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, @determineAdjustment, @determineOffset, @determineMap);
+Mechanism = RMSEUtils.RMSESolver(Mechanism, sensorDataTypes, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, @calculateRMSE, @determineAdjustment, @determineOffset, @determineMap);
 end
 
+function rmse = calculateRMSE(expDataSet, theoDataSet, sensor, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, determineMap, dataType, speed, determineAdjustment, determineOffset)
+    % Calculate RMSE for a specific sensor, data type, and speed
+    % Args:
+    % - expDataSet, theoDataSet: Experimental and theoretical data sets
+    % - sensor, dataType, speed: Sensor name, data type, and speed
 
+    % Retrieve data
+    expData = RMSEUtils.retrieveExpData(expDataSet, sensor, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, determineMap, dataType, speed);
+    theoData = RMSEUtils.retrieveTheoData(theoDataSet, expData, sensor, dataType, speed, determineAdjustment, determineOffset);
+
+    % Validate data
+    if isempty(expData) || isempty(theoData)
+        error('Missing experimental or theoretical data');
+    end
+
+    % Interpolate theoretical data to experimental timestamps
+    timestamps = expData.Time;
+    interpolatedTheoData = interp1(theoData.Time, theoData.Values, timestamps, 'linear', 'extrap');
+
+    % Remove outliers
+    [filteredExpData, filteredTheoData] = RMSEUtils.removeOutliers(expData.Values, interpolatedTheoData);
+
+    % Compute RMSE
+    if isempty(filteredExpData)
+        error('All data points were considered outliers');
+    end
+    rmse = sqrt(mean((filteredExpData - filteredTheoData).^2));
+
+    % Generate and save the figure
+    RMSEUtils.generateAndSaveFigure(timestamps, expData.Values, theoData.Time, theoData.Values, interpolatedTheoData, sensor, dataType, speed);
+end
 
 function adjustment = determineAdjustment(sensor, theoData, actualData)
 switch sensor

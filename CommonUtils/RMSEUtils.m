@@ -1,6 +1,6 @@
 classdef RMSEUtils
     methods(Static)
-        function Mechanism = RMSESolver(Mechanism, sensorDataTypes, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, determineAdjustment, determineOffset, determineMap)
+        function Mechanism = RMSESolver(Mechanism, sensorDataTypes, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, calculateRMSE, determineAdjustment, determineOffset, determineMap)
             % Main solver function to compute RMSE for all sensors and data types
             % Args:
             % - Mechanism: Struct to store the results
@@ -30,7 +30,7 @@ classdef RMSEUtils
                 for dataType = dataTypes
                     for speed = speeds
                         try
-                            rmseValue = RMSEUtils.calculateRMSE(expData, theoData, currentSensor, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, determineMap, dataType{1}, speed{1}, determineAdjustment, determineOffset);
+                            rmseValue = feval(calculateRMSE, expData, theoData, currentSensor, sensorSourceMap, sensorDataFlipMap, pullColumnDataMap, determineMap, dataType{1}, speed{1}, determineAdjustment, determineOffset);
                             rmseResults.(currentSensor).(dataType{1}).(speed{1}) = rmseValue;
                         catch ME
                             warning('Failed to compute RMSE for %s - %s - %s: %s', currentSensor, dataType{1}, speed{1}, ME.message);
