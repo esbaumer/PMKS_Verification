@@ -121,7 +121,17 @@ classdef RMSEUtils
             filteredTheoData = theoValues(nonOutlierMask);
         end
 
-        function generateAndSaveFigure(timestamps, expValues, theoTime, theoValues, interpolatedTheoData, sensor, dataType, speed)
+        function generateAndSaveFigure(timestamps, expValues, theoTime, theoValues, interpolatedTheoData, sensor, dataType, speed, fileToSpeedMap)
+%             speedStr = fileToSpeedMap(strrep(speed, '_csv', '.csv'));
+            speedStrDouble = fileToSpeedMap(strrep(speed, '_csv', '.csv'));
+
+            % Convert double to a string with at most 2 decimal places
+            speedStr = sprintf('%.2f', speedStrDouble);
+            
+            % Remove unnecessary trailing zeros
+            speedStr = regexprep(speedStr, '\.?0+$', ''); % Removes trailing zeros and a decimal point if it's no longer needed
+            speedStr = [speedStr, 'RPM'];
+
             % Generate and save the figure for RMSE analysis
             fig = figure('Visible', 'off');
             
@@ -135,7 +145,7 @@ classdef RMSEUtils
             legend('FontSize', 8, 'Location', 'northeast');
             xlabel('Time (s)', 'FontSize', 16, 'FontWeight', 'bold');
             ylabel(dataType, 'FontSize', 16, 'FontWeight', 'bold');
-            title(sprintf('RMSE Analysis for %s - %s - %s', sensor, dataType, speed), 'FontSize', 16, 'FontWeight', 'bold');
+            title(sprintf('RMSE Analysis for %s - %s - %s', sensor, dataType, speedStr), 'FontSize', 16, 'FontWeight', 'bold');
             set(gca, 'FontSize', 12, 'FontWeight', 'bold');
             
             % Save figure
@@ -553,7 +563,8 @@ classdef RMSEUtils
                             if ~isempty(speed) && isfield(dataField.(sensorFields{i}), speed)
                                 theoDataArray = table2array(dataField.(sensorFields{i}).(speed)(:,3));
                                 % Calculate Time Before Adjustment
-                                rpmValue = str2double(strrep(regexp(speed, '\d+_\d+|\d+', 'match'), '_', '.'));
+                                 rpmValue = speedDouble;
+%                                 rpmValue = str2double(strrep(regexp(speed, '\d+_\d+|\d+', 'match'), '_', '.'));
                                 timePerRevolution = 60 / rpmValue;  % Time for one full revolution (in seconds)
                                 numDataPoints = size(theoDataArray, 1);  % Number of data points in the theoretical data
                                 theoreticalTime = linspace(0, timePerRevolution, numDataPoints).';  % Linearly spaced time array
@@ -562,7 +573,8 @@ classdef RMSEUtils
                                 theoDataArray = double(dataField.(sensorFields{i}){:, 3});
 
                                 % Calculate Time Before Adjustment
-                                rpmValue = str2double(strrep(regexp(file, '\d+_\d+|\d+', 'match'), '_', '.'));
+%                                 rpmValue = str2double(strrep(regexp(file, '\d+_\d+|\d+', 'match'), '_', '.'));
+                                rpmValue = speedDouble;
                                 timePerRevolution = 60 / rpmValue;  % Time for one full revolution (in seconds)
                                 numDataPoints = size(theoDataArray, 1);  % Number of data points in the theoretical data
                                 theoreticalTime = linspace(0, timePerRevolution, numDataPoints).';  % Linearly spaced time array

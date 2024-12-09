@@ -33,7 +33,7 @@ function rmse = calculateRMSE(expDataSet, theoDataSet, sensor, sensorSourceMap, 
     rmse = sqrt(mean((filteredExpData - filteredTheoData).^2));
 
     % Generate and save the figure
-    RMSEUtils.generateAndSaveFigure(timestamps, expData.Values, theoData.Time, theoData.Values, interpolatedTheoData, sensor, dataType, file);
+    RMSEUtils.generateAndSaveFigure(timestamps, expData.Values, theoData.Time, theoData.Values, interpolatedTheoData, sensor, dataType, file, fileToSpeedMap);
 end
 
 function adjustment = determineAdjustment(sensor, theoData, actualData)
