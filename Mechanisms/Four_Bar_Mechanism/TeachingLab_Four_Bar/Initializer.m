@@ -42,7 +42,7 @@ E = [4.79, 1.632, 0]; % Coolterm, 2
 F = [2.548, 1.958, 0]; % Coolterm, 3
 G = [2.053, 3.543, 0]; % Coolterm, 1
 H = [0.7598, 1.0278, 0]; % WitMotion, 1
-I = [4.1798, 1.9520, 0]; % WitMotion, 2
+I = [4.79, 1.632, 0]; % WitMotion, 2 same as Coolterm, 2
 
 
 % Define initial joint positions (example values)
